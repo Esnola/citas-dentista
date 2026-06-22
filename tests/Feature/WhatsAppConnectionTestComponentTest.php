@@ -1,0 +1,100 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Livewire\WhatsAppConnectionTest;
+use App\Services\WhatsApp\WhatsAppSender;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Livewire\Livewire;
+use Mockery;
+use Tests\TestCase;
+
+class WhatsAppConnectionTestComponentTest extends TestCase
+{
+    use RefreshDatabase;
+
+    protected function tearDown(): void
+    {
+        Mockery::close();
+
+        parent::tearDown();
+    }
+
+    public function test_settings_connection_form_calls_sender_and_shows_success(): void
+    {
+        $sender = Mockery::mock(WhatsAppSender::class);
+        $sender->shouldReceive('sendTestMessage')
+            ->once()
+            ->with('+34600123123', 'Mensaje de prueba', 'service')
+            ->andReturn([
+                'provider' => 'twilio',
+                'message_id' => 'SMTEST999',
+                'payload' => [
+                    'to' => 'whatsapp:+34600123123',
+                    'body' => 'Mensaje de prueba',
+                    'mode' => 'service',
+                ],
+                'raw' => [],
+            ]);
+
+        $this->app->instance(WhatsAppSender::class, $sender);
+
+        Livewire::test(WhatsAppConnectionTest::class)
+            ->set('mode', 'service')
+            ->set('recipient', '+34600123123')
+            ->set('body', 'Mensaje de prueba')
+            ->call('sendTest')
+            ->assertSet('statusType', 'success')
+            ->assertSet('status', 'Prueba enviada correctamente.')
+            ->assertSet('details.message_id', 'SMTEST999')
+            ->assertSet('details.provider', 'twilio')
+            ->assertSet('details.mode', 'service');
+    }
+
+    public function test_settings_connection_form_can_send_to_saved_recipient(): void
+    {
+        $sender = Mockery::mock(WhatsAppSender::class);
+        $sender->shouldReceive('twilioTestRecipient')->once()->andReturn('+34600123123');
+        $sender->shouldReceive('sendTestMessage')
+            ->once()
+            ->with('+34600123123', 'Mensaje de prueba desde Clínica Dental Eugénia.', 'sandbox')
+            ->andReturn([
+                'provider' => 'twilio',
+                'message_id' => 'SMTEST777',
+                'payload' => [
+                    'to' => 'whatsapp:+34600123123',
+                    'body' => 'Mensaje de prueba desde Clínica Dental Eugénia.',
+                    'mode' => 'sandbox',
+                ],
+                'raw' => [],
+            ]);
+
+        $this->app->instance(WhatsAppSender::class, $sender);
+
+        Livewire::test(WhatsAppConnectionTest::class)
+            ->call('sendSavedRecipient')
+            ->assertSet('statusType', 'success')
+            ->assertSet('details.message_id', 'SMTEST777')
+            ->assertSet('details.to', 'whatsapp:+34600123123')
+            ->assertSet('details.mode', 'sandbox');
+    }
+
+    public function test_settings_connection_form_shows_payload_preview_for_twilio_service_mode(): void
+    {
+        $this->app->setLocale('es');
+
+        config()->set('whatsapp.driver', 'twilio');
+        config()->set('whatsapp.twilio.from', 'whatsapp:+14155238886');
+        config()->set('whatsapp.twilio.messaging_service_sid', 'MG123');
+        config()->set('whatsapp.default_country_code', '+34');
+
+        Livewire::test(WhatsAppConnectionTest::class)
+            ->set('mode', 'service')
+            ->set('recipient', '600123123')
+            ->set('body', 'Mensaje de prueba')
+            ->assertSee('Vista previa del payload')
+            ->assertSee('MessagingServiceSid')
+            ->assertSee('whatsapp:+34600123123')
+            ->assertSee('Mensaje de prueba');
+    }
+}
