@@ -153,3 +153,15 @@ Los 6 pendientes tienen fecha futura y se enviarán cuando llegue su `scheduled_
 4. Sí se cambia `.env`, ejecutar `php artisan config:clear --no-interaction`.
 5. Si se quiere probar envío real, usar primero la prueba de conexión con un número unido al sandbox de Twilio.
 6. Ver el porqué no se puede seleccionar nada en la zona de ajustes.
+7. Hacer que en el archivo .env se pueda cambiar el modo de Twilio y que se refleje en la vista previa de conexión.
+8. Preparar la plantilla de correo de WhatsApp.
+9. Preparar la plantilla de correo de cita cancelada.
+10. Preparar la plantilla de correo de cita reprogramada.
+11. Preparar la plantilla de correo de cita confirmada.
+12. Preparar la plantilla de correo de cita enviada.
+13. Preparar la plantilla de correo de cita rechazada.
+14. Preparar la plantilla de correo de cita rechazada por el cliente.
+15. Preparar la plantilla de correo de cita rechazada por el dentista.
+16. Preparar para enviar correos de recordatorio de cita.
+17. Preparar para enviar correos de confirmación de cita.
+18. Preparar para seleccionar los envíos de WhatsApp y email 1 día, 2 días, 3 días y/o una semana antes de la cita.
