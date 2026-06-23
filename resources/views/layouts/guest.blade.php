@@ -15,7 +15,7 @@
 </head>
 <body class="min-h-screen bg-slate-950 text-slate-100 antialiased">
     <div class="relative min-h-screen overflow-hidden">
-        <div class="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(16,185,129,0.2),_transparent_42%),radial-gradient(circle_at_bottom_right,_rgba(59,130,246,0.16),_transparent_38%),linear-gradient(180deg,_#020617,_#0f172a)]"></div>
+        <div class="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(16,185,129,0.2),transparent_42%),radial-gradient(circle_at_bottom_right,rgba(59,130,246,0.16),transparent_38%),linear-gradient(180deg,#020617,#0f172a)]"></div>
         <div class="relative mx-auto flex min-h-screen w-full max-w-6xl items-center justify-center px-6 py-10">
             <div class="w-full max-w-md">
                 @yield('content')

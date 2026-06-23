@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Models\Appointment;
 use App\Models\WhatsAppMessage;
 use App\Services\WhatsApp\WhatsAppSender;
 use Illuminate\Console\Command;
@@ -15,11 +16,17 @@ class DispatchDueWhatsAppMessages extends Command
 
     public function handle(WhatsAppSender $sender): int
     {
+        $queued = $this->queueActiveAppointmentMessages();
         $count = 0;
 
         WhatsAppMessage::due()
+            ->with('appointment')
             ->chunkById(100, function ($messages) use (&$count, $sender): void {
                 foreach ($messages as $message) {
+                    if ($message->appointment && (! $message->appointment->activo || $message->appointment->enviado)) {
+                        continue;
+                    }
+
                     try {
                         $result = $sender->send($message);
 
@@ -34,6 +41,10 @@ class DispatchDueWhatsAppMessages extends Command
                                 'raw' => $result['raw'],
                             ],
                         ]);
+
+                        $message->appointment?->update([
+                            'enviado' => true,
+                        ]);
                     } catch (Throwable $throwable) {
                         $message->update([
                             'status' => WhatsAppMessage::STATUS_FAILED,
@@ -47,8 +58,53 @@ class DispatchDueWhatsAppMessages extends Command
                 }
             });
 
+        $this->info(sprintf('Queued %d appointment message(s).', $queued));
         $this->info(sprintf('Processed %d due message(s).', $count));
 
         return self::SUCCESS;
+    }
+
+    private function queueActiveAppointmentMessages(): int
+    {
+        $queued = 0;
+
+        Appointment::query()
+            ->with('client')
+            ->where('activo', true)
+            ->where('enviado', false)
+            ->whereDoesntHave('whatsAppMessage')
+            ->chunkById(100, function ($appointments) use (&$queued): void {
+                foreach ($appointments as $appointment) {
+                    $client = $appointment->client;
+
+                    if (! $client) {
+                        continue;
+                    }
+
+                    WhatsAppMessage::query()->create([
+                        'client_id' => $client->id,
+                        'appointment_id' => $appointment->id,
+                        'nombre' => $client->nombre,
+                        'apellidos' => $client->apellidos,
+                        'telefono' => $client->telefono,
+                        'scheduled_for' => $appointment->scheduledFor(),
+                        'message' => WhatsAppMessage::buildMessage([
+                            'nombre' => $client->nombre,
+                            'apellidos' => $client->apellidos,
+                            'telefono' => $client->telefono,
+                            'scheduled_for' => $appointment->scheduledFor(),
+                        ]),
+                        'source' => WhatsAppMessage::SOURCE_APPOINTMENT,
+                        'status' => WhatsAppMessage::STATUS_PENDING,
+                        'metadata' => [
+                            'origin_appointment_id' => $appointment->id,
+                        ],
+                    ]);
+
+                    $queued++;
+                }
+            });
+
+        return $queued;
     }
 }

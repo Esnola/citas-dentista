@@ -14,15 +14,21 @@ class WhatsAppMessage extends Model
     protected $table = 'whatsapp_messages';
 
     public const STATUS_PENDING = 'pending';
+
     public const STATUS_SENT = 'sent';
+
     public const STATUS_FAILED = 'failed';
 
     public const SOURCE_MANUAL = 'manual';
+
     public const SOURCE_EXCEL = 'excel';
+
+    public const SOURCE_APPOINTMENT = 'appointment';
 
     protected $fillable = [
         'user_id',
         'client_id',
+        'appointment_id',
         'nombre',
         'apellidos',
         'telefono',
@@ -55,6 +61,11 @@ class WhatsAppMessage extends Model
     public function client(): BelongsTo
     {
         return $this->belongsTo(Client::class);
+    }
+
+    public function appointment(): BelongsTo
+    {
+        return $this->belongsTo(Appointment::class);
     }
 
     public function getFullNameAttribute(): string

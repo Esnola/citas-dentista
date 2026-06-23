@@ -15,6 +15,149 @@
     display: none !important;
 }
 
+body.bg-slate-950 {
+    color: rgb(241 245 249);
+}
+
+body.bg-slate-950 .text-slate-500,
+body.bg-slate-950 .text-gray-500,
+body.bg-slate-950 .text-zinc-500,
+body.bg-slate-950 .text-neutral-500 {
+    color: rgb(148 163 184);
+}
+
+body.bg-slate-950 :where(label, [data-flux-label]) {
+    color: rgb(226 232 240);
+}
+
+body.bg-slate-950 :where(input, select, textarea) {
+    border-color: rgb(255 255 255 / 0.14);
+    background-color: rgb(15 23 42 / 0.72);
+    color: rgb(248 250 252);
+    color-scheme: dark;
+}
+
+body.bg-slate-950 :where(input::placeholder, textarea::placeholder) {
+    color: rgb(148 163 184);
+}
+
+body.bg-slate-950 :where(option) {
+    background-color: rgb(255 255 255);
+    color: rgb(15 23 42);
+}
+
+body.bg-slate-950 :where(button, [role='button'], a[href], select, summary, input[type='button'], input[type='submit'], input[type='reset']) {
+    cursor: pointer;
+}
+
+body.bg-slate-950 :where(input[type='date'], input[type='time']) {
+    cursor: pointer;
+}
+
+body.bg-slate-950 :where(input[type='date'], input[type='time'])::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    opacity: 0.9;
+    filter: invert(1);
+}
+
+body.bg-slate-950 :where(button, [role='button'], select, input):disabled,
+body.bg-slate-950 :where([aria-disabled='true']) {
+    cursor: not-allowed;
+}
+
+body.bg-slate-950 main :where(.grid.gap-6) {
+    gap: 1rem !important;
+}
+
+body.bg-slate-950 main :where(.grid.gap-4, .flex.gap-4) {
+    gap: 0.75rem !important;
+}
+
+body.bg-slate-950 main :where(.mt-6) {
+    margin-top: 1rem !important;
+}
+
+body.bg-slate-950 main :where(.mt-5) {
+    margin-top: 0.875rem !important;
+}
+
+body.bg-slate-950 main :where(.mt-4) {
+    margin-top: 0.75rem !important;
+}
+
+body.bg-slate-950 main :where(.p-8) {
+    padding: 1.25rem !important;
+}
+
+body.bg-slate-950 main :where(.p-6) {
+    padding: 1rem !important;
+}
+
+body.bg-slate-950 main :where(.p-4) {
+    padding: 0.75rem !important;
+}
+
+body.bg-slate-950 main :where(.px-4.py-3) {
+    padding: 0.5rem 0.75rem !important;
+}
+
+body.bg-slate-950 main :where(th.px-4.py-3, td.px-4.py-3) {
+    padding: 0.5rem 0.75rem !important;
+}
+
+body.bg-slate-950 main :where(.rounded-3xl) {
+    border-radius: 1rem !important;
+}
+
+body.bg-slate-950 main :where(.rounded-2xl) {
+    border-radius: 0.75rem !important;
+}
+
+.action-add {
+    border-color: rgb(22 163 74) !important;
+    background-color: rgb(22 163 74) !important;
+    color: rgb(255 255 255) !important;
+}
+
+.action-add:hover {
+    border-color: rgb(34 197 94) !important;
+    background-color: rgb(34 197 94) !important;
+    color: rgb(255 255 255) !important;
+}
+
+.action-edit {
+    border-color: rgb(37 99 235) !important;
+    background-color: rgb(37 99 235) !important;
+    color: rgb(255 255 255) !important;
+}
+
+.action-edit:hover {
+    border-color: rgb(59 130 246) !important;
+    background-color: rgb(59 130 246) !important;
+    color: rgb(255 255 255) !important;
+}
+
+.action-delete {
+    border-color: rgb(220 38 38) !important;
+    background-color: rgb(220 38 38) !important;
+    color: rgb(255 255 255) !important;
+}
+
+.action-delete:hover {
+    border-color: rgb(239 68 68) !important;
+    background-color: rgb(239 68 68) !important;
+    color: rgb(255 255 255) !important;
+}
+
+.action-add:disabled,
+.action-edit:disabled,
+.action-delete:disabled,
+.action-add[aria-disabled='true'],
+.action-edit[aria-disabled='true'],
+.action-delete[aria-disabled='true'] {
+    opacity: 0.55;
+}
+
 .settings-drag-handle {
     display: inline-flex;
     height: 2.5rem;

@@ -8,6 +8,7 @@ return [
     'message_mode' => env('WHATSAPP_MESSAGE_MODE', 'text'),
 
     'twilio' => [
+        'mode' => env('TWILIO_WHATSAPP_MODE', 'auto'),
         'account_sid' => env('TWILIO_ACCOUNT_SID'),
         'auth_token' => env('TWILIO_AUTH_TOKEN'),
         'from' => env('TWILIO_WHATSAPP_FROM'),

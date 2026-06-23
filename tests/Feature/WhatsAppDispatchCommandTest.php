@@ -2,8 +2,11 @@
 
 namespace Tests\Feature;
 
+use App\Models\Appointment;
+use App\Models\Client;
 use App\Models\User;
 use App\Models\WhatsAppMessage;
+use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Http;
@@ -59,5 +62,49 @@ class WhatsAppDispatchCommandTest extends TestCase
         $this->assertSame('cloud_api', $message->provider_payload['provider']);
         $this->assertSame('Hola Ana', $message->provider_payload['payload']['text']['body']);
         $this->assertNotNull($message->sent_at);
+    }
+
+    public function test_active_unsent_due_appointments_are_queued_sent_and_marked_as_sent(): void
+    {
+        Carbon::setTestNow('2026-06-23 12:00:00');
+
+        $client = Client::query()->create([
+            'nombre' => 'Ana',
+            'apellidos' => 'Pérez',
+            'telefono' => '600123123',
+        ]);
+
+        $appointment = Appointment::query()->create([
+            'client_id' => $client->id,
+            'fecha' => '2026-06-23',
+            'hora' => '11:45',
+            'enviado' => false,
+            'activo' => true,
+        ]);
+
+        Config::set('whatsapp.driver', 'log');
+        Config::set('whatsapp.default_country_code', '+34');
+
+        $this->artisan('whatsapp:dispatch-due')
+            ->expectsOutput('Queued 1 appointment message(s).')
+            ->expectsOutput('Processed 1 due message(s).')
+            ->assertExitCode(0);
+
+        $message = WhatsAppMessage::query()->firstOrFail();
+
+        $this->assertSame($appointment->id, $message->appointment_id);
+        $this->assertSame($client->id, $message->client_id);
+        $this->assertSame(WhatsAppMessage::SOURCE_APPOINTMENT, $message->source);
+        $this->assertSame(WhatsAppMessage::STATUS_SENT, $message->status);
+        $this->assertTrue($appointment->refresh()->enviado);
+
+        $this->artisan('whatsapp:dispatch-due')
+            ->expectsOutput('Queued 0 appointment message(s).')
+            ->expectsOutput('Processed 0 due message(s).')
+            ->assertExitCode(0);
+
+        $this->assertSame(1, WhatsAppMessage::query()->count());
+
+        Carbon::setTestNow();
     }
 }

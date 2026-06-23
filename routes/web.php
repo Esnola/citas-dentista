@@ -1,8 +1,8 @@
 <?php
 
-use App\Http\Controllers\Auth\AuthenticatedSessionController;
-use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Admin\SecurityController as AdminSecurityController;
+use App\Http\Controllers\Admin\UserController as AdminUserController;
+use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\HomeController;
 use Illuminate\Support\Facades\Route;
 
@@ -20,8 +20,11 @@ Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
 Route::middleware('auth')->group(function () {
     Route::view('/dashboard', 'dashboard')->name('dashboard');
     Route::view('/clients', 'clients.index')->name('clients.index');
+    Route::view('/clients/create', 'clients.form')->name('clients.create');
+    Route::view('/clients/{client}/edit', 'clients.form')->name('clients.edit');
     Route::view('/appointments', 'appointments.index')->name('appointments.index');
-    Route::view('/messages', 'messages.index')->name('messages.index');
+    Route::view('/appointments/create', 'appointments.form')->name('appointments.create');
+    Route::view('/appointments/{appointment}/edit', 'appointments.form')->name('appointments.edit');
     Route::view('/imports', 'imports.index')->name('imports.index');
     Route::view('/settings', 'settings.index')->name('settings.index');
 

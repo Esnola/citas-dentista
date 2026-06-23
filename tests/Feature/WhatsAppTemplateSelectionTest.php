@@ -2,7 +2,6 @@
 
 namespace Tests\Feature;
 
-use App\Models\User;
 use App\Models\WhatsAppMessage;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -13,10 +12,6 @@ class WhatsAppTemplateSelectionTest extends TestCase
 
     public function test_selected_template_is_used_for_manual_message_preview_and_save(): void
     {
-        $admin = User::factory()->create();
-
-        $this->actingAs($admin)->get(route('messages.index'))->assertOk();
-
         $rendered = WhatsAppMessage::buildMessage([
             'nombre' => 'Lucía',
             'apellidos' => 'García',

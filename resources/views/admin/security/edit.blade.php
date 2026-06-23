@@ -27,7 +27,7 @@
                     <input name="password_confirmation" type="password" class="w-full rounded-2xl border border-white/10 bg-slate-900/70 px-4 py-3 text-white" required>
                 </div>
                 <div class="md:col-span-2">
-                    <flux:button type="submit">Actualizar contraseña</flux:button>
+                    <flux:button class="action-add" type="submit">Actualizar contraseña</flux:button>
                 </div>
             </form>
         </div>

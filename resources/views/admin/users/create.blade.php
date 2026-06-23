@@ -32,7 +32,7 @@
                     <input name="password_confirmation" type="password" class="w-full rounded-2xl border border-white/10 bg-slate-900/70 px-4 py-3 text-white" required>
                 </div>
                 <div class="md:col-span-2">
-                    <flux:button type="submit">Crear usuario</flux:button>
+                    <flux:button class="action-add" type="submit">Crear usuario</flux:button>
                 </div>
             </form>
         </div>
@@ -57,12 +57,12 @@
                                 <td class="px-4 py-3">{{ $user->email }}</td>
                                 <td class="px-4 py-3">
                                     <div class="flex items-center gap-3">
-                                        <a class="text-emerald-300 hover:text-emerald-200" href="{{ route('admin.users.edit', $user) }}">Editar</a>
+                                        <a class="action-edit rounded-lg px-3 py-1.5 text-sm font-medium" href="{{ route('admin.users.edit', $user) }}">Editar</a>
                                         @if ($user->id !== 1)
                                             <form method="POST" action="{{ route('admin.users.destroy', $user) }}" onsubmit="return confirm('¿Eliminar este usuario?')">
                                                 @csrf
                                                 @method('DELETE')
-                                                <button class="text-rose-300 hover:text-rose-200" type="submit">Eliminar</button>
+                                                <button class="action-delete rounded-lg px-3 py-1.5 text-sm font-medium" type="submit">Eliminar</button>
                                             </form>
                                         @else
                                             <span class="text-slate-500">Protegido</span>

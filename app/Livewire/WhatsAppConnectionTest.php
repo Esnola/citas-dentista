@@ -9,15 +9,21 @@ use Livewire\Component;
 class WhatsAppConnectionTest extends Component
 {
     public string $recipient = '';
+
     public string $body = 'Mensaje de prueba desde Clínica Dental Eugénia.';
+
     public string $mode = 'sandbox';
+
     public string $status = '';
+
     public string $statusType = 'neutral';
+
     public array $details = [];
 
     public function mount(): void
     {
         $this->recipient = '';
+        $this->mode = $this->initialTwilioMode();
     }
 
     public function rules(): array
@@ -96,17 +102,25 @@ class WhatsAppConnectionTest extends Component
         $twilio = config('whatsapp.twilio', []);
         $from = (string) ($twilio['from'] ?? '');
         $messagingServiceSid = (string) ($twilio['messaging_service_sid'] ?? '');
+        $mode = $preview['mode'];
 
         return [
             'provider' => 'twilio',
-            'mode' => $preview['mode'],
+            'mode' => $mode,
             'request' => array_filter([
-                'From' => $preview['mode'] === 'service' ? null : $this->normalizeWhatsAppAddress($from),
-                'MessagingServiceSid' => $preview['mode'] === 'service' ? $messagingServiceSid : null,
+                'From' => $mode === 'service' ? null : $this->normalizeWhatsAppAddress($from),
+                'MessagingServiceSid' => $mode === 'service' ? $messagingServiceSid : null,
                 'To' => $this->normalizeWhatsAppRecipient($preview['recipient']),
                 'Body' => $preview['body'],
             ], static fn ($value) => $value !== null && $value !== ''),
         ];
+    }
+
+    private function initialTwilioMode(): string
+    {
+        $configuredMode = strtolower(trim((string) config('whatsapp.twilio.mode', 'auto')));
+
+        return in_array($configuredMode, ['sandbox', 'sender', 'service'], true) ? $configuredMode : 'sandbox';
     }
 
     private function buildCloudApiPreviewPayload(array $preview): array

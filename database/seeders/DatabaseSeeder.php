@@ -4,8 +4,8 @@ namespace Database\Seeders;
 
 use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Hash;
 
 class DatabaseSeeder extends Seeder
 {
@@ -23,5 +23,8 @@ class DatabaseSeeder extends Seeder
                 'password' => Hash::make(env('INITIAL_ADMIN_PASSWORD', 'ChangeMe123456!')),
             ]);
         }
+
+        $this->call(ClientSeeder::class);
+        $this->call(AppointmentSeeder::class);
     }
 }

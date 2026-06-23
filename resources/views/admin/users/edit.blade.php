@@ -27,7 +27,7 @@
                     <input name="password_confirmation" type="password" class="w-full rounded-2xl border border-white/10 bg-slate-900/70 px-4 py-3 text-white">
                 </div>
                 <div class="md:col-span-2 flex items-center gap-3">
-                    <flux:button type="submit">Guardar cambios</flux:button>
+                    <flux:button class="action-add" type="submit">Guardar cambios</flux:button>
                     <a class="text-sm text-slate-300 hover:text-white" href="{{ route('admin.users.create') }}">Volver</a>
                 </div>
             </form>

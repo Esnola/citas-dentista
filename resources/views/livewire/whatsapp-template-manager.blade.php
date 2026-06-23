@@ -11,7 +11,7 @@
                 <h2 class="text-xl font-semibold">{{ $editingTemplateId ? 'Editar plantilla' : 'Nueva plantilla' }}</h2>
                 <p class="mt-1 text-sm text-slate-300">Las plantillas disponibles alimentan el editor y el importador.</p>
             </div>
-            <flux:button type="button" variant="ghost" wire:click="create">Nuevo</flux:button>
+            <flux:button class="action-add" type="button" wire:click="create">Nuevo</flux:button>
         </div>
 
         <form class="mt-6 grid gap-4" wire:submit="save">
@@ -58,9 +58,9 @@
             </div>
 
             <div class="flex flex-wrap gap-3">
-                <flux:button type="submit">{{ $editingTemplateId ? 'Guardar cambios' : 'Crear plantilla' }}</flux:button>
+                <flux:button class="action-add" type="submit">{{ $editingTemplateId ? 'Guardar cambios' : 'Crear plantilla' }}</flux:button>
                 @if ($editingTemplateId)
-                    <flux:button type="button" variant="ghost" wire:click="create">Cancelar</flux:button>
+                    <flux:button type="button" wire:click="create">Cancelar</flux:button>
                 @endif
             </div>
         </form>
@@ -98,9 +98,9 @@
                             <td class="px-4 py-3">{{ $template->sort_order }}</td>
                             <td class="px-4 py-3 text-right">
                                 <div class="flex justify-end gap-2">
-                                    <flux:button type="button" size="sm" variant="ghost" wire:click="edit({{ $template->id }})">Editar</flux:button>
-                                    <flux:button type="button" size="sm" variant="ghost" wire:click="setDefault({{ $template->id }})">Default</flux:button>
-                                    <flux:button type="button" size="sm" variant="ghost" wire:click="delete({{ $template->id }})" onclick="return confirm('¿Eliminar esta plantilla?')">Eliminar</flux:button>
+                                    <flux:button class="action-edit" type="button" size="sm" wire:click="edit({{ $template->id }})">Editar</flux:button>
+                                    <flux:button type="button" size="sm" wire:click="setDefault({{ $template->id }})">Default</flux:button>
+                                    <flux:button class="action-delete" type="button" size="sm" wire:click="delete({{ $template->id }})" onclick="return confirm('¿Eliminar esta plantilla?')">Eliminar</flux:button>
                                 </div>
                             </td>
                         </tr>

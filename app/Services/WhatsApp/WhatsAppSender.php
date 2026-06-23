@@ -10,6 +10,14 @@ use RuntimeException;
 
 class WhatsAppSender
 {
+    private const TWILIO_AUTO_MODE = 'auto';
+
+    private const TWILIO_SANDBOX_MODE = 'sandbox';
+
+    private const TWILIO_SENDER_MODE = 'sender';
+
+    private const TWILIO_SERVICE_MODE = 'service';
+
     /**
      * @return array{provider:string,message_id:?string,payload:array,raw:array}
      *
@@ -92,25 +100,47 @@ class WhatsAppSender
      */
     private function sendViaTwilio(WhatsAppMessage $message): array
     {
+        return $this->sendTwilioRequest($message->telefono, $message->message);
+    }
+
+    /**
+     * @return array{provider:string,message_id:?string,payload:array,raw:array}
+     */
+    private function sendTestViaTwilio(string $recipient, string $body, ?string $mode = null): array
+    {
+        return $this->sendTwilioRequest($recipient, $body, $mode);
+    }
+
+    /**
+     * @return array{provider:string,message_id:?string,payload:array,raw:array}
+     */
+    private function sendTwilioRequest(string $recipient, string $body, ?string $mode = null): array
+    {
         $config = config('whatsapp.twilio');
         $accountSid = $config['account_sid'] ?? null;
         $authToken = $config['auth_token'] ?? null;
         $from = $config['from'] ?? null;
         $messagingServiceSid = $config['messaging_service_sid'] ?? null;
+        $resolvedMode = $this->resolveTwilioMode($mode);
 
         if (! $accountSid || ! $authToken) {
             throw new RuntimeException('Twilio credentials are not configured.');
         }
 
-        if (! $from && ! $messagingServiceSid) {
+        if ($resolvedMode === self::TWILIO_SERVICE_MODE && ! $messagingServiceSid) {
+            throw new RuntimeException('Twilio Messaging Service SID is not configured.');
+        }
+
+        if (in_array($resolvedMode, [self::TWILIO_SANDBOX_MODE, self::TWILIO_SENDER_MODE], true) && ! $from) {
             throw new RuntimeException('Twilio WhatsApp sender is not configured.');
         }
 
         $payload = [
-            'from' => $from ? $this->normalizeWhatsAppAddress($from) : null,
-            'messaging_service_sid' => $messagingServiceSid,
-            'to' => $this->normalizeWhatsAppRecipient($message->telefono),
-            'body' => $message->message,
+            'mode' => $resolvedMode,
+            'from' => $resolvedMode === self::TWILIO_SERVICE_MODE ? null : ($from ? $this->normalizeWhatsAppAddress($from) : null),
+            'messaging_service_sid' => $resolvedMode === self::TWILIO_SERVICE_MODE ? $messagingServiceSid : null,
+            'to' => $this->normalizeWhatsAppRecipient($recipient),
+            'body' => $body,
         ];
 
         $requestPayload = array_filter([
@@ -138,60 +168,42 @@ class WhatsAppSender
         ];
     }
 
-    /**
-     * @return array{provider:string,message_id:?string,payload:array,raw:array}
-     */
-    private function sendTestViaTwilio(string $recipient, string $body, ?string $mode = null): array
+    public function resolveTwilioMode(?string $mode = null): string
     {
         $config = config('whatsapp.twilio');
-        $accountSid = $config['account_sid'] ?? null;
-        $authToken = $config['auth_token'] ?? null;
-        $from = $config['from'] ?? null;
-        $messagingServiceSid = $config['messaging_service_sid'] ?? null;
-        $mode ??= 'sandbox';
+        $requestedMode = strtolower(trim($mode ?: (string) ($config['mode'] ?? self::TWILIO_AUTO_MODE)));
 
-        if (! $accountSid || ! $authToken) {
-            throw new RuntimeException('Twilio credentials are not configured.');
+        if (! in_array($requestedMode, $this->twilioModes(), true)) {
+            throw new RuntimeException('Unsupported Twilio WhatsApp mode: '.$requestedMode);
         }
 
-        if ($mode === 'service' && ! $messagingServiceSid) {
-            throw new RuntimeException('Twilio Messaging Service SID is not configured.');
+        if ($requestedMode !== self::TWILIO_AUTO_MODE) {
+            return $requestedMode;
         }
 
-        if (in_array($mode, ['sandbox', 'sender'], true) && ! $from) {
-            throw new RuntimeException('Twilio WhatsApp sender is not configured.');
+        if (filled($config['messaging_service_sid'] ?? null)) {
+            return self::TWILIO_SERVICE_MODE;
         }
 
-        $payload = [
-            'mode' => $mode,
-            'from' => $mode === 'service' ? null : ($from ? $this->normalizeWhatsAppAddress($from) : null),
-            'messaging_service_sid' => $mode === 'service' ? $messagingServiceSid : null,
-            'to' => $this->normalizeWhatsAppRecipient($recipient),
-            'body' => $body,
-        ];
+        $from = (string) ($config['from'] ?? '');
 
-        $requestPayload = array_filter([
-            'From' => $payload['from'],
-            'MessagingServiceSid' => $payload['messaging_service_sid'],
-            'To' => $payload['to'],
-            'Body' => $payload['body'],
-        ], static fn ($value) => $value !== null && $value !== '');
+        if ($from !== '' && $this->normalizeWhatsAppAddress($from) === 'whatsapp:+14155238886') {
+            return self::TWILIO_SANDBOX_MODE;
+        }
 
-        $response = Http::baseUrl('https://api.twilio.com')
-            ->acceptJson()
-            ->asForm()
-            ->withBasicAuth($accountSid, $authToken)
-            ->timeout((int) ($config['timeout'] ?? 15))
-            ->connectTimeout(10)
-            ->post('/2010-04-01/Accounts/'.$accountSid.'/Messages.json', $requestPayload)
-            ->throw()
-            ->json();
+        return self::TWILIO_SENDER_MODE;
+    }
 
+    /**
+     * @return list<string>
+     */
+    private function twilioModes(): array
+    {
         return [
-            'provider' => 'twilio',
-            'message_id' => data_get($response, 'sid'),
-            'payload' => $payload,
-            'raw' => $response,
+            self::TWILIO_AUTO_MODE,
+            self::TWILIO_SANDBOX_MODE,
+            self::TWILIO_SENDER_MODE,
+            self::TWILIO_SERVICE_MODE,
         ];
     }
 

@@ -8,8 +8,10 @@
         $twilioAuthToken = (string) ($twilio['auth_token'] ?? '');
         $twilioFrom = (string) ($twilio['from'] ?? '');
         $twilioServiceSid = (string) ($twilio['messaging_service_sid'] ?? '');
+        $twilioMode = (string) ($twilio['mode'] ?? 'auto');
+        $twilioResolvedMode = app(\App\Services\WhatsApp\WhatsAppSender::class)->resolveTwilioMode();
         $twilioHasCredentials = filled($twilioAccountSid) && filled($twilioAuthToken);
-        $twilioHasSender = filled($twilioFrom) || filled($twilioServiceSid);
+        $twilioHasSender = $twilioResolvedMode === 'service' ? filled($twilioServiceSid) : filled($twilioFrom);
         $twilioTestRecipient = (string) ($twilio['test_recipient'] ?? '');
         $sandboxActive = $twilioFrom === 'whatsapp:+14155238886';
     @endphp
@@ -28,9 +30,9 @@
                     </p>
                 </div>
                 <div class="flex flex-wrap gap-2">
-                    <flux:button type="button" variant="ghost" x-on:click="expandAll">Abrir todo</flux:button>
-                    <flux:button type="button" variant="ghost" x-on:click="collapseAll">Cerrar todo</flux:button>
-                    <flux:button type="button" variant="ghost" x-on:click="resetLayout">Restablecer orden</flux:button>
+                    <flux:button type="button" x-on:click="expandAll">Abrir todo</flux:button>
+                    <flux:button type="button" x-on:click="collapseAll">Cerrar todo</flux:button>
+                    <flux:button type="button" x-on:click="resetLayout">Restablecer orden</flux:button>
                 </div>
             </div>
         </div>
@@ -108,15 +110,15 @@
                             <p class="text-xs uppercase tracking-[0.25em] text-slate-400">Twilio</p>
                             <p class="mt-2 font-medium">{{ $twilioHasCredentials ? 'Credenciales listas' : 'Credenciales pendientes' }}</p>
                             <p class="mt-1 text-sm text-slate-300">
-                                {{ $twilioHasSender ? 'Remitente configurado' : 'Falta remitente o Messaging Service' }}
+                                {{ $twilioHasSender ? 'Canal configurado' : 'Falta el canal de envío' }}
                             </p>
                         </div>
 
                         <div class="rounded-2xl border border-white/10 bg-slate-900/60 p-4">
-                            <p class="text-xs uppercase tracking-[0.25em] text-slate-400">Sandbox</p>
-                            <p class="mt-2 font-medium">{{ $sandboxActive ? 'Activo' : 'No detectado' }}</p>
+                            <p class="text-xs uppercase tracking-[0.25em] text-slate-400">Modo Twilio</p>
+                            <p class="mt-2 font-medium">{{ $twilioMode }} → {{ $twilioResolvedMode }}</p>
                             <p class="mt-1 text-sm text-slate-300">
-                                {{ $sandboxActive ? 'Usando el sender sandbox de Twilio' : 'Puedes usar el sandbox para pruebas rápidas' }}
+                                {{ $sandboxActive ? 'Sandbox detectado por el remitente' : 'El envío real usará el modo resuelto' }}
                             </p>
                         </div>
                     </div>
@@ -176,7 +178,7 @@
                         </div>
                         <div class="rounded-2xl border border-white/10 bg-slate-900/60 p-4">
                             <p class="font-medium">2. Configura el remitente</p>
-                            <p class="mt-1 text-slate-300">En `.env`, define `TWILIO_WHATSAPP_FROM=whatsapp:+14155238886` para sandbox o el remitente real que te asignen.</p>
+                            <p class="mt-1 text-slate-300">En `.env`, define `TWILIO_WHATSAPP_MODE=sandbox` y `TWILIO_WHATSAPP_FROM=whatsapp:+14155238886` para sandbox. Para producción usa `sender` con tu número real o `service` con `TWILIO_MESSAGING_SERVICE_SID`.</p>
                         </div>
                         <div class="rounded-2xl border border-white/10 bg-slate-900/60 p-4">
                             <p class="font-medium">3. Cambia el driver</p>

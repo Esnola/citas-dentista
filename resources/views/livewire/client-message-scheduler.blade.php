@@ -34,7 +34,7 @@
                 <p class="mt-2 font-medium">{{ $selectedClient->nombre }} {{ $selectedClient->apellidos }}</p>
                 <p class="mt-1 text-sm text-slate-300">{{ $selectedClient->telefono }}</p>
                 <p class="mt-1 text-sm text-slate-300">Alta: {{ $selectedClient->created_at?->format('d/m/Y H:i') }}</p>
-                <flux:button type="button" variant="ghost" class="mt-3" wire:click="clearSelection">Limpiar selección</flux:button>
+                <flux:button type="button" class="mt-3" wire:click="clearSelection">Limpiar selección</flux:button>
             @else
                 <p class="mt-2 text-sm text-slate-300">No hay ningún cliente seleccionado todavía.</p>
             @endif
@@ -71,7 +71,7 @@
                     <flux:error name="selectedClientId" />
                 </flux:field>
 
-                <flux:button type="submit" :disabled="! $selectedClient">Programar mensaje</flux:button>
+                <flux:button class="action-add" type="submit" :disabled="! $selectedClient">Programar mensaje</flux:button>
             </form>
         </div>
     </div>
@@ -105,7 +105,7 @@
                             <td class="px-4 py-3">{{ $client->telefono }}</td>
                             <td class="px-4 py-3">{{ $client->created_at?->format('d/m/Y H:i') }}</td>
                             <td class="px-4 py-3 text-right">
-                                <flux:button type="button" size="sm" variant="ghost" wire:click="selectClient({{ $client->id }})">Usar</flux:button>
+                                <flux:button class="action-edit" type="button" size="sm" wire:click="selectClient({{ $client->id }})">Usar</flux:button>
                             </td>
                         </tr>
                     @empty

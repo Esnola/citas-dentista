@@ -85,7 +85,7 @@
 
         <div class="flex flex-wrap gap-3">
             <flux:button type="submit">Enviar prueba</flux:button>
-            <flux:button type="button" variant="ghost" wire:click="sendSavedRecipient">Enviar al guardado</flux:button>
+            <flux:button type="button" wire:click="sendSavedRecipient">Enviar al guardado</flux:button>
         </div>
     </form>
 

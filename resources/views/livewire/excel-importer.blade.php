@@ -31,8 +31,8 @@
                 </flux:field>
             </div>
             <div class="lg:col-span-5 flex flex-wrap gap-3">
-                <flux:button type="button" variant="ghost" wire:click="preview">Previsualizar</flux:button>
-                <flux:button type="submit">Importar</flux:button>
+                <flux:button type="button" wire:click="preview">Previsualizar</flux:button>
+                <flux:button class="action-add" type="submit">Importar</flux:button>
             </div>
         </form>
     </div>
