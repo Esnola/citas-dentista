@@ -117,10 +117,6 @@
                                         :checked="$appointment->activo"
                                         wire:change="updateActiveStatus({{ $appointment->id }}, $event.target.checked)"
                                     />
-                                @else
-                                    <span class="rounded-full px-2.5 py-1 text-xs font-medium {{ $appointment->activo ? 'bg-sky-500/20 text-sky-200' : 'bg-slate-500/20 text-slate-200' }}">
-                                        {{ $appointment->activo ? 'Sí' : 'No' }}
-                                    </span>
                                 @endif
                             </td>
                             <td class="px-4 py-3 text-right">
