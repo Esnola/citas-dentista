@@ -13,8 +13,11 @@ return [
         'auth_token' => env('TWILIO_AUTH_TOKEN'),
         'from' => env('TWILIO_WHATSAPP_FROM'),
         'messaging_service_sid' => env('TWILIO_MESSAGING_SERVICE_SID'),
+        'content_sid' => env('TWILIO_CONTENT_SID'),
+        'content_variables' => json_decode(env('TWILIO_CONTENT_VARIABLES', '[]'), true) ?: [],
         'test_recipient' => env('TWILIO_TEST_RECIPIENT'),
         'timeout' => env('TWILIO_TIMEOUT', 15),
+        'connect_timeout' => env('TWILIO_CONNECT_TIMEOUT', 10),
     ],
 
     'cloud_api' => [

@@ -78,6 +78,7 @@
                 <li>• `Sandbox` usa el sender de pruebas configurado en `TWILIO_WHATSAPP_FROM`.</li>
                 <li>• `Número real` usa el remitente de producción que configures en Twilio.</li>
                 <li>• `Messaging Service` envía usando `TWILIO_MESSAGING_SERVICE_SID`.</li>
+                <li>• Si `WHATSAPP_MESSAGE_MODE=template`, la prueba usa `TWILIO_CONTENT_SID` y `TWILIO_CONTENT_VARIABLES`.</li>
                 <li>• Si usas un número local, se normaliza a formato internacional.</li>
             </ul>
         </div>

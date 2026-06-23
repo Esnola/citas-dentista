@@ -13,6 +13,13 @@ class WhatsAppConnectionTestComponentTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        config()->set('whatsapp.message_mode', 'text');
+    }
+
     protected function tearDown(): void
     {
         Mockery::close();
@@ -53,6 +60,8 @@ class WhatsAppConnectionTestComponentTest extends TestCase
 
     public function test_settings_connection_form_can_send_to_saved_recipient(): void
     {
+        config()->set('whatsapp.twilio.mode', 'sandbox');
+
         $sender = Mockery::mock(WhatsAppSender::class);
         $sender->shouldReceive('twilioTestRecipient')->once()->andReturn('+34600123123');
         $sender->shouldReceive('sendTestMessage')
@@ -113,6 +122,29 @@ class WhatsAppConnectionTestComponentTest extends TestCase
             ->assertSee('MessagingServiceSid')
             ->assertSee('MG123')
             ->assertSee('whatsapp:+34600123123');
+    }
+
+    public function test_settings_connection_form_shows_twilio_template_payload_preview(): void
+    {
+        config()->set('whatsapp.driver', 'twilio');
+        config()->set('whatsapp.message_mode', 'template');
+        config()->set('whatsapp.twilio.mode', 'sender');
+        config()->set('whatsapp.twilio.from', 'whatsapp:+15551234567');
+        config()->set('whatsapp.twilio.content_sid', 'HXCONTENT123');
+        config()->set('whatsapp.twilio.content_variables', [
+            '1' => '[MENSAJE]',
+        ]);
+        config()->set('whatsapp.default_country_code', '+34');
+
+        Livewire::test(WhatsAppConnectionTest::class)
+            ->set('mode', 'sender')
+            ->set('recipient', '600123123')
+            ->set('body', 'Mensaje de plantilla')
+            ->assertSee('ContentSid')
+            ->assertSee('HXCONTENT123')
+            ->assertSee('ContentVariables')
+            ->assertSee('Mensaje de plantilla')
+            ->assertDontSee('&quot;Body&quot;');
     }
 
     public function test_settings_connection_form_does_not_duplicate_country_code_for_whatsapp_recipient(): void

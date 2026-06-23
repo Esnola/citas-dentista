@@ -59,7 +59,8 @@ class ClientManagerTest extends TestCase
 
         $component->set('filter_nombre', 'A')
             ->assertSee('Ana Pérez')
-            ->assertSee('600123123');
+            ->assertSee('600123123')
+            ->assertSee('WhatsApp');
         $this->assertTrue($component->instance()->getHasClientSearchProperty());
     }
 

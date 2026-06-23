@@ -1,6 +1,10 @@
 <div class="grid gap-6 xl:grid-cols-[360px_minmax(0,1fr)]">
     @if ($status)
-        <div class="xl:col-span-2 rounded-2xl border border-emerald-400/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
+        <div @class([
+            'xl:col-span-2 rounded-2xl border px-4 py-3 text-sm',
+            'border-emerald-400/30 bg-emerald-500/10 text-emerald-200' => $statusType === 'success',
+            'border-rose-400/30 bg-rose-500/10 text-rose-200' => $statusType === 'error',
+        ])>
             {{ $status }}
         </div>
     @endif
@@ -8,7 +12,7 @@
     <div class="rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur">
         <h2 class="text-xl font-semibold">Programar desde cliente</h2>
         <p class="mt-2 text-sm text-slate-300">
-            Selecciona una ficha para generar una cita sin volver a escribir sus datos.
+            Selecciona una ficha de la base de datos para programar un WhatsApp sin volver a escribir sus datos.
         </p>
 
         <div class="mt-6 grid gap-4">
@@ -56,13 +60,13 @@
                 <div class="grid gap-4 sm:grid-cols-2">
                     <flux:field>
                         <flux:label>Fecha</flux:label>
-                        <x-formularios.input wire:model="scheduled_date" type="date" />
+                        <x-formularios.input wire:model="scheduled_date" type="date" :min="$minimumSelectableDate" data-no-sundays />
                         <flux:error name="scheduled_date" />
                     </flux:field>
 
                     <flux:field>
                         <flux:label>Hora</flux:label>
-                        <x-formularios.input wire:model="scheduled_time" type="time" />
+                        <x-formularios.input wire:model="scheduled_time" data-time-picker readonly placeholder="--:--" />
                         <flux:error name="scheduled_time" />
                     </flux:field>
                 </div>
@@ -71,7 +75,20 @@
                     <flux:error name="selectedClientId" />
                 </flux:field>
 
-                <x-botones.accion variant="add" icono="check" type="submit" :disabled="! $selectedClient">Programar mensaje</x-botones.accion>
+                <div class="flex flex-wrap gap-3">
+                    <x-botones.accion variant="add" icono="check" type="submit" :disabled="! $selectedClient">Programar mensaje</x-botones.accion>
+                    <x-botones.accion
+                        variant="edit"
+                        icono="check"
+                        type="button"
+                        wire:click="sendNow"
+                        wire:loading.attr="disabled"
+                        wire:target="sendNow"
+                        :disabled="! $selectedClient"
+                    >
+                        Enviar ahora
+                    </x-botones.accion>
+                </div>
             </form>
         </div>
     </div>

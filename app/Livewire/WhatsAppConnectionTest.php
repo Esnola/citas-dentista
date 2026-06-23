@@ -99,22 +99,15 @@ class WhatsAppConnectionTest extends Component
 
     private function buildTwilioPreviewPayload(array $preview): array
     {
-        $twilio = config('whatsapp.twilio', []);
-        $from = (string) ($twilio['from'] ?? '');
-        $messagingServiceSid = (string) ($twilio['messaging_service_sid'] ?? '');
         $mode = $preview['mode'];
-        $resolvedMode = (new WhatsAppSender)->resolveTwilioMode($mode);
+        $sender = new WhatsAppSender;
+        $resolvedMode = $sender->resolveTwilioMode($mode);
 
         return [
             'provider' => 'twilio',
             'mode' => $mode,
             'resolved_mode' => $resolvedMode,
-            'request' => array_filter([
-                'From' => $resolvedMode === 'service' ? null : $this->normalizeWhatsAppAddress($from),
-                'MessagingServiceSid' => $resolvedMode === 'service' ? $messagingServiceSid : null,
-                'To' => $this->normalizeWhatsAppRecipient($preview['recipient']),
-                'Body' => $preview['body'],
-            ], static fn ($value) => $value !== null && $value !== ''),
+            'request' => $sender->buildTwilioPreviewRequest($preview['recipient'], $preview['body'], $mode),
         ];
     }
 

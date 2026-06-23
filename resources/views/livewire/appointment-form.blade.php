@@ -64,7 +64,7 @@
         <div class="flex flex-wrap items-start justify-between gap-4">
             <div>
                 <h2 class="text-xl font-semibold">{{ $selectedAppointment ? 'Editar cita' : 'Crear cita' }}</h2>
-                <p class="mt-2 text-sm text-slate-300">Gestiona fecha, hora y estados de la cita.</p>
+                <p class="mt-2 text-sm text-slate-300">Gestiona fecha y hora de la cita.</p>
             </div>
             <x-botones.accion icono="back" href="{{ route('appointments.index') }}">Volver al listado</x-botones.accion>
         </div>
@@ -81,28 +81,26 @@
             <div class="grid gap-4 sm:grid-cols-2">
                 <flux:field>
                     <flux:label>Fecha</flux:label>
-                    <x-formularios.input wire:model="fecha" type="date" :disabled="! $canChangeAppointment" />
+                    <x-formularios.input
+                        wire:model="fecha"
+                        type="date"
+                        :min="$minimumSelectableDate"
+                        data-no-sundays
+                        :disabled="! $canChangeAppointment"
+                    />
                     <flux:error name="fecha" />
                 </flux:field>
 
                 <flux:field>
                     <flux:label>Hora</flux:label>
-                    <x-formularios.input wire:model="hora" type="time" :disabled="! $canChangeAppointment" />
+                    <x-formularios.input
+                        wire:model="hora"
+                        data-time-picker
+                        readonly
+                        placeholder="--:--"
+                        :disabled="! $canChangeAppointment"
+                    />
                     <flux:error name="hora" />
-                </flux:field>
-            </div>
-
-            <div class="grid gap-4 sm:grid-cols-2">
-                <flux:field>
-                    <flux:label>Enviado</flux:label>
-                    <x-formularios.toggle wire:model="enviado" :disabled="! $canChangeAppointment" texto="Marcar como enviada" />
-                    <flux:error name="enviado" />
-                </flux:field>
-
-                <flux:field>
-                    <flux:label>Activo</flux:label>
-                    <x-formularios.toggle wire:model="activo" :disabled="! $canChangeAppointment" texto="Cita activa" />
-                    <flux:error name="activo" />
                 </flux:field>
             </div>
 

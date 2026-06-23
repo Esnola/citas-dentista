@@ -59,7 +59,15 @@
                             <td class="px-4 py-3">{{ $client->created_at?->format('d/m/Y H:i') }}</td>
                             <td class="px-4 py-3 text-right">
                                 <div class="flex justify-end gap-2">
-                                    <x-botones.accion variant="edit" size="sm" icono="edit" href="{{ route('clients.edit', $client) }}">Cita</x-botones.accion>
+                                    <x-botones.accion variant="edit" size="sm" icono="edit" href="{{ route('clients.edit', $client) }}">Editar</x-botones.accion>
+                                    <x-botones.accion
+                                        variant="add"
+                                        size="sm"
+                                        icono="check"
+                                        href="{{ route('clients.index', ['client' => $client->id]) }}#programar-whatsapp"
+                                    >
+                                        WhatsApp
+                                    </x-botones.accion>
                                     <x-botones.accion
                                         variant="delete"
                                         size="sm"

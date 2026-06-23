@@ -10,10 +10,12 @@
     $twilioAuthToken = (string) ($twilio['auth_token'] ?? '');
     $twilioFrom = (string) ($twilio['from'] ?? '');
     $twilioServiceSid = (string) ($twilio['messaging_service_sid'] ?? '');
+    $twilioContentSid = (string) ($twilio['content_sid'] ?? '');
     $twilioMode = (string) ($twilio['mode'] ?? 'auto');
     $twilioResolvedMode = app(WhatsAppSender::class)->resolveTwilioMode();
     $twilioHasCredentials = filled($twilioAccountSid) && filled($twilioAuthToken);
     $twilioHasSender = $twilioResolvedMode === 'service' ? filled($twilioServiceSid) : filled($twilioFrom);
+    $twilioUsesTemplate = config('whatsapp.message_mode') === 'template';
     $twilioTestRecipient = (string) ($twilio['test_recipient'] ?? '');
     $sandboxActive = $twilioFrom === 'whatsapp:+14155238886';
   @endphp
@@ -105,6 +107,9 @@
               <p class="mt-2 font-medium">{{ $twilioHasCredentials ? 'Credenciales listas' : 'Credenciales pendientes' }}</p>
               <p class="mt-1 text-sm text-slate-300">
                 {{ $twilioHasSender ? 'Canal configurado' : 'Falta el canal de envío' }}
+                @if ($twilioUsesTemplate)
+                  · {{ $twilioContentSid ? 'plantilla configurada' : 'falta Content SID' }}
+                @endif
               </p>
             </div>
 
@@ -226,6 +231,11 @@
             <p class="text-xs uppercase tracking-[0.25em] text-slate-400">Destino de prueba</p>
             <p class="mt-2 font-medium">{{ $twilioTestRecipient ?: 'No configurado' }}</p>
             <p class="mt-1 text-sm text-slate-300">Sirve para el botón rápido de envío desde el panel.</p>
+          </div>
+          <div class="rounded-2xl border border-white/10 bg-slate-900/60 p-4">
+            <p class="text-xs uppercase tracking-[0.25em] text-slate-400">Content SID</p>
+            <p class="mt-2 font-medium">{{ $twilioContentSid ? Str::mask($twilioContentSid, '*', 4) : 'No configurado' }}</p>
+            <p class="mt-1 text-sm text-slate-300">Necesario cuando `WHATSAPP_MESSAGE_MODE=template`.</p>
           </div>
         </div>
         <div x-show="showDropHint('status', 'after')" x-cloak

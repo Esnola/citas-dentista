@@ -4,8 +4,11 @@ namespace App\Livewire;
 
 use App\Models\Appointment;
 use App\Models\Client;
+use Carbon\Carbon;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Livewire\Component;
 use Livewire\WithPagination;
 
@@ -79,6 +82,8 @@ class AppointmentForm extends Component
     public function save(): void
     {
         $data = $this->validate();
+        $this->validateSelectableDate($data['fecha'], 'fecha');
+
         $client = Client::query()->findOrFail($data['selectedClientId']);
 
         $payload = [
@@ -161,6 +166,7 @@ class AppointmentForm extends Component
             'selectedAppointment' => $this->selectedAppointment,
             'canChangeAppointment' => $this->canChangeAppointment,
             'hasClientSearch' => $this->hasClientSearch,
+            'minimumSelectableDate' => $this->minimumSelectableDate(),
         ]);
     }
 
@@ -172,11 +178,33 @@ class AppointmentForm extends Component
                 'integer',
                 Rule::exists('clients', 'id'),
             ],
-            'fecha' => ['required', 'date'],
+            'fecha' => ['required', Rule::date()->afterToday()],
             'hora' => ['required', 'date_format:H:i'],
             'enviado' => ['boolean'],
             'activo' => ['boolean'],
         ];
+    }
+
+    private function minimumSelectableDate(): string
+    {
+        return now()->addDay()->toDateString();
+    }
+
+    private function validateSelectableDate(string $date, string $field): void
+    {
+        $validator = Validator::make([$field => $date], [
+            $field => [
+                function (string $attribute, mixed $value, \Closure $fail): void {
+                    if (Carbon::parse((string) $value)->isSunday()) {
+                        $fail('No se pueden seleccionar citas en domingo.');
+                    }
+                },
+            ],
+        ]);
+
+        if ($validator->fails()) {
+            throw new ValidationException($validator);
+        }
     }
 
     private function loadAppointment(int $appointmentId): void

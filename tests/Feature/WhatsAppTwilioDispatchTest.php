@@ -13,6 +13,13 @@ class WhatsAppTwilioDispatchTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        Config::set('whatsapp.message_mode', 'text');
+    }
+
     public function test_due_messages_are_sent_via_twilio_and_marked_as_sent(): void
     {
         $admin = User::factory()->create();
@@ -155,6 +162,67 @@ class WhatsAppTwilioDispatchTest extends TestCase
         $message = WhatsAppMessage::query()->firstOrFail();
 
         $this->assertSame('service', $message->provider_payload['payload']['mode']);
+    }
+
+    public function test_due_messages_can_be_sent_with_a_twilio_content_template(): void
+    {
+        $admin = User::factory()->create();
+        $scheduledFor = now()->subMinute();
+
+        WhatsAppMessage::query()->create([
+            'user_id' => $admin->id,
+            'nombre' => 'Clara',
+            'apellidos' => 'Vidal',
+            'telefono' => '633444555',
+            'scheduled_for' => $scheduledFor,
+            'message' => 'Hola Clara',
+            'source' => WhatsAppMessage::SOURCE_MANUAL,
+            'status' => WhatsAppMessage::STATUS_PENDING,
+        ]);
+
+        Config::set('whatsapp.driver', 'twilio');
+        Config::set('whatsapp.message_mode', 'template');
+        Config::set('whatsapp.twilio.account_sid', 'AC123');
+        Config::set('whatsapp.twilio.auth_token', 'test-token');
+        Config::set('whatsapp.twilio.mode', 'sender');
+        Config::set('whatsapp.twilio.from', 'whatsapp:+15551234567');
+        Config::set('whatsapp.twilio.content_sid', 'HXCONTENT123');
+        Config::set('whatsapp.twilio.content_variables', [
+            '1' => '[NOMBRE]',
+            '2' => '[DIA]',
+            '3' => '[HORA]',
+            '4' => '[MENSAJE]',
+        ]);
+        Config::set('whatsapp.default_country_code', '+34');
+
+        Http::fake([
+            'api.twilio.com/*/Messages.json' => Http::response([
+                'sid' => 'SMTEMPLATE123',
+                'status' => 'queued',
+            ], 201),
+        ]);
+
+        $this->artisan('whatsapp:dispatch-due')->assertExitCode(0);
+
+        Http::assertSent(function ($request) use ($scheduledFor): bool {
+            return $request['From'] === 'whatsapp:+15551234567'
+                && $request['To'] === 'whatsapp:+34633444555'
+                && $request['ContentSid'] === 'HXCONTENT123'
+                && $request['ContentVariables'] === json_encode([
+                    '1' => 'Clara',
+                    '2' => $scheduledFor->format('d/m/Y'),
+                    '3' => $scheduledFor->format('H:i'),
+                    '4' => 'Hola Clara',
+                ], JSON_UNESCAPED_UNICODE)
+                && ! isset($request['Body']);
+        });
+
+        $message = WhatsAppMessage::query()->firstOrFail();
+
+        $this->assertSame(WhatsAppMessage::STATUS_SENT, $message->status);
+        $this->assertSame('SMTEMPLATE123', $message->provider_message_id);
+        $this->assertSame('HXCONTENT123', $message->provider_payload['payload']['content_sid']);
+        $this->assertSame('Clara', $message->provider_payload['payload']['content_variables']['1']);
     }
 
     public function test_twilio_recipient_keeps_existing_whatsapp_prefix_without_duplicating_country_code(): void

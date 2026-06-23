@@ -47,6 +47,35 @@ class AppointmentManagerTest extends TestCase
         Carbon::setTestNow();
     }
 
+    public function test_appointment_form_rejects_today_and_sundays(): void
+    {
+        Carbon::setTestNow('2026-06-23 09:00:00');
+
+        $client = Client::query()->create([
+            'nombre' => 'Ana',
+            'apellidos' => 'Pérez',
+            'telefono' => '+34600111222',
+        ]);
+
+        Livewire::test(AppointmentForm::class)
+            ->set('selectedClientId', $client->id)
+            ->set('fecha', '2026-06-23')
+            ->set('hora', '11:30')
+            ->call('save')
+            ->assertHasErrors('fecha');
+
+        Livewire::test(AppointmentForm::class)
+            ->set('selectedClientId', $client->id)
+            ->set('fecha', '2026-06-28')
+            ->set('hora', '11:30')
+            ->call('save')
+            ->assertHasErrors('fecha');
+
+        $this->assertSame(0, Appointment::query()->count());
+
+        Carbon::setTestNow();
+    }
+
     public function test_appointment_page_can_open_selected_client_from_query_string(): void
     {
         $user = User::factory()->create();
