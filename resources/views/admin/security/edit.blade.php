@@ -19,15 +19,15 @@
                 @method('PUT')
                 <div>
                     <label class="mb-2 block text-sm text-slate-300">Nueva contraseña</label>
-                    <input name="password" type="password" class="w-full rounded-2xl border border-white/10 bg-slate-900/70 px-4 py-3 text-white" required autofocus>
+                    <x-formularios.input name="password" type="password" required autofocus />
                     @error('password') <p class="mt-2 text-sm text-rose-300">{{ $message }}</p> @enderror
                 </div>
                 <div>
                     <label class="mb-2 block text-sm text-slate-300">Confirmar nueva contraseña</label>
-                    <input name="password_confirmation" type="password" class="w-full rounded-2xl border border-white/10 bg-slate-900/70 px-4 py-3 text-white" required>
+                    <x-formularios.input name="password_confirmation" type="password" required />
                 </div>
                 <div class="md:col-span-2">
-                    <flux:button class="action-add" type="submit">Actualizar contraseña</flux:button>
+                    <x-botones.accion variant="add" icono="check" type="submit">Actualizar contraseña</x-botones.accion>
                 </div>
             </form>
         </div>

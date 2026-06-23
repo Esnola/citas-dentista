@@ -136,7 +136,7 @@ class AppointmentList extends Component
         ]);
 
         if (! $isActive) {
-            $appointment->whatsAppMessage()
+            $appointment->whatsAppMessages()
                 ->where('status', WhatsAppMessage::STATUS_PENDING)
                 ->delete();
         }

@@ -6,7 +6,7 @@ use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Appointment extends Model
 {
@@ -39,9 +39,9 @@ class Appointment extends Model
         return $this->belongsTo(Client::class);
     }
 
-    public function whatsAppMessage(): HasOne
+    public function whatsAppMessages(): HasMany
     {
-        return $this->hasOne(WhatsAppMessage::class);
+        return $this->hasMany(WhatsAppMessage::class);
     }
 
     public function scheduledFor(): Carbon

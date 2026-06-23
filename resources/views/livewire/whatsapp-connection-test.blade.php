@@ -32,7 +32,13 @@
         </div>
         <div class="rounded-2xl border border-white/10 bg-slate-900/50 p-4">
             <p class="text-xs uppercase tracking-[0.25em] text-slate-500">Modo</p>
-            <p class="mt-2 font-medium text-slate-100">{{ $previewPayload['mode'] ?? 'n/a' }}</p>
+            <p class="mt-2 font-medium text-slate-100">
+                @if (($previewPayload['mode'] ?? null) === 'auto')
+                    auto → {{ $previewPayload['resolved_mode'] ?? 'n/a' }}
+                @else
+                    {{ $previewPayload['mode'] ?? 'n/a' }}
+                @endif
+            </p>
         </div>
         <div class="rounded-2xl border border-white/10 bg-slate-900/50 p-4">
             <p class="text-xs uppercase tracking-[0.25em] text-slate-500">Destino</p>
@@ -44,23 +50,24 @@
         <div class="grid gap-4 md:grid-cols-3">
             <flux:field>
                 <flux:label>Modo</flux:label>
-                <flux:select wire:model="mode">
+                <x-formularios.select wire:model.live="mode">
+                    <option value="auto">Auto (.env)</option>
                     <option value="sandbox">Sandbox</option>
                     <option value="sender">Número real</option>
                     <option value="service">Messaging Service</option>
-                </flux:select>
+                </x-formularios.select>
                 <flux:error name="mode" />
             </flux:field>
 
             <flux:field>
                 <flux:label>Destino</flux:label>
-                <flux:input wire:model="recipient" placeholder="whatsapp:+34600123123 o 600123123" />
+                <x-formularios.input wire:model.live="recipient" placeholder="whatsapp:+34600123123 o 600123123" />
                 <flux:error name="recipient" />
             </flux:field>
 
             <flux:field>
                 <flux:label>Mensaje</flux:label>
-                <flux:textarea wire:model="body" rows="4" />
+                <flux:textarea wire:model.live="body" rows="4" />
                 <flux:error name="body" />
             </flux:field>
         </div>
@@ -84,8 +91,8 @@
         </div>
 
         <div class="flex flex-wrap gap-3">
-            <flux:button type="submit">Enviar prueba</flux:button>
-            <flux:button type="button" wire:click="sendSavedRecipient">Enviar al guardado</flux:button>
+            <x-botones.accion variant="add" icono="check" type="submit">Enviar prueba</x-botones.accion>
+            <x-botones.accion type="button" wire:click="sendSavedRecipient">Enviar al guardado</x-botones.accion>
         </div>
     </form>
 

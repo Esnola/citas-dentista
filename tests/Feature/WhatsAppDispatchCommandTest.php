@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Appointment;
+use App\Models\AppointmentReminderPreference;
 use App\Models\Client;
 use App\Models\User;
 use App\Models\WhatsAppMessage;
@@ -96,6 +97,7 @@ class WhatsAppDispatchCommandTest extends TestCase
         $this->assertSame($client->id, $message->client_id);
         $this->assertSame(WhatsAppMessage::SOURCE_APPOINTMENT, $message->source);
         $this->assertSame(WhatsAppMessage::STATUS_SENT, $message->status);
+        $this->assertSame(1, $message->metadata['lead_days']);
         $this->assertTrue($appointment->refresh()->enviado);
 
         $this->artisan('whatsapp:dispatch-due')
@@ -104,6 +106,63 @@ class WhatsAppDispatchCommandTest extends TestCase
             ->assertExitCode(0);
 
         $this->assertSame(1, WhatsAppMessage::query()->count());
+
+        Carbon::setTestNow();
+    }
+
+    public function test_active_appointments_are_queued_for_selected_whatsapp_lead_days(): void
+    {
+        Carbon::setTestNow('2026-06-22 12:00:00');
+
+        AppointmentReminderPreference::saveSelections([
+            AppointmentReminderPreference::CHANNEL_WHATSAPP => [1, 2, 7],
+            AppointmentReminderPreference::CHANNEL_EMAIL => [3],
+        ]);
+
+        $client = Client::query()->create([
+            'nombre' => 'Ana',
+            'apellidos' => 'Pérez',
+            'telefono' => '600123123',
+        ]);
+
+        $appointment = Appointment::query()->create([
+            'client_id' => $client->id,
+            'fecha' => '2026-06-30',
+            'hora' => '11:45',
+            'enviado' => false,
+            'activo' => true,
+        ]);
+
+        Config::set('whatsapp.driver', 'log');
+
+        $this->artisan('whatsapp:dispatch-due')
+            ->expectsOutput('Queued 3 appointment message(s).')
+            ->expectsOutput('Processed 0 due message(s).')
+            ->assertExitCode(0);
+
+        $this->assertSame(3, WhatsAppMessage::query()->where('appointment_id', $appointment->id)->count());
+
+        $messages = WhatsAppMessage::query()
+            ->where('appointment_id', $appointment->id)
+            ->orderBy('scheduled_for')
+            ->get();
+
+        $this->assertSame([7, 2, 1], $messages->pluck('metadata')->map(fn (array $metadata): int => $metadata['lead_days'])->all());
+        $this->assertSame([
+            '2026-06-23 11:45:00',
+            '2026-06-28 11:45:00',
+            '2026-06-29 11:45:00',
+        ], $messages->map(fn (WhatsAppMessage $message): string => $message->scheduled_for->toDateTimeString())->all());
+
+        Carbon::setTestNow('2026-06-23 12:00:00');
+
+        $this->artisan('whatsapp:dispatch-due')
+            ->expectsOutput('Queued 0 appointment message(s).')
+            ->expectsOutput('Processed 1 due message(s).')
+            ->assertExitCode(0);
+
+        $this->assertSame(3, WhatsAppMessage::query()->where('appointment_id', $appointment->id)->count());
+        $this->assertSame(1, WhatsAppMessage::query()->where('status', WhatsAppMessage::STATUS_SENT)->count());
 
         Carbon::setTestNow();
     }

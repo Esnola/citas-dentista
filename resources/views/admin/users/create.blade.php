@@ -14,25 +14,25 @@
                 @csrf
                 <div>
                     <label class="mb-2 block text-sm text-slate-300">Nombre</label>
-                    <input name="name" type="text" value="{{ old('name') }}" class="w-full rounded-2xl border border-white/10 bg-slate-900/70 px-4 py-3 text-white" required autofocus>
+                    <x-formularios.input name="name" value="{{ old('name') }}" required autofocus />
                     @error('name') <p class="mt-2 text-sm text-rose-300">{{ $message }}</p> @enderror
                 </div>
                 <div>
                     <label class="mb-2 block text-sm text-slate-300">Email</label>
-                    <input name="email" type="email" value="{{ old('email') }}" class="w-full rounded-2xl border border-white/10 bg-slate-900/70 px-4 py-3 text-white" required>
+                    <x-formularios.input name="email" type="email" value="{{ old('email') }}" required />
                     @error('email') <p class="mt-2 text-sm text-rose-300">{{ $message }}</p> @enderror
                 </div>
                 <div>
                     <label class="mb-2 block text-sm text-slate-300">Contraseña</label>
-                    <input name="password" type="password" class="w-full rounded-2xl border border-white/10 bg-slate-900/70 px-4 py-3 text-white" required>
+                    <x-formularios.input name="password" type="password" required />
                     @error('password') <p class="mt-2 text-sm text-rose-300">{{ $message }}</p> @enderror
                 </div>
                 <div>
                     <label class="mb-2 block text-sm text-slate-300">Confirmar contraseña</label>
-                    <input name="password_confirmation" type="password" class="w-full rounded-2xl border border-white/10 bg-slate-900/70 px-4 py-3 text-white" required>
+                    <x-formularios.input name="password_confirmation" type="password" required />
                 </div>
                 <div class="md:col-span-2">
-                    <flux:button class="action-add" type="submit">Crear usuario</flux:button>
+                    <x-botones.accion variant="add" icono="plus" type="submit">Crear usuario</x-botones.accion>
                 </div>
             </form>
         </div>
@@ -57,12 +57,12 @@
                                 <td class="px-4 py-3">{{ $user->email }}</td>
                                 <td class="px-4 py-3">
                                     <div class="flex items-center gap-3">
-                                        <a class="action-edit rounded-lg px-3 py-1.5 text-sm font-medium" href="{{ route('admin.users.edit', $user) }}">Editar</a>
+                                        <x-botones.accion variant="edit" size="sm" icono="edit" href="{{ route('admin.users.edit', $user) }}">Editar</x-botones.accion>
                                         @if ($user->id !== 1)
                                             <form method="POST" action="{{ route('admin.users.destroy', $user) }}" onsubmit="return confirm('¿Eliminar este usuario?')">
                                                 @csrf
                                                 @method('DELETE')
-                                                <button class="action-delete rounded-lg px-3 py-1.5 text-sm font-medium" type="submit">Eliminar</button>
+                                                <x-botones.accion variant="delete" size="sm" icono="delete" type="submit">Eliminar</x-botones.accion>
                                             </form>
                                         @else
                                             <span class="text-slate-500">Protegido</span>

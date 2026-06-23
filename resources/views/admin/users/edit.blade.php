@@ -9,26 +9,26 @@
                 @method('PUT')
                 <div>
                     <label class="mb-2 block text-sm text-slate-300">Nombre</label>
-                    <input name="name" type="text" value="{{ old('name', $user->name) }}" class="w-full rounded-2xl border border-white/10 bg-slate-900/70 px-4 py-3 text-white" required autofocus>
+                    <x-formularios.input name="name" value="{{ old('name', $user->name) }}" required autofocus />
                     @error('name') <p class="mt-2 text-sm text-rose-300">{{ $message }}</p> @enderror
                 </div>
                 <div>
                     <label class="mb-2 block text-sm text-slate-300">Email</label>
-                    <input name="email" type="email" value="{{ old('email', $user->email) }}" class="w-full rounded-2xl border border-white/10 bg-slate-900/70 px-4 py-3 text-white" required>
+                    <x-formularios.input name="email" type="email" value="{{ old('email', $user->email) }}" required />
                     @error('email') <p class="mt-2 text-sm text-rose-300">{{ $message }}</p> @enderror
                 </div>
                 <div>
                     <label class="mb-2 block text-sm text-slate-300">Nueva contraseña</label>
-                    <input name="password" type="password" class="w-full rounded-2xl border border-white/10 bg-slate-900/70 px-4 py-3 text-white">
+                    <x-formularios.input name="password" type="password" />
                     @error('password') <p class="mt-2 text-sm text-rose-300">{{ $message }}</p> @enderror
                 </div>
                 <div>
                     <label class="mb-2 block text-sm text-slate-300">Confirmar nueva contraseña</label>
-                    <input name="password_confirmation" type="password" class="w-full rounded-2xl border border-white/10 bg-slate-900/70 px-4 py-3 text-white">
+                    <x-formularios.input name="password_confirmation" type="password" />
                 </div>
                 <div class="md:col-span-2 flex items-center gap-3">
-                    <flux:button class="action-add" type="submit">Guardar cambios</flux:button>
-                    <a class="text-sm text-slate-300 hover:text-white" href="{{ route('admin.users.create') }}">Volver</a>
+                    <x-botones.accion variant="add" icono="check" type="submit">Guardar cambios</x-botones.accion>
+                    <x-botones.accion href="{{ route('admin.users.create') }}">Volver</x-botones.accion>
                 </div>
             </form>
         </div>

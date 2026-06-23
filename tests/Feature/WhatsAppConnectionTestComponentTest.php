@@ -98,6 +98,23 @@ class WhatsAppConnectionTestComponentTest extends TestCase
             ->assertSee('Mensaje de prueba');
     }
 
+    public function test_settings_connection_form_reflects_auto_twilio_mode_from_configuration(): void
+    {
+        config()->set('whatsapp.driver', 'twilio');
+        config()->set('whatsapp.twilio.mode', 'auto');
+        config()->set('whatsapp.twilio.from', 'whatsapp:+14155238886');
+        config()->set('whatsapp.twilio.messaging_service_sid', 'MG123');
+        config()->set('whatsapp.default_country_code', '+34');
+
+        Livewire::test(WhatsAppConnectionTest::class)
+            ->assertSet('mode', 'auto')
+            ->set('recipient', '600123123')
+            ->assertSee('auto → service')
+            ->assertSee('MessagingServiceSid')
+            ->assertSee('MG123')
+            ->assertSee('whatsapp:+34600123123');
+    }
+
     public function test_settings_connection_form_does_not_duplicate_country_code_for_whatsapp_recipient(): void
     {
         config()->set('whatsapp.driver', 'twilio');

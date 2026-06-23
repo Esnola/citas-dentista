@@ -39,7 +39,7 @@ return [
         ],
         'formal_reminder' => [
             'label' => 'Recordatorio formal',
-            'message' => 'Estimado/a [NOMBRE] [APELLIDOS], le recordamos su cita el [DIA] a las [HORA]. Saludos, Clínica Dental Eugénia',
+            'message' => 'Estimado/a [NOMBRE] [APELLIDOS], le recordamos su cita el [DIA] a las [HORA]. Saludos, Clínica Dental Eugenia',
         ],
         'short_reminder' => [
             'label' => 'Recordatorio breve',

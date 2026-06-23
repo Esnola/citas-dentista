@@ -31,7 +31,7 @@ class WhatsAppConnectionTest extends Component
         return [
             'recipient' => ['required', 'string', 'max:40'],
             'body' => ['required', 'string', 'max:500'],
-            'mode' => ['required', 'in:sandbox,sender,service'],
+            'mode' => ['required', 'in:auto,sandbox,sender,service'],
         ];
     }
 
@@ -103,13 +103,15 @@ class WhatsAppConnectionTest extends Component
         $from = (string) ($twilio['from'] ?? '');
         $messagingServiceSid = (string) ($twilio['messaging_service_sid'] ?? '');
         $mode = $preview['mode'];
+        $resolvedMode = (new WhatsAppSender)->resolveTwilioMode($mode);
 
         return [
             'provider' => 'twilio',
             'mode' => $mode,
+            'resolved_mode' => $resolvedMode,
             'request' => array_filter([
-                'From' => $mode === 'service' ? null : $this->normalizeWhatsAppAddress($from),
-                'MessagingServiceSid' => $mode === 'service' ? $messagingServiceSid : null,
+                'From' => $resolvedMode === 'service' ? null : $this->normalizeWhatsAppAddress($from),
+                'MessagingServiceSid' => $resolvedMode === 'service' ? $messagingServiceSid : null,
                 'To' => $this->normalizeWhatsAppRecipient($preview['recipient']),
                 'Body' => $preview['body'],
             ], static fn ($value) => $value !== null && $value !== ''),
@@ -120,7 +122,7 @@ class WhatsAppConnectionTest extends Component
     {
         $configuredMode = strtolower(trim((string) config('whatsapp.twilio.mode', 'auto')));
 
-        return in_array($configuredMode, ['sandbox', 'sender', 'service'], true) ? $configuredMode : 'sandbox';
+        return in_array($configuredMode, ['auto', 'sandbox', 'sender', 'service'], true) ? $configuredMode : 'auto';
     }
 
     private function buildCloudApiPreviewPayload(array $preview): array

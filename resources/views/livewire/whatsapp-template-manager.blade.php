@@ -11,7 +11,7 @@
                 <h2 class="text-xl font-semibold">{{ $editingTemplateId ? 'Editar plantilla' : 'Nueva plantilla' }}</h2>
                 <p class="mt-1 text-sm text-slate-300">Las plantillas disponibles alimentan el editor y el importador.</p>
             </div>
-            <flux:button class="action-add" type="button" wire:click="create">Nuevo</flux:button>
+            <x-botones.accion variant="add" icono="plus" type="button" wire:click="create">Nuevo</x-botones.accion>
         </div>
 
         <form class="mt-6 grid gap-4" wire:submit="save">
@@ -20,7 +20,7 @@
                 @if ($editingTemplateId)
                     <div class="rounded-2xl border border-white/10 bg-slate-900/60 px-4 py-3 text-sm text-slate-200">{{ $key }}</div>
                 @else
-                    <flux:input wire:model="key" placeholder="recordatorio-clinica" />
+                    <x-formularios.input wire:model="key" placeholder="recordatorio-clinica" />
                     <p class="mt-2 text-xs text-slate-400">Si lo dejas vacío, se generará automáticamente a partir del nombre.</p>
                 @endif
                 <flux:error name="key" />
@@ -28,7 +28,7 @@
 
             <flux:field>
                 <flux:label>Nombre</flux:label>
-                <flux:input wire:model="label" placeholder="Recordatorio clínica" />
+                <x-formularios.input wire:model="label" placeholder="Recordatorio clínica" />
                 <flux:error name="label" />
             </flux:field>
 
@@ -41,26 +41,20 @@
             <div class="grid gap-4 sm:grid-cols-2">
                 <flux:field>
                     <flux:label>Orden</flux:label>
-                    <flux:input type="number" wire:model="sort_order" min="0" />
+                    <x-formularios.input type="number" wire:model="sort_order" min="0" />
                     <flux:error name="sort_order" />
                 </flux:field>
 
                 <div class="space-y-4 pt-6">
-                    <label class="flex items-center gap-3 text-sm text-slate-200">
-                        <input type="checkbox" wire:model="is_default" class="rounded border-white/20 bg-slate-900 text-emerald-400">
-                        <span>Predeterminada</span>
-                    </label>
-                    <label class="flex items-center gap-3 text-sm text-slate-200">
-                        <input type="checkbox" wire:model="is_active" class="rounded border-white/20 bg-slate-900 text-emerald-400">
-                        <span>Activa</span>
-                    </label>
+                    <x-formularios.toggle wire:model="is_default" texto="Predeterminada" />
+                    <x-formularios.toggle wire:model="is_active" texto="Activa" />
                 </div>
             </div>
 
             <div class="flex flex-wrap gap-3">
-                <flux:button class="action-add" type="submit">{{ $editingTemplateId ? 'Guardar cambios' : 'Crear plantilla' }}</flux:button>
+                <x-botones.accion variant="add" icono="check" type="submit">{{ $editingTemplateId ? 'Guardar cambios' : 'Crear plantilla' }}</x-botones.accion>
                 @if ($editingTemplateId)
-                    <flux:button type="button" wire:click="create">Cancelar</flux:button>
+                    <x-botones.accion type="button" wire:click="create">Cancelar</x-botones.accion>
                 @endif
             </div>
         </form>
@@ -98,9 +92,9 @@
                             <td class="px-4 py-3">{{ $template->sort_order }}</td>
                             <td class="px-4 py-3 text-right">
                                 <div class="flex justify-end gap-2">
-                                    <flux:button class="action-edit" type="button" size="sm" wire:click="edit({{ $template->id }})">Editar</flux:button>
-                                    <flux:button type="button" size="sm" wire:click="setDefault({{ $template->id }})">Default</flux:button>
-                                    <flux:button class="action-delete" type="button" size="sm" wire:click="delete({{ $template->id }})" onclick="return confirm('¿Eliminar esta plantilla?')">Eliminar</flux:button>
+                                    <x-botones.accion variant="edit" size="sm" icono="edit" type="button" wire:click="edit({{ $template->id }})">Editar</x-botones.accion>
+                                    <x-botones.accion variant="warning" size="sm" type="button" wire:click="setDefault({{ $template->id }})">Default</x-botones.accion>
+                                    <x-botones.accion variant="delete" size="sm" icono="delete" type="button" wire:click="delete({{ $template->id }})" onclick="return confirm('¿Eliminar esta plantilla?')">Eliminar</x-botones.accion>
                                 </div>
                             </td>
                         </tr>

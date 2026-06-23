@@ -2,7 +2,7 @@
 
 Proyecto: `citasdentista`
 
-Ruta local actual: `/Users/juanjosegonzalez/PhpstormProjects/citasdentista`
+Ruta local actual: `/Users/juan/PhpstormProjects/citasdentista`
 
 ## Estado actual
 
@@ -11,7 +11,8 @@ Ruta local actual: `/Users/juanjosegonzalez/PhpstormProjects/citasdentista`
 - La página de mensajes fue eliminada porque no tenía uso.
 - Las citas se ordenan por fecha ascendente por defecto.
 - Las citas pasadas o ya enviadas no se pueden editar ni cambiar de estado; solo eliminar.
-- En ficha de cliente, las citas futuras no enviadas permiten toggle de activo; las pasadas/enviadas muestran acción de eliminar.
+- En ficha de cliente, las citas futuras no enviadas permiten toggle de activo; las pasadas/enviadas muestran acción de
+  eliminar.
 - El envío automático de WhatsApp está activo mediante el comando `whatsapp:dispatch-due`.
 - El scheduler ejecuta ese comando cada minuto en `routes/console.php`.
 
@@ -82,7 +83,6 @@ Validar configuración Twilio sin mostrar secretos:
 php artisan tinker --execute '$twilio = config("whatsapp.twilio"); $sender = app(\App\Services\WhatsApp\WhatsAppSender::class); echo json_encode(["driver" => config("whatsapp.driver"), "mode" => $twilio["mode"] ?? null, "resolved_mode" => $sender->resolveTwilioMode(), "has_account_sid" => filled($twilio["account_sid"] ?? null), "has_auth_token" => filled($twilio["auth_token"] ?? null), "has_from" => filled($twilio["from"] ?? null), "has_messaging_service_sid" => filled($twilio["messaging_service_sid"] ?? null), "has_test_recipient" => filled($twilio["test_recipient"] ?? null)], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);'
 ```
 
-
 ```bash
 php artisan whatsapp:dispatch-due --no-interaction
 ```
@@ -147,13 +147,13 @@ Los 6 pendientes tienen fecha futura y se enviarán cuando llegue su `scheduled_
 
 ## Pendiente recomendado al retomar
 
-1. Ejecutar `git status --short`.
-2. Revisar el diff de los cuatro archivos del fix Twilio.
-3. Probar visualmente en `/settings` que `TWILIO_TEST_RECIPIENT=whatsapp:+34...` se muestra sin duplicar `+34`.
-4. Sí se cambia `.env`, ejecutar `php artisan config:clear --no-interaction`.
-5. Si se quiere probar envío real, usar primero la prueba de conexión con un número unido al sandbox de Twilio.
-6. Ver el porqué no se puede seleccionar nada en la zona de ajustes.
-7. Hacer que en el archivo .env se pueda cambiar el modo de Twilio y que se refleje en la vista previa de conexión.
+1. ~~Ejecutar `git status --short`.~~
+2. ~~Revisar el diff de los cuatro archivos del fix Twilio.~~~
+3. ~~Probar visualmente en `/settings` que `TWILIO_TEST_RECIPIENT=whatsapp:+34...` se muestra sin duplicar `+34`.~~
+4. ~~Sí se cambia `.env`, ejecutar `php artisan config:clear --no-interaction`.~~
+5. ~~Si se quiere probar envío real, usar primero la prueba de conexión con un número unido al sandbox de Twilio.~~
+6. ~~Ver el porqué no se puede seleccionar nada en la zona de ajustes.~~
+7. ~~Hacer que en el archivo .env se pueda cambiar el modo de Twilio y que se refleje en la vista previa de conexión.~~
 8. Preparar la plantilla de correo de WhatsApp.
 9. Preparar la plantilla de correo de cita cancelada.
 10. Preparar la plantilla de correo de cita reprogramada.
@@ -164,4 +164,5 @@ Los 6 pendientes tienen fecha futura y se enviarán cuando llegue su `scheduled_
 15. Preparar la plantilla de correo de cita rechazada por el dentista.
 16. Preparar para enviar correos de recordatorio de cita.
 17. Preparar para enviar correos de confirmación de cita.
-18. Preparar para seleccionar los envíos de WhatsApp y email 1 día, 2 días, 3 días y/o una semana antes de la cita.
+    18.~~Preparar para seleccionar los envíos de WhatsApp y email 1 día, 2 días, 3 días y/o una semana antes de la
+    cita.~~

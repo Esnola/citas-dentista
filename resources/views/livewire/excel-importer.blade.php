@@ -15,24 +15,24 @@
             <div class="lg:col-span-2">
                 <flux:field>
                     <flux:label>Plantilla</flux:label>
-                    <flux:select wire:model="template_key">
+                    <x-formularios.select wire:model="template_key">
                         @foreach ($templateOptions as $template)
                             <option value="{{ $template['key'] }}">{{ $template['label'] }}</option>
                         @endforeach
-                    </flux:select>
+                    </x-formularios.select>
                     <flux:error name="template_key" />
                 </flux:field>
             </div>
             <div class="lg:col-span-3">
                 <flux:field>
                     <flux:label>Archivo</flux:label>
-                    <flux:input wire:model="file" type="file" accept=".xlsx,.xls,.csv" />
+                    <x-formularios.input wire:model="file" type="file" accept=".xlsx,.xls,.csv" />
                     <flux:error name="file" />
                 </flux:field>
             </div>
             <div class="lg:col-span-5 flex flex-wrap gap-3">
-                <flux:button type="button" wire:click="preview">Previsualizar</flux:button>
-                <flux:button class="action-add" type="submit">Importar</flux:button>
+                <x-botones.accion icono="eye" type="button" wire:click="preview">Previsualizar</x-botones.accion>
+                <x-botones.accion variant="add" icono="check" type="submit">Importar</x-botones.accion>
             </div>
         </form>
     </div>
@@ -44,15 +44,15 @@
         <div class="mt-4 grid gap-4 md:grid-cols-3">
             <flux:field>
                 <flux:label>Nombre</flux:label>
-                <flux:input wire:model.live.debounce.300ms="filter_nombre" placeholder="Filtrar por nombre" />
+                <x-formularios.input wire:model.live.debounce.300ms="filter_nombre" placeholder="Filtrar por nombre" />
             </flux:field>
             <flux:field>
                 <flux:label>Apellidos</flux:label>
-                <flux:input wire:model.live.debounce.300ms="filter_apellidos" placeholder="Filtrar por apellidos" />
+                <x-formularios.input wire:model.live.debounce.300ms="filter_apellidos" placeholder="Filtrar por apellidos" />
             </flux:field>
             <flux:field>
                 <flux:label>Teléfono</flux:label>
-                <flux:input wire:model.live.debounce.300ms="filter_telefono" placeholder="Filtrar por teléfono" />
+                <x-formularios.input wire:model.live.debounce.300ms="filter_telefono" placeholder="Filtrar por teléfono" />
             </flux:field>
         </div>
     </div>

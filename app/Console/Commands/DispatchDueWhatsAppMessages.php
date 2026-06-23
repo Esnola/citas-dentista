@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Models\Appointment;
+use App\Models\AppointmentReminderPreference;
 use App\Models\WhatsAppMessage;
 use App\Services\WhatsApp\WhatsAppSender;
 use Illuminate\Console\Command;
@@ -23,7 +24,7 @@ class DispatchDueWhatsAppMessages extends Command
             ->with('appointment')
             ->chunkById(100, function ($messages) use (&$count, $sender): void {
                 foreach ($messages as $message) {
-                    if ($message->appointment && (! $message->appointment->activo || $message->appointment->enviado)) {
+                    if ($message->appointment && ! $message->appointment->activo) {
                         continue;
                     }
 
@@ -72,7 +73,6 @@ class DispatchDueWhatsAppMessages extends Command
             ->with('client')
             ->where('activo', true)
             ->where('enviado', false)
-            ->whereDoesntHave('whatsAppMessage')
             ->chunkById(100, function ($appointments) use (&$queued): void {
                 foreach ($appointments as $appointment) {
                     $client = $appointment->client;
@@ -81,30 +81,52 @@ class DispatchDueWhatsAppMessages extends Command
                         continue;
                     }
 
-                    WhatsAppMessage::query()->create([
-                        'client_id' => $client->id,
-                        'appointment_id' => $appointment->id,
-                        'nombre' => $client->nombre,
-                        'apellidos' => $client->apellidos,
-                        'telefono' => $client->telefono,
-                        'scheduled_for' => $appointment->scheduledFor(),
-                        'message' => WhatsAppMessage::buildMessage([
+                    foreach (AppointmentReminderPreference::enabledLeadDaysFor(AppointmentReminderPreference::CHANNEL_WHATSAPP) as $leadDays) {
+                        if ($this->appointmentReminderExists($appointment, $leadDays)) {
+                            continue;
+                        }
+
+                        $scheduledFor = $appointment->scheduledFor();
+
+                        WhatsAppMessage::query()->create([
+                            'client_id' => $client->id,
+                            'appointment_id' => $appointment->id,
                             'nombre' => $client->nombre,
                             'apellidos' => $client->apellidos,
                             'telefono' => $client->telefono,
-                            'scheduled_for' => $appointment->scheduledFor(),
-                        ]),
-                        'source' => WhatsAppMessage::SOURCE_APPOINTMENT,
-                        'status' => WhatsAppMessage::STATUS_PENDING,
-                        'metadata' => [
-                            'origin_appointment_id' => $appointment->id,
-                        ],
-                    ]);
+                            'scheduled_for' => $scheduledFor->copy()->subDays($leadDays),
+                            'message' => WhatsAppMessage::buildMessage([
+                                'nombre' => $client->nombre,
+                                'apellidos' => $client->apellidos,
+                                'telefono' => $client->telefono,
+                                'scheduled_for' => $scheduledFor,
+                            ]),
+                            'source' => WhatsAppMessage::SOURCE_APPOINTMENT,
+                            'status' => WhatsAppMessage::STATUS_PENDING,
+                            'metadata' => [
+                                'origin_appointment_id' => $appointment->id,
+                                'channel' => AppointmentReminderPreference::CHANNEL_WHATSAPP,
+                                'lead_days' => $leadDays,
+                            ],
+                        ]);
 
-                    $queued++;
+                        $queued++;
+                    }
                 }
             });
 
         return $queued;
+    }
+
+    private function appointmentReminderExists(Appointment $appointment, int $leadDays): bool
+    {
+        return $appointment->whatsAppMessages()
+            ->get()
+            ->contains(function (WhatsAppMessage $message) use ($leadDays): bool {
+                $metadata = $message->metadata ?? [];
+
+                return ($metadata['channel'] ?? null) === AppointmentReminderPreference::CHANNEL_WHATSAPP
+                    && (int) ($metadata['lead_days'] ?? 0) === $leadDays;
+            });
     }
 }

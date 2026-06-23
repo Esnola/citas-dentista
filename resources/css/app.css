@@ -165,21 +165,25 @@ body.bg-slate-950 main :where(.rounded-2xl) {
     align-items: center;
     justify-content: center;
     border-radius: 1rem;
-    border: 1px solid rgb(255 255 255 / 0.1);
-    background: rgb(15 23 42 / 0.75);
-    color: rgb(203 213 225);
+    border: 1px solid rgb(56 189 248 / 0.28);
+    background: linear-gradient(135deg, rgb(56 189 248 / 0.16), rgb(14 165 233 / 0.08));
+    color: rgb(125 211 252);
     cursor: grab;
     transition: transform 150ms ease, background-color 150ms ease, border-color 150ms ease, box-shadow 150ms ease;
 }
 
 .settings-drag-handle:hover {
-    background: rgb(30 41 59 / 0.9);
-    box-shadow: 0 10px 30px rgb(16 185 129 / 0.12);
+    border-color: rgb(56 189 248 / 0.55);
+    background: linear-gradient(135deg, rgb(56 189 248 / 0.24), rgb(14 165 233 / 0.14));
+    box-shadow: 0 10px 30px rgb(14 165 233 / 0.18);
 }
 
 .settings-drag-handle:active {
     cursor: grabbing;
     transform: scale(0.96);
+    border-color: rgb(250 204 21 / 0.45);
+    background: linear-gradient(135deg, rgb(250 204 21 / 0.2), rgb(202 138 4 / 0.1));
+    color: rgb(253 224 71);
 }
 
 .settings-dragging {

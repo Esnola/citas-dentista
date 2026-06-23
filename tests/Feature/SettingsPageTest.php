@@ -20,6 +20,8 @@ class SettingsPageTest extends TestCase
             ->assertSee('Ajustes')
             ->assertSee('Twilio Sandbox')
             ->assertSee('Prueba de conexión')
-            ->assertSee('Plantillas');
+            ->assertSee('Plantillas')
+            ->assertDontSee('data-settings-section="overview" draggable', false)
+            ->assertDontSee('data-settings-section="connection" draggable', false);
     }
 }

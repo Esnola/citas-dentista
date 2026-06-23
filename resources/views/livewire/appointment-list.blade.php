@@ -24,39 +24,31 @@
                     {{ $appointments->total() }} resultados
                 </div>
                 @if ($selectedClient)
-                    <flux:button href="{{ route('appointments.index') }}">Ver todas</flux:button>
+                    <x-botones.accion href="{{ route('appointments.index') }}">Ver todas</x-botones.accion>
                 @endif
-                <flux:button class="action-add" href="{{ route('appointments.create', $selectedClient ? ['client' => $selectedClient->id] : []) }}">Nueva cita</flux:button>
+                <x-botones.accion variant="add" icono="plus" href="{{ route('appointments.create', $selectedClient ? ['client' => $selectedClient->id] : []) }}">Nueva cita</x-botones.accion>
             </div>
         </div>
 
         <div class="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             <flux:field>
                 <flux:label>Nombre</flux:label>
-                <flux:input wire:model.live.debounce.300ms="filter_nombre" placeholder="Filtrar por nombre" />
+                <x-formularios.input wire:model.live.debounce.300ms="filter_nombre" placeholder="Filtrar por nombre" />
             </flux:field>
 
             <flux:field>
                 <flux:label>Apellidos</flux:label>
-                <flux:input wire:model.live.debounce.300ms="filter_apellidos" placeholder="Filtrar por apellidos" />
+                <x-formularios.input wire:model.live.debounce.300ms="filter_apellidos" placeholder="Filtrar por apellidos" />
             </flux:field>
 
             <flux:field>
                 <flux:label>Enviado</flux:label>
-                <label class="inline-flex cursor-pointer items-center gap-2 rounded-2xl border border-white/10 bg-slate-950/40 px-4 py-3">
-                    <input class="peer sr-only" type="checkbox" wire:model.live="filter_enviado">
-                    <span class="h-5 w-9 rounded-full bg-slate-700 transition after:block after:h-4 after:w-4 after:translate-x-0.5 after:translate-y-0.5 after:rounded-full after:bg-white after:transition peer-checked:bg-emerald-500 peer-checked:after:translate-x-4 peer-focus-visible:ring-2 peer-focus-visible:ring-emerald-300"></span>
-                    <span class="text-sm text-slate-200">Solo enviadas</span>
-                </label>
+                <x-formularios.toggle wire:model.live="filter_enviado" texto="Solo enviadas" />
             </flux:field>
 
             <flux:field>
                 <flux:label>Activo</flux:label>
-                <label class="inline-flex cursor-pointer items-center gap-2 rounded-2xl border border-white/10 bg-slate-950/40 px-4 py-3">
-                    <input class="peer sr-only" type="checkbox" wire:model.live="filter_activo">
-                    <span class="h-5 w-9 rounded-full bg-slate-700 transition after:block after:h-4 after:w-4 after:translate-x-0.5 after:translate-y-0.5 after:rounded-full after:bg-white after:transition peer-checked:bg-emerald-500 peer-checked:after:translate-x-4 peer-focus-visible:ring-2 peer-focus-visible:ring-emerald-300"></span>
-                    <span class="text-sm text-slate-200">Solo activas</span>
-                </label>
+                <x-formularios.toggle wire:model.live="filter_activo" texto="Solo activas" />
             </flux:field>
 
         </div>
@@ -120,16 +112,11 @@
                             </td>
                             <td class="px-4 py-3">
                                 @if ($canChange)
-                                    <label class="inline-flex cursor-pointer items-center gap-2">
-                                        <input
-                                            class="peer sr-only"
-                                            type="checkbox"
-                                            @checked($appointment->activo)
-                                            wire:change="updateActiveStatus({{ $appointment->id }}, $event.target.checked)"
-                                        >
-                                        <span class="h-5 w-9 rounded-full bg-slate-700 transition after:block after:h-4 after:w-4 after:translate-x-0.5 after:translate-y-0.5 after:rounded-full after:bg-white after:transition peer-checked:bg-emerald-500 peer-checked:after:translate-x-4 peer-focus-visible:ring-2 peer-focus-visible:ring-emerald-300"></span>
-                                        <span class="text-xs text-slate-300">{{ $appointment->activo ? 'Sí' : 'No' }}</span>
-                                    </label>
+                                    <x-formularios.toggle
+                                        :estado="$appointment->activo ? 'Sí' : 'No'"
+                                        :checked="$appointment->activo"
+                                        wire:change="updateActiveStatus({{ $appointment->id }}, $event.target.checked)"
+                                    />
                                 @else
                                     <span class="rounded-full px-2.5 py-1 text-xs font-medium {{ $appointment->activo ? 'bg-sky-500/20 text-sky-200' : 'bg-slate-500/20 text-slate-200' }}">
                                         {{ $appointment->activo ? 'Sí' : 'No' }}
@@ -139,33 +126,24 @@
                             <td class="px-4 py-3 text-right">
                                 <div class="flex justify-end gap-2">
                                     @if ($canChange)
-                                        <a
-                                            class="action-edit inline-flex h-8 w-8 items-center justify-center rounded-md"
+                                        <x-botones.accion
+                                            variant="edit"
+                                            size="icon"
+                                            icono="edit"
                                             href="{{ route('appointments.edit', $appointment) }}"
                                             aria-label="Editar cita"
                                             title="Editar cita"
-                                        >
-                                            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                                <path d="M12 20h9" />
-                                                <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
-                                            </svg>
-                                        </a>
+                                        />
                                     @endif
-                                    <button
-                                        class="action-delete inline-flex h-8 w-8 items-center justify-center rounded-md"
+                                    <x-botones.accion
+                                        variant="delete"
+                                        size="icon"
+                                        icono="delete"
                                         type="button"
                                         wire:click="confirmDelete({{ $appointment->id }})"
                                         aria-label="Eliminar cita"
                                         title="Eliminar cita"
-                                    >
-                                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                            <path d="M3 6h18" />
-                                            <path d="M8 6V4h8v2" />
-                                            <path d="M19 6l-1 14H6L5 6" />
-                                            <path d="M10 11v6" />
-                                            <path d="M14 11v6" />
-                                        </svg>
-                                    </button>
+                                    />
                                 </div>
                             </td>
                         </tr>
@@ -195,8 +173,8 @@
                 <p class="mt-2 text-sm text-slate-400">Esta acción no se puede deshacer.</p>
 
                 <div class="mt-6 flex flex-wrap justify-end gap-2">
-                    <flux:button type="button" wire:click="cancelDelete">Cancelar</flux:button>
-                    <flux:button class="action-delete" type="button" wire:click="deleteConfirmed">Eliminar</flux:button>
+                    <x-botones.accion type="button" wire:click="cancelDelete">Cancelar</x-botones.accion>
+                    <x-botones.accion variant="delete" icono="delete" type="button" wire:click="deleteConfirmed">Eliminar</x-botones.accion>
                 </div>
             </div>
         </div>

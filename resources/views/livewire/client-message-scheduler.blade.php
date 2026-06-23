@@ -14,17 +14,17 @@
         <div class="mt-6 grid gap-4">
             <flux:field>
                 <flux:label>Nombre</flux:label>
-                <flux:input wire:model.live.debounce.300ms="filter_nombre" placeholder="Buscar por nombre" />
+                <x-formularios.input wire:model.live.debounce.300ms="filter_nombre" placeholder="Buscar por nombre" />
             </flux:field>
 
             <flux:field>
                 <flux:label>Apellidos</flux:label>
-                <flux:input wire:model.live.debounce.300ms="filter_apellidos" placeholder="Buscar por apellidos" />
+                <x-formularios.input wire:model.live.debounce.300ms="filter_apellidos" placeholder="Buscar por apellidos" />
             </flux:field>
 
             <flux:field>
                 <flux:label>Teléfono</flux:label>
-                <flux:input wire:model.live.debounce.300ms="filter_telefono" placeholder="Buscar por teléfono" />
+                <x-formularios.input wire:model.live.debounce.300ms="filter_telefono" placeholder="Buscar por teléfono" />
             </flux:field>
         </div>
 
@@ -34,7 +34,7 @@
                 <p class="mt-2 font-medium">{{ $selectedClient->nombre }} {{ $selectedClient->apellidos }}</p>
                 <p class="mt-1 text-sm text-slate-300">{{ $selectedClient->telefono }}</p>
                 <p class="mt-1 text-sm text-slate-300">Alta: {{ $selectedClient->created_at?->format('d/m/Y H:i') }}</p>
-                <flux:button type="button" class="mt-3" wire:click="clearSelection">Limpiar selección</flux:button>
+                <x-botones.accion type="button" class="mt-3" wire:click="clearSelection">Limpiar selección</x-botones.accion>
             @else
                 <p class="mt-2 text-sm text-slate-300">No hay ningún cliente seleccionado todavía.</p>
             @endif
@@ -45,24 +45,24 @@
             <form class="mt-4 grid gap-4" wire:submit="save">
                 <flux:field>
                     <flux:label>Plantilla</flux:label>
-                    <flux:select wire:model="template_key">
+                    <x-formularios.select wire:model="template_key">
                         @foreach ($templateOptions as $template)
                             <option value="{{ $template['key'] }}">{{ $template['label'] }}</option>
                         @endforeach
-                    </flux:select>
+                    </x-formularios.select>
                     <flux:error name="template_key" />
                 </flux:field>
 
                 <div class="grid gap-4 sm:grid-cols-2">
                     <flux:field>
                         <flux:label>Fecha</flux:label>
-                        <flux:input wire:model="scheduled_date" type="date" />
+                        <x-formularios.input wire:model="scheduled_date" type="date" />
                         <flux:error name="scheduled_date" />
                     </flux:field>
 
                     <flux:field>
                         <flux:label>Hora</flux:label>
-                        <flux:input wire:model="scheduled_time" type="time" />
+                        <x-formularios.input wire:model="scheduled_time" type="time" />
                         <flux:error name="scheduled_time" />
                     </flux:field>
                 </div>
@@ -71,7 +71,7 @@
                     <flux:error name="selectedClientId" />
                 </flux:field>
 
-                <flux:button class="action-add" type="submit" :disabled="! $selectedClient">Programar mensaje</flux:button>
+                <x-botones.accion variant="add" icono="check" type="submit" :disabled="! $selectedClient">Programar mensaje</x-botones.accion>
             </form>
         </div>
     </div>
@@ -105,7 +105,7 @@
                             <td class="px-4 py-3">{{ $client->telefono }}</td>
                             <td class="px-4 py-3">{{ $client->created_at?->format('d/m/Y H:i') }}</td>
                             <td class="px-4 py-3 text-right">
-                                <flux:button class="action-edit" type="button" size="sm" wire:click="selectClient({{ $client->id }})">Usar</flux:button>
+                                <x-botones.accion variant="edit" size="sm" type="button" wire:click="selectClient({{ $client->id }})">Usar</x-botones.accion>
                             </td>
                         </tr>
                     @empty

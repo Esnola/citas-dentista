@@ -15,24 +15,24 @@
                 <div class="rounded-2xl border border-white/10 bg-slate-900/60 px-4 py-3 text-sm text-slate-300">
                     {{ $clients->total() }} resultados
                 </div>
-                <flux:button class="action-add" href="{{ route('clients.create') }}">Nuevo cliente</flux:button>
+                <x-botones.accion variant="add" icono="plus" href="{{ route('clients.create') }}">Nuevo cliente</x-botones.accion>
             </div>
         </div>
 
         <div class="mt-4 grid gap-4 sm:grid-cols-3">
             <flux:field>
                 <flux:label>Nombre</flux:label>
-                <flux:input wire:model.live.debounce.300ms="filter_nombre" placeholder="Buscar por nombre" />
+                <x-formularios.input wire:model.live.debounce.300ms="filter_nombre" placeholder="Buscar por nombre" />
             </flux:field>
 
             <flux:field>
                 <flux:label>Apellidos</flux:label>
-                <flux:input wire:model.live.debounce.300ms="filter_apellidos" placeholder="Buscar por apellidos" />
+                <x-formularios.input wire:model.live.debounce.300ms="filter_apellidos" placeholder="Buscar por apellidos" />
             </flux:field>
 
             <flux:field>
                 <flux:label>Teléfono</flux:label>
-                <flux:input wire:model.live.debounce.300ms="filter_telefono" placeholder="Buscar por teléfono" />
+                <x-formularios.input wire:model.live.debounce.300ms="filter_telefono" placeholder="Buscar por teléfono" />
             </flux:field>
         </div>
 
@@ -59,15 +59,16 @@
                             <td class="px-4 py-3">{{ $client->created_at?->format('d/m/Y H:i') }}</td>
                             <td class="px-4 py-3 text-right">
                                 <div class="flex justify-end gap-2">
-                                    <flux:button class="action-edit" size="sm" href="{{ route('clients.edit', $client) }}">Cita</flux:button>
-                                    <flux:button
-                                        class="action-delete"
-                                        type="button"
+                                    <x-botones.accion variant="edit" size="sm" icono="edit" href="{{ route('clients.edit', $client) }}">Cita</x-botones.accion>
+                                    <x-botones.accion
+                                        variant="delete"
                                         size="sm"
+                                        icono="delete"
+                                        type="button"
                                         onclick="if (! confirm('¿Eliminar este cliente?')) return; $wire.delete({{ $client->id }})"
                                     >
                                         Eliminar
-                                    </flux:button>
+                                    </x-botones.accion>
                                 </div>
                             </td>
                         </tr>
