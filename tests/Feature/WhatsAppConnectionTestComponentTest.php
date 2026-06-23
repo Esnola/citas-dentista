@@ -97,4 +97,17 @@ class WhatsAppConnectionTestComponentTest extends TestCase
             ->assertSee('whatsapp:+34600123123')
             ->assertSee('Mensaje de prueba');
     }
+
+    public function test_settings_connection_form_does_not_duplicate_country_code_for_whatsapp_recipient(): void
+    {
+        config()->set('whatsapp.driver', 'twilio');
+        config()->set('whatsapp.twilio.from', 'whatsapp:+14155238886');
+        config()->set('whatsapp.default_country_code', '+34');
+
+        Livewire::test(WhatsAppConnectionTest::class)
+            ->set('mode', 'sandbox')
+            ->set('recipient', 'whatsapp:+34618287914')
+            ->assertSee('whatsapp:+34618287914')
+            ->assertDontSee('whatsapp:+3434618287914');
+    }
 }

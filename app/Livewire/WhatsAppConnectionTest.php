@@ -164,13 +164,14 @@ class WhatsAppConnectionTest extends Component
 
     private function normalizePhoneNumber(string $recipient): string
     {
-        $digits = preg_replace('/\D+/', '', $recipient) ?? '';
+        $cleanRecipient = preg_replace('/^whatsapp:/i', '', trim($recipient)) ?? trim($recipient);
+        $digits = preg_replace('/\D+/', '', $cleanRecipient) ?? '';
 
         if ($digits === '') {
             return '';
         }
 
-        if (str_starts_with(trim($recipient), '+')) {
+        if (str_starts_with($cleanRecipient, '+')) {
             return '+'.$digits;
         }
 

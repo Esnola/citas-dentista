@@ -156,4 +156,40 @@ class WhatsAppTwilioDispatchTest extends TestCase
 
         $this->assertSame('service', $message->provider_payload['payload']['mode']);
     }
+
+    public function test_twilio_recipient_keeps_existing_whatsapp_prefix_without_duplicating_country_code(): void
+    {
+        $admin = User::factory()->create();
+
+        WhatsAppMessage::query()->create([
+            'user_id' => $admin->id,
+            'nombre' => 'Nuria',
+            'apellidos' => 'Sanz',
+            'telefono' => 'whatsapp:+34618287914',
+            'scheduled_for' => now()->subMinute(),
+            'message' => 'Hola Nuria',
+            'source' => WhatsAppMessage::SOURCE_MANUAL,
+            'status' => WhatsAppMessage::STATUS_PENDING,
+        ]);
+
+        Config::set('whatsapp.driver', 'twilio');
+        Config::set('whatsapp.twilio.account_sid', 'AC123');
+        Config::set('whatsapp.twilio.auth_token', 'test-token');
+        Config::set('whatsapp.twilio.mode', 'sandbox');
+        Config::set('whatsapp.twilio.from', 'whatsapp:+14155238886');
+        Config::set('whatsapp.default_country_code', '+34');
+
+        Http::fake([
+            'api.twilio.com/*/Messages.json' => Http::response([
+                'sid' => 'SMTESTPREFIX123',
+                'status' => 'queued',
+            ], 201),
+        ]);
+
+        $this->artisan('whatsapp:dispatch-due')->assertExitCode(0);
+
+        Http::assertSent(function ($request): bool {
+            return $request['To'] === 'whatsapp:+34618287914';
+        });
+    }
 }
