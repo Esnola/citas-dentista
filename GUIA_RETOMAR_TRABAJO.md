@@ -1,4 +1,4 @@
-# Guia para retomar el trabajo
+# Guía para retomar el trabajo
 
 Proyecto: `citasdentista`
 
@@ -6,18 +6,18 @@ Ruta local actual: `/Users/juanjosegonzalez/PhpstormProjects/citasdentista`
 
 ## Estado actual
 
-- Aplicacion Laravel con Livewire para gestionar clientes, citas y envios WhatsApp.
-- El listado de citas y clientes esta separado de sus formularios de creacion/edicion.
-- La pagina de mensajes fue eliminada porque no tenia uso.
+- Aplicación Laravel con Livewire para gestionar clientes, citas y envíos WhatsApp.
+- El listado de citas y clientes está separado de sus formularios de creacion/edicion.
+- La página de mensajes fue eliminada porque no tenía uso.
 - Las citas se ordenan por fecha ascendente por defecto.
 - Las citas pasadas o ya enviadas no se pueden editar ni cambiar de estado; solo eliminar.
-- En ficha de cliente, las citas futuras no enviadas permiten toggle de activo; las pasadas/enviadas muestran accion de eliminar.
-- El envio automatico de WhatsApp esta activo mediante el comando `whatsapp:dispatch-due`.
+- En ficha de cliente, las citas futuras no enviadas permiten toggle de activo; las pasadas/enviadas muestran acción de eliminar.
+- El envío automático de WhatsApp está activo mediante el comando `whatsapp:dispatch-due`.
 - El scheduler ejecuta ese comando cada minuto en `routes/console.php`.
 
-## Configuracion Twilio
+## Configuración Twilio
 
-El flujo real de Twilio esta preparado en `app/Services/WhatsApp/WhatsAppSender.php`.
+El flujo real de Twilio está preparado en `app/Services/WhatsApp/WhatsAppSender.php`.
 
 Variables esperadas en `.env`:
 
@@ -41,9 +41,9 @@ No guardar credenciales reales en este documento.
 
 ## Ultimo ajuste importante
 
-Se corrigio la normalizacion de destinatarios con prefijo `whatsapp:`.
+Se corrigió la normalizacion de destinatarios con prefijo `whatsapp:`.
 
-Antes, si se ponia:
+Antes, si se ponía:
 
 ```env
 TWILIO_TEST_RECIPIENT=whatsapp:+34618287914
@@ -70,19 +70,18 @@ Archivos tocados por este fix:
 
 ## Comandos utiles
 
-Limpiar cache de configuracion despues de cambiar `.env`:
+Limpiar caché de configuración después de cambiar `.env`:
 
 ```bash
 php artisan config:clear --no-interaction
 ```
 
-Validar configuracion Twilio sin mostrar secretos:
+Validar configuración Twilio sin mostrar secretos:
 
 ```bash
 php artisan tinker --execute '$twilio = config("whatsapp.twilio"); $sender = app(\App\Services\WhatsApp\WhatsAppSender::class); echo json_encode(["driver" => config("whatsapp.driver"), "mode" => $twilio["mode"] ?? null, "resolved_mode" => $sender->resolveTwilioMode(), "has_account_sid" => filled($twilio["account_sid"] ?? null), "has_auth_token" => filled($twilio["auth_token"] ?? null), "has_from" => filled($twilio["from"] ?? null), "has_messaging_service_sid" => filled($twilio["messaging_service_sid"] ?? null), "has_test_recipient" => filled($twilio["test_recipient"] ?? null)], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);'
 ```
 
-Lanzar envio automatico de mensajes pendientes:
 
 ```bash
 php artisan whatsapp:dispatch-due --no-interaction
@@ -100,7 +99,7 @@ Formatear PHP antes de cerrar cambios:
 vendor/bin/pint --dirty --format agent
 ```
 
-## Ultimas verificaciones ejecutadas
+## Últimas verificaciones ejecutadas
 
 ```bash
 vendor/bin/pint --dirty --format agent
@@ -108,13 +107,13 @@ php artisan test --compact tests/Feature/WhatsAppTwilioDispatchTest.php tests/Fe
 php artisan config:clear --no-interaction
 ```
 
-Resultado de pruebas del ultimo fix:
+Resultado de pruebas del último fix:
 
 ```text
 8 tests passed, 36 assertions
 ```
 
-## Envio automatico realizado
+## Envío automático realizado
 
 Se ejecuto:
 
@@ -135,7 +134,7 @@ Estado posterior en ese momento:
 - Pendientes: 6
 - Fallidos: 0
 
-Los 6 pendientes tienen fecha futura y se enviaran cuando llegue su `scheduled_for`.
+Los 6 pendientes tienen fecha futura y se enviarán cuando llegue su `scheduled_for`.
 
 ## Rutas principales
 
@@ -143,7 +142,7 @@ Los 6 pendientes tienen fecha futura y se enviaran cuando llegue su `scheduled_f
 - `/appointments/create`: crear cita.
 - `/clients`: listado de clientes.
 - `/clients/create`: crear cliente.
-- `/settings`: ajustes, plantillas y prueba de conexion WhatsApp.
+- `/settings`: ajustes, plantillas y prueba de conexión WhatsApp.
 - `/imports`: importaciones.
 
 ## Pendiente recomendado al retomar
@@ -151,5 +150,6 @@ Los 6 pendientes tienen fecha futura y se enviaran cuando llegue su `scheduled_f
 1. Ejecutar `git status --short`.
 2. Revisar el diff de los cuatro archivos del fix Twilio.
 3. Probar visualmente en `/settings` que `TWILIO_TEST_RECIPIENT=whatsapp:+34...` se muestra sin duplicar `+34`.
-4. Si se cambia `.env`, ejecutar `php artisan config:clear --no-interaction`.
-5. Si se quiere probar envio real, usar primero la prueba de conexion con un numero unido al sandbox de Twilio.
+4. Sí se cambia `.env`, ejecutar `php artisan config:clear --no-interaction`.
+5. Si se quiere probar envío real, usar primero la prueba de conexión con un número unido al sandbox de Twilio.
+6. Ver el porqué no se puede seleccionar nada en la zona de ajustes.
