@@ -26,15 +26,49 @@
 
                     <div class="mt-3 grid gap-2">
                         @forelse ($selectedClient->appointments as $appointment)
-                            @php($canChangeAppointment = $appointment->canBeChanged())
+                            @php
+                                $isFutureAppointment = $appointment->isFuture();
+                                $badgeBaseClasses = 'inline-flex items-center rounded-full px-2 py-1 text-xs font-medium inset-ring';
+
+                                $appointmentStatus = match (true) {
+                                    $appointment->enviado => [
+                                        'label' => 'Enviado',
+                                        'classes' => "{$badgeBaseClasses} bg-green-400/10 text-green-400 inset-ring-green-500/20",
+                                        'icono' => 'check-circle',
+                                        'canChange' => false,
+                                    ],
+                                    ! $isFutureAppointment => [
+                                        'label' => 'No Enviado - Error!',
+                                        'classes' => "{$badgeBaseClasses} bg-red-400/10 text-red-400 inset-ring-red-400/20",
+                                        'icono' => 'exclamation-triangle',
+                                        'canChange' => false,
+                                    ],
+                                    $appointment->activo => [
+                                        'label' => 'Pendiente',
+                                        'classes' => "{$badgeBaseClasses} bg-yellow-400/10 text-yellow-400 inset-ring-yellow-400/20",
+                                        'icono' => 'clock',
+                                        'canChange' => true,
+                                    ],
+                                    default => [
+                                        'label' => 'Inactivo',
+                                        'classes' => "{$badgeBaseClasses} bg-blue-400/10 text-blue-400 inset-ring-blue-400/20",
+                                        'icono' =>'exclamation-circle',
+                                        'canChange' => true,
+                                    ],
+                                };
+
+                                $canChangeAppointment = $appointmentStatus['canChange'];
+
+                            @endphp
                             <div wire:key="client-form-appointment-{{ $appointment->id }}" class="rounded-2xl border border-white/10 bg-slate-950/40 p-3 {{ $canChangeAppointment ? '' : 'opacity-70' }}">
                                 <div class="flex items-start justify-between gap-3">
-                                    <div>
+                                    <div class="flex gap-2 items-center">
                                         <p class="font-medium">{{ $appointment->fecha?->format('d/m/Y') }} {{ $appointment->hora }}</p>
-                                        <p class="mt-1 text-xs text-slate-400">
-                                            {{ $appointment->activo ? 'Activa' : 'Inactiva' }}
-                                            ·
-                                            {{ $appointment->enviado ? 'Enviada' : 'No enviada' }}
+                                        <p class="mt-1 {{ $appointmentStatus['classes'] }}">
+                                            <x-dynamic-component
+                                                :component="'flux::icon.' . $appointmentStatus['icono']"
+                                                class="mr-1 h-4 w-4"
+                                            /> {{ $appointmentStatus['label'] }}
                                         </p>
                                     </div>
                                     @if ($canChangeAppointment)
@@ -46,7 +80,7 @@
                                                 wire:change="updateAppointmentActiveStatus({{ $appointment->id }}, $event.target.checked)"
                                             >
                                             <span class="h-5 w-9 rounded-full bg-slate-700 transition after:block after:h-4 after:w-4 after:translate-x-0.5 after:translate-y-0.5 after:rounded-full after:bg-white after:transition peer-checked:bg-emerald-500 peer-checked:after:translate-x-4 peer-focus-visible:ring-2 peer-focus-visible:ring-emerald-300"></span>
-                                            <span class="text-xs text-slate-300">{{ $appointment->activo ? 'Activa' : 'Inactiva' }}</span>
+                                            <span class="text-xs text-slate-300">{{ $appointment->activo ? 'Activo' : 'Inactivo' }}</span>
                                         </label>
                                     @else
                                         <button

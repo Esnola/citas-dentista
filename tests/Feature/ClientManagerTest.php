@@ -154,6 +154,8 @@ class ClientManagerTest extends TestCase
 
     public function test_selected_client_card_shows_client_appointments(): void
     {
+        Carbon::setTestNow('2026-06-23 09:00:00');
+
         $client = Client::query()->create([
             'nombre' => 'Lucía',
             'apellidos' => 'Martín',
@@ -179,11 +181,70 @@ class ClientManagerTest extends TestCase
             ->assertSee('Citas')
             ->assertSee('01/07/2026')
             ->assertSee('10:15')
-            ->assertSee('No enviada')
+            ->assertSee('Pendiente')
             ->assertSeeHtmlInOrder([
                 'client-form-appointment-'.$earlierAppointment->id,
                 'client-form-appointment-'.$laterAppointment->id,
             ]);
+
+        Carbon::setTestNow();
+    }
+
+    public function test_selected_client_card_shows_appointment_statuses_and_actions(): void
+    {
+        Carbon::setTestNow('2026-06-23 09:00:00');
+
+        $client = Client::query()->create([
+            'nombre' => 'Lucía',
+            'apellidos' => 'Martín',
+            'telefono' => '+34666777888',
+        ]);
+
+        Appointment::query()->create([
+            'client_id' => $client->id,
+            'fecha' => '2026-06-01',
+            'hora' => '09:00',
+            'enviado' => false,
+            'activo' => true,
+        ]);
+        Appointment::query()->create([
+            'client_id' => $client->id,
+            'fecha' => '2026-07-01',
+            'hora' => '09:00',
+            'enviado' => true,
+            'activo' => true,
+        ]);
+        Appointment::query()->create([
+            'client_id' => $client->id,
+            'fecha' => '2026-07-02',
+            'hora' => '09:00',
+            'enviado' => false,
+            'activo' => true,
+        ]);
+        Appointment::query()->create([
+            'client_id' => $client->id,
+            'fecha' => '2026-07-03',
+            'hora' => '09:00',
+            'enviado' => false,
+            'activo' => false,
+        ]);
+
+        $component = Livewire::test(ClientForm::class, ['client' => $client->id])
+            ->assertSee('No Enviado!')
+            ->assertSee('Enviado')
+            ->assertSee('Pendiente')
+            ->assertSee('Inactivo')
+            ->assertSeeHtml('text-red-400')
+            ->assertSeeHtml('text-green-400')
+            ->assertSeeHtml('text-yellow-400')
+            ->assertSeeHtml('text-blue-400');
+
+        $html = $component->html();
+
+        $this->assertSame(2, substr_count($html, 'aria-label="Eliminar cita"'));
+        $this->assertSame(2, substr_count($html, 'wire:change="updateAppointmentActiveStatus'));
+
+        Carbon::setTestNow();
     }
 
     public function test_selected_client_card_can_update_future_unsent_appointment_active_status(): void

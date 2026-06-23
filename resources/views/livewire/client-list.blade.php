@@ -59,7 +59,7 @@
                             <td class="px-4 py-3">{{ $client->created_at?->format('d/m/Y H:i') }}</td>
                             <td class="px-4 py-3 text-right">
                                 <div class="flex justify-end gap-2">
-                                    <flux:button class="action-edit" size="sm" href="{{ route('clients.edit', $client) }}">Editar</flux:button>
+                                    <flux:button class="action-edit" size="sm" href="{{ route('clients.edit', $client) }}">Cita</flux:button>
                                     <flux:button
                                         class="action-delete"
                                         type="button"
