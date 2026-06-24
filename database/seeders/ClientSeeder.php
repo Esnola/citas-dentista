@@ -13,6 +13,7 @@ class ClientSeeder extends Seeder
     public function run(): void
     {
         $clients = [
+            ['nombre' => 'Eshter', 'apellidos' => 'Amado Calviño', 'telefono' => '659366775'],
             ['nombre' => 'Ana', 'apellidos' => 'Pérez López', 'telefono' => '600123123'],
             ['nombre' => 'Luis', 'apellidos' => 'Gómez Martín', 'telefono' => '611234567'],
             ['nombre' => 'María', 'apellidos' => 'Sánchez Ruiz', 'telefono' => '622345678'],
