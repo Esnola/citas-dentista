@@ -8,8 +8,14 @@
     <div class="rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur">
         <div class="flex flex-wrap items-start justify-between gap-4">
             <div>
-                <h2 class="text-xl font-semibold">Clientes registrados</h2>
-                <p class="mt-2 text-sm text-slate-300">Escribe al menos un carácter en cualquier campo para buscar clientes.</p>
+{{--                <h2 class="text-xl font-semibold">Clientes registrados</h2>--}}
+       {{--         <p class="mt-2 text-sm text-slate-300">
+                    @if ($showAllClients)
+                        Consulta todos los clientes y afina el listado con los filtros.
+                    @else
+                        Escribe al menos un carácter en cualquier campo para buscar clientes.
+                    @endif
+                </p>--}}
             </div>
             <div class="flex flex-wrap items-center gap-2">
                 <div class="rounded-2xl border border-white/10 bg-slate-900/60 px-4 py-3 text-sm text-slate-300">
@@ -48,7 +54,7 @@
                         </th>
                         <th class="px-4 py-3">Teléfono</th>
                         <th class="px-4 py-3">Alta</th>
-                        <th class="px-4 py-3"></th>
+                        <th class="px-4 py-3 text-center">Acciones</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-white/10 bg-slate-950/40">
@@ -59,31 +65,36 @@
                             <td class="px-4 py-3">{{ $client->created_at?->format('d/m/Y H:i') }}</td>
                             <td class="px-4 py-3 text-right">
                                 <div class="flex justify-end gap-2">
-                                    <x-botones.accion variant="edit" size="sm" icono="edit" href="{{ route('clients.edit', $client) }}">Editar</x-botones.accion>
+                                    <x-botones.accion
+                                        variant="warning"
+                                        size="sm"
+                                        href="{{ route('appointments.index', ['client' => $client->id]) }}"
+                                    ><x-iconos.calendar clase="size-4"/>
+                                        Citas
+                                    </x-botones.accion>
                                     <x-botones.accion
                                         variant="add"
                                         size="sm"
-                                        icono="check"
-                                        href="{{ route('clients.index', ['client' => $client->id]) }}#programar-whatsapp"
+                                        icono="plus"
+                                        href="{{ route('appointments.create', ['client' => $client->id]) }}"
                                     >
-                                        WhatsApp
+                                         Cita
                                     </x-botones.accion>
+
+                                    <x-botones.accion variant="edit" size="sm" icono="edit" href="{{ route('clients.edit', $client) }}" />
                                     <x-botones.accion
                                         variant="delete"
                                         size="sm"
                                         icono="delete"
                                         type="button"
-                                        onclick="if (! confirm('¿Eliminar este cliente?')) return; $wire.delete({{ $client->id }})"
-                                    >
-                                        Eliminar
-                                    </x-botones.accion>
+                                        onclick="if (! confirm('¿Eliminar este cliente?')) return; $wire.delete({{ $client->id }})" />
                                 </div>
                             </td>
                         </tr>
                     @empty
                         <tr>
                             <td class="px-4 py-6 text-slate-400" colspan="4">
-                                @if ($hasClientSearch)
+                                @if ($showAllClients || $hasClientSearch)
                                     No hay clientes para esa búsqueda.
                                 @else
                                     Las coincidencias aparecerán aquí cuando escribas al menos un carácter.
@@ -95,7 +106,7 @@
             </table>
         </div>
 
-        @if ($hasClientSearch)
+        @if ($showAllClients || $hasClientSearch)
             <div class="mt-4">
                 {{ $clients->links() }}
             </div>

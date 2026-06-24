@@ -32,7 +32,7 @@
           <div class="grid gap-2">
             <x-navegacion.aside-link route="dashboard" route-is="dashboard" color="sky" icono="dashboard"
                                      text="Dashboard"/>
-            <x-navegacion.aside-link route="clients.index" route-is="clients.*" color="emerald" icono="customer"
+            <x-navegacion.aside-link route="clients.list" route-is="clients.*" color="emerald" icono="customer"
                                      text="Clientes"/>
             <x-navegacion.aside-link route="appointments.index" route-is="appointments.*" color="yellow"
                                      icono="calendar" icono-clase="size-5" text="Citas"/>

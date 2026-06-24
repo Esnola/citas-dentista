@@ -40,7 +40,6 @@
                 @include('components.botones.partials.icono-accion', ['icono' => $icono])
             </svg>
         @endif
-
         {{ $slot }}
     </a>
 @else
@@ -50,7 +49,6 @@
                 @include('components.botones.partials.icono-accion', ['icono' => $icono])
             </svg>
         @endif
-
         {{ $slot }}
     </button>
 @endif

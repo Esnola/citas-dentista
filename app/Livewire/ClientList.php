@@ -11,6 +11,8 @@ class ClientList extends Component
 {
     use WithPagination;
 
+    public bool $showAllClients = false;
+
     public string $filter_nombre = '';
 
     public string $filter_apellidos = '';
@@ -59,7 +61,9 @@ class ClientList extends Component
 
     public function render()
     {
-        $clients = $this->hasClientSearch
+        $shouldShowClients = $this->showAllClients || $this->hasClientSearch;
+
+        $clients = $shouldShowClients
             ? Client::query()
                 ->when($this->filter_nombre, fn ($query) => $query->where('nombre', 'like', '%'.$this->filter_nombre.'%'))
                 ->when($this->filter_apellidos, fn ($query) => $query->where('apellidos', 'like', '%'.$this->filter_apellidos.'%'))
@@ -72,6 +76,7 @@ class ClientList extends Component
         return view('livewire.client-list', [
             'clients' => $clients,
             'hasClientSearch' => $this->hasClientSearch,
+            'showAllClients' => $this->showAllClients,
         ]);
     }
 }

@@ -16,14 +16,12 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        if (User::query()->doesntExist()) {
-            User::query()->create([
-                'name' => env('INITIAL_ADMIN_NAME', 'Administrador'),
-                'email' => env('INITIAL_ADMIN_EMAIL', 'admin@example.com'),
-                'password' => Hash::make(env('INITIAL_ADMIN_PASSWORD', 'ChangeMe123456!')),
-            ]);
-        }
+        User::factory(10)->create();
 
+        User::factory()->create([
+            'name' => 'Test User',
+            'email' => 'test@example.com',
+        ]);
         $this->call(ClientSeeder::class);
         $this->call(AppointmentSeeder::class);
     }

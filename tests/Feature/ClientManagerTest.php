@@ -153,6 +153,27 @@ class ClientManagerTest extends TestCase
         Carbon::setTestNow();
     }
 
+    public function test_clients_list_page_displays_clients(): void
+    {
+        $admin = User::factory()->create();
+
+        $client = Client::query()->create([
+            'nombre' => 'Ana',
+            'apellidos' => 'Pérez',
+            'telefono' => '600123123',
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('clients.list'))
+            ->assertOk()
+            ->assertSee('Listado de clientes')
+            ->assertSee('Ana Pérez')
+            ->assertSeeHtml('href="'.route('appointments.index', ['client' => $client->id]).'"')
+            ->assertSeeHtml('href="'.route('appointments.create', ['client' => $client->id]).'"')
+            ->assertSee('Citas')
+            ->assertSee('Nueva Cita');
+    }
+
     public function test_selected_client_card_shows_client_appointments(): void
     {
         Carbon::setTestNow('2026-06-23 09:00:00');

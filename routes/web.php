@@ -20,6 +20,7 @@ Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
 Route::middleware('auth')->group(function () {
     Route::view('/dashboard', 'dashboard')->name('dashboard');
     Route::view('/clients', 'clients.index')->name('clients.index');
+    Route::view('/clients/list', 'clients.list')->name('clients.list');
     Route::view('/clients/create', 'clients.form')->name('clients.create');
     Route::view('/clients/{client}/edit', 'clients.form')->name('clients.edit');
     Route::view('/appointments', 'appointments.index')->name('appointments.index');
