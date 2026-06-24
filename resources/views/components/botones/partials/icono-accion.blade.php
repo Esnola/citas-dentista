@@ -6,7 +6,7 @@
         'back' => '<path d="M6 3 2 7l4 4M2.5 7H12" stroke-linecap="round" stroke-linejoin="round" />',
         'check' => '<path d="M3 7.5 5.6 10 11 4" stroke-linecap="round" stroke-linejoin="round" />',
         'eye' => '<path d="M1.8 7s1.9-3.5 5.2-3.5S12.2 7 12.2 7 10.3 10.5 7 10.5 1.8 7 1.8 7Z" stroke-linecap="round" stroke-linejoin="round" /><path d="M7 5.7a1.3 1.3 0 1 1 0 2.6 1.3 1.3 0 0 1 0-2.6Z" stroke-linecap="round" stroke-linejoin="round" />',
-        'calendar' => '<path d="M19 4h-2V2h-2v2H9V2H7v2H5c-1.103 0-2 .897-2 2v14c0 1.103.897 2 2 2h14c1.103 0 2-.897 2-2V6c0-1.103-.897-2-2-2zm.002 16H5V8h14l.002 12z"></path><path d="m11 17.414 5.707-5.707-1.414-1.414L11 14.586l-2.293-2.293-1.414 1.414z"></path>',
+        'calendar' => '<svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 24 24" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M7 11h2v2H7zm0 4h2v2H7zm4-4h2v2h-2zm0 4h2v2h-2zm4-4h2v2h-2zm0 4h2v2h-2z"></path><path d="M5 22h14c1.103 0 2-.897 2-2V6c0-1.103-.897-2-2-2h-2V2h-2v2H9V2H7v2H5c-1.103 0-2 .897-2 2v14c0 1.103.897 2 2 2zM19 8l.001 12H5V8h14z"></path></svg>',
         default => '<path d="M4 7h6" stroke-linecap="round" stroke-linejoin="round" />',
     };
 @endphp

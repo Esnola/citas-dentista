@@ -7,30 +7,27 @@
 
     <div class="rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur">
         <div class="flex flex-wrap items-start justify-between gap-4">
-            <div>
+            <div class="flex  gap-6 p-4">
+                   <x-iconos.calendar />
                 <h2 class="text-xl font-semibold">
-                    {{ $selectedClient ? 'Citas de '.$selectedClient->full_name : 'Citas registradas' }}
+                    {{ $selectedClient ?  $selectedClient->full_name : 'Citas registradas' }}
                 </h2>
-                <p class="mt-2 text-sm text-slate-300">
-                    @if ($selectedClient)
-                        Listado de citas de {{ $selectedClient->telefono }}.
-                    @else
-                        Listado de citas enlazadas con clientes y estado de envío.
-                    @endif
-                </p>
-            </div>
-            <div class="flex flex-wrap items-center gap-2">
                 <div class="rounded-2xl border border-white/10 bg-slate-900/60 px-4 py-3 text-sm text-slate-300">
-                    {{ $appointments->total() }} resultados
+                    {{ $appointments->total() }} cita{{ $appointments->total()>1 ? 's' : '' }}
                 </div>
+            </div>
+            <div class="flex flex-wrap items-center gap-6">
+
                 @if ($selectedClient)
-                    <x-botones.accion href="{{ route('appointments.index') }}">Ver todas</x-botones.accion>
+                    <x-botones.accion href="{{ route('appointments.index') }}" icono="calendar"
+                    >Todas las citas</x-botones.accion>
                 @endif
                 <x-botones.accion variant="add" icono="plus" href="{{ route('appointments.create', $selectedClient ? ['client' => $selectedClient->id] : []) }}">Nueva cita</x-botones.accion>
+
             </div>
         </div>
 
-        <div class="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div class="mt-4 flex items-center gap-4">
             <flux:field>
                 <flux:label>Nombre</flux:label>
                 <x-formularios.input wire:model.live.debounce.300ms="filter_nombre" placeholder="Filtrar por nombre" />
@@ -41,14 +38,14 @@
                 <x-formularios.input wire:model.live.debounce.300ms="filter_apellidos" placeholder="Filtrar por apellidos" />
             </flux:field>
 
-            <flux:field>
-                <flux:label>Enviado</flux:label>
-                <x-formularios.toggle wire:model.live="filter_enviado" texto="Solo enviadas" />
+            <flux:field class="flex flex-col ml-6">
+                <flux:label>Enviadas</flux:label>
+                <x-formularios.toggle wire:model.live="filter_enviado"  />
             </flux:field>
 
-            <flux:field>
-                <flux:label>Activo</flux:label>
-                <x-formularios.toggle wire:model.live="filter_activo" texto="Solo activas" />
+            <flux:field class="flex flex-col ml-6">
+                <flux:label>Activas</flux:label>
+                <x-formularios.toggle wire:model.live="filter_activo" />
             </flux:field>
 
         </div>
@@ -83,7 +80,7 @@
                         </th>
                         <th class="px-4 py-3">Hora</th>
                         <th class="px-4 py-3">Enviado</th>
-                        <th class="px-4 py-3">Activo</th>
+                        <th class="px-4 py-3">Activa</th>
                         <th class="px-4 py-3"></th>
                     </tr>
                 </thead>

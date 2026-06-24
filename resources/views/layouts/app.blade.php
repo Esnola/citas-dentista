@@ -14,9 +14,8 @@
   @livewireStyles
 </head>
 <body class="min-h-screen bg-slate-950 text-slate-100 antialiased">
-<div class="relative min-h-screen">
   <div class="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(16,185,129,0.18),transparent_35%),linear-gradient(180deg,#020617,#0f172a)]"></div>
-  <div class="relative mx-auto flex min-h-screen max-w-7xl">
+  <div class="relative mx-auto flex min-h-screen min-w-6/8">
     <aside class="sticky top-0 hidden h-screen w-72 shrink-0 border-r border-white/10 bg-slate-950/70 px-4 py-5 shadow-[18px_0_60px_rgba(15,23,42,0.32)] backdrop-blur-xl xl:block">
       <nav class="flex h-full min-h-0 flex-col gap-5 text-sm">
         <a href="{{ route('dashboard') }}"
@@ -80,7 +79,6 @@
         @yield('content')
       </div>
     </main>
-  </div>
 </div>
 @livewireScripts
 @fluxScripts

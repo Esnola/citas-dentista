@@ -1,5 +1,5 @@
 @props([
-    'variant' => 'secondary',
+    'variant' => 'warning',
     'size' => 'md',
     'icono' => null,
 ])
@@ -36,7 +36,7 @@
 @if ($attributes->has('href'))
     <a {{ $attributes->class([$baseClasses, $sizeClasses, $variantClasses]) }}>
         @if ($icono)
-            <svg viewBox="0 0 14 14" class="size-3.5 {{ $iconClasses }}" fill="none" aria-hidden="true">
+            <svg viewBox="0 0 14 14" class="size-6 {{ $iconClasses }}" fill="none" aria-hidden="true">
                 @include('components.botones.partials.icono-accion', ['icono' => $icono])
             </svg>
         @endif
