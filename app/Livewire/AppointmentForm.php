@@ -5,17 +5,13 @@ namespace App\Livewire;
 use App\Models\Appointment;
 use App\Models\Client;
 use Carbon\Carbon;
-use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Livewire\Component;
-use Livewire\WithPagination;
 
 class AppointmentForm extends Component
 {
-    use WithPagination;
-
     public string $filter_nombre = '';
 
     public string $filter_apellidos = '';
@@ -49,21 +45,6 @@ class AppointmentForm extends Component
         if ($clientId > 0) {
             $this->selectClient($clientId);
         }
-    }
-
-    public function updatedFilterNombre(): void
-    {
-        $this->resetPage('clientsPage');
-    }
-
-    public function updatedFilterApellidos(): void
-    {
-        $this->resetPage('clientsPage');
-    }
-
-    public function updatedFilterTelefono(): void
-    {
-        $this->resetPage('clientsPage');
     }
 
     public function selectClient(int $clientId): void
@@ -149,16 +130,21 @@ class AppointmentForm extends Component
 
     public function render()
     {
+        $clientsQuery = Client::query()
+            ->when($this->filter_nombre, fn ($query) => $query->where('nombre', 'like', '%'.$this->filter_nombre.'%'))
+            ->when($this->filter_apellidos, fn ($query) => $query->where('apellidos', 'like', '%'.$this->filter_apellidos.'%'))
+            ->when($this->filter_telefono, fn ($query) => $query->where('telefono', 'like', '%'.$this->filter_telefono.'%'));
+
+        $clientResultsCount = $this->hasClientSearch
+            ? (clone $clientsQuery)->count()
+            : 0;
+
         $clients = $this->hasClientSearch
-            ? Client::query()
-                ->when($this->filter_nombre, fn ($query) => $query->where('nombre', 'like', '%'.$this->filter_nombre.'%'))
-                ->when($this->filter_apellidos, fn ($query) => $query->where('apellidos', 'like', '%'.$this->filter_apellidos.'%'))
-                ->when($this->filter_telefono, fn ($query) => $query->where('telefono', 'like', '%'.$this->filter_telefono.'%'))
+            ? $clientsQuery
                 ->orderByDesc('created_at')
-                ->paginate(8, ['*'], 'clientsPage')
-            : new LengthAwarePaginator([], 0, 8, 1, [
-                'pageName' => 'clientsPage',
-            ]);
+                ->limit(10)
+                ->get()
+            : collect();
 
         return view('livewire.appointment-form', [
             'clients' => $clients,
@@ -166,6 +152,7 @@ class AppointmentForm extends Component
             'selectedAppointment' => $this->selectedAppointment,
             'canChangeAppointment' => $this->canChangeAppointment,
             'hasClientSearch' => $this->hasClientSearch,
+            'hasMoreThanTenClientResults' => $clientResultsCount > 10,
             'minimumSelectableDate' => $this->minimumSelectableDate(),
         ]);
     }

@@ -5,6 +5,7 @@ namespace App\Livewire;
 use App\Models\Appointment;
 use App\Models\Client;
 use App\Models\WhatsAppMessage;
+use Carbon\Carbon;
 use Livewire\Component;
 use Livewire\WithPagination;
 
@@ -49,11 +50,23 @@ class AppointmentList extends Component
 
     public function updatedFilterEnviado(): void
     {
+        if ($this->filter_enviado) {
+            $this->filter_activo = false;
+
+            return;
+        }
+
         $this->resetPage('appointmentsPage');
     }
 
     public function updatedFilterActivo(): void
     {
+        if ($this->filter_activo) {
+            $this->filter_enviado = false;
+
+            return;
+        }
+
         $this->resetPage('appointmentsPage');
     }
 
@@ -149,6 +162,7 @@ class AppointmentList extends Component
         $selectedClient = $this->clientId
             ? Client::query()->find($this->clientId)
             : null;
+        $now = Carbon::now(config('app.timezone'));
 
         $appointmentsQuery = Appointment::query()
             ->select('appointments.*')
@@ -158,7 +172,17 @@ class AppointmentList extends Component
             ->when($this->filter_nombre, fn ($query) => $query->whereHas('client', fn ($clientQuery) => $clientQuery->where('nombre', 'like', '%'.$this->filter_nombre.'%')))
             ->when($this->filter_apellidos, fn ($query) => $query->whereHas('client', fn ($clientQuery) => $clientQuery->where('apellidos', 'like', '%'.$this->filter_apellidos.'%')))
             ->when($this->filter_enviado, fn ($query) => $query->where('appointments.enviado', true))
-            ->when($this->filter_activo, fn ($query) => $query->where('appointments.activo', true));
+            ->when($this->filter_activo, function ($query) use ($now): void {
+                $query->where('appointments.activo', true)
+                    ->where('appointments.enviado', false)
+                    ->where(function ($activeQuery) use ($now): void {
+                        $activeQuery->whereDate('appointments.fecha', '>', $now->toDateString())
+                            ->orWhere(function ($futureAppointmentQuery) use ($now): void {
+                                $futureAppointmentQuery->whereDate('appointments.fecha', $now->toDateString())
+                                    ->where('appointments.hora', '>', $now->format('H:i:s'));
+                            });
+                    });
+            });
 
         if ($this->sort_by === 'cliente') {
             $appointmentsQuery

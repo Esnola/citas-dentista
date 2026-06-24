@@ -18,8 +18,8 @@ class AppointmentSeeder extends Seeder
     public function run(): void
     {
         $appointments = [
-            ['telefono' => '659366775', 'fecha' => '2026-07-01', 'hora' => '09:30', 'enviado' => false, 'activo' => true],
-            ['telefono' => '659366775', 'fecha' => '2026-07-06', 'hora' => '09:30', 'enviado' => false, 'activo' => true],
+            ['telefono' => '659366775', 'fecha' => '2026-07-01', 'hora' => '09:30', 'enviado' => false, 'activo' => false],
+            ['telefono' => '659366775', 'fecha' => '2026-07-06', 'hora' => '09:30', 'enviado' => false, 'activo' => false],
             ['telefono' => '659366775', 'fecha' => '2026-06-02', 'hora' => '09:30', 'enviado' => false, 'activo' => true],
             ['telefono' => '659366775', 'fecha' => '2026-07-03', 'hora' => '09:30', 'enviado' => false, 'activo' => true],
             ['telefono' => '659366775', 'fecha' => '2026-07-04', 'hora' => '09:30', 'enviado' => false, 'activo' => true],
@@ -36,7 +36,7 @@ class AppointmentSeeder extends Seeder
             ['telefono' => '633456789', 'fecha' => '2026-07-02', 'hora' => '12:30', 'enviado' => false, 'activo' => true],
             ['telefono' => '633456789', 'fecha' => '2026-07-02', 'hora' => '12:30', 'enviado' => false, 'activo' => true],
             ['telefono' => '633456789', 'fecha' => '2026-07-02', 'hora' => '12:30', 'enviado' => false, 'activo' => true],
-            ['telefono' => '644567890', 'fecha' => '2026-07-03', 'hora' => '09:00', 'enviado' => true, 'activo' => true],
+            ['telefono' => '644567890', 'fecha' => '2026-07-03', 'hora' => '09:00', 'enviado' => true, 'activo' => false],
             ['telefono' => '655678901', 'fecha' => '2026-07-03', 'hora' => '13:15', 'enviado' => false, 'activo' => false],
             ['telefono' => '655678901', 'fecha' => '2026-07-03', 'hora' => '13:15', 'enviado' => false, 'activo' => false],
             ['telefono' => '655678901', 'fecha' => '2026-07-03', 'hora' => '13:15', 'enviado' => false, 'activo' => false],
@@ -44,7 +44,7 @@ class AppointmentSeeder extends Seeder
             ['telefono' => '666789012', 'fecha' => '2026-07-06', 'hora' => '16:00', 'enviado' => false, 'activo' => true],
             ['telefono' => '677890123', 'fecha' => '2026-07-06', 'hora' => '17:30', 'enviado' => false, 'activo' => true],
             ['telefono' => '677890123', 'fecha' => '2026-07-06', 'hora' => '17:30', 'enviado' => false, 'activo' => true],
-            ['telefono' => '688901234', 'fecha' => '2026-07-07', 'hora' => '10:45', 'enviado' => true, 'activo' => true],
+            ['telefono' => '688901234', 'fecha' => '2026-07-07', 'hora' => '10:45', 'enviado' => true, 'activo' => false],
             ['telefono' => '699012345', 'fecha' => '2026-07-07', 'hora' => '18:00', 'enviado' => false, 'activo' => false],
             ['telefono' => '600123123', 'fecha' => '2026-07-08', 'hora' => '12:00', 'enviado' => false, 'activo' => true],
             ['telefono' => '600123123', 'fecha' => '2026-07-08', 'hora' => '12:00', 'enviado' => false, 'activo' => true],

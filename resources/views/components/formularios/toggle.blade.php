@@ -2,6 +2,7 @@
     'texto' => null,
     'estado' => null,
     'variant' => 'emerald',
+    'locked' => false,
 ])
 
 @php
@@ -11,15 +12,21 @@
         'rose' => 'peer-checked:bg-rose-400 peer-focus-visible:ring-rose-300',
         default => 'peer-checked:bg-emerald-400 peer-focus-visible:ring-emerald-300',
     };
+
+    $isLocked = (bool) $locked;
 @endphp
 
-<label class="inline-flex cursor-pointer items-center gap-2 rounded-2xl border border-white/10 bg-slate-950/40 px-4 py-3 transition-colors hover:border-emerald-400/20 hover:bg-emerald-400/10">
+<label @class([
+    'inline-flex items-center gap-2 rounded-2xl border px-4 py-3 transition-colors',
+    'cursor-not-allowed border-white/5 bg-slate-950/25 opacity-60' => $isLocked,
+    'cursor-pointer border-white/10 bg-slate-950/40 hover:border-emerald-400/20 hover:bg-emerald-400/10' => ! $isLocked,
+])>
     <input {{ $attributes->class(['peer sr-only'])->merge(['type' => 'checkbox']) }}>
-    <span class="h-5 w-9 rounded-full bg-slate-700 transition after:block after:h-4 after:w-4 after:translate-x-0.5 after:translate-y-0.5 after:rounded-full after:bg-white after:transition peer-checked:after:translate-x-4 peer-focus-visible:ring-2 {{ $checkedClasses }}"></span>
+    <span class="h-5 w-9 rounded-full bg-slate-700 transition after:block after:h-4 after:w-4 after:translate-x-0.5 after:translate-y-0.5 after:rounded-full after:bg-white after:transition peer-checked:after:translate-x-4 peer-focus-visible:ring-2 peer-disabled:bg-slate-800 peer-disabled:after:bg-slate-400 {{ $checkedClasses }}"></span>
     @if ($texto || trim($slot->toHtml()) !== '')
-        <span class="text-sm text-slate-200">{{ $texto ?? $slot }}</span>
+        <span class="text-sm {{ $isLocked ? 'text-slate-500' : 'text-slate-200' }}">{{ $texto ?? $slot }}</span>
     @endif
     @if ($estado)
-        <span class="rounded-full bg-white/10 px-2 py-0.5 text-xs text-slate-300">{{ $estado }}</span>
+        <span class="rounded-full bg-white/10 px-2 py-0.5 text-xs {{ $isLocked ? 'text-slate-500' : 'text-slate-300' }}">{{ $estado }}</span>
     @endif
 </label>

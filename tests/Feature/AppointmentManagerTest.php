@@ -97,6 +97,66 @@ class AppointmentManagerTest extends TestCase
         Carbon::setTestNow();
     }
 
+    public function test_client_search_is_limited_to_ten_results_without_pagination(): void
+    {
+        Carbon::setTestNow('2026-06-23 09:00:00');
+
+        foreach (range(1, 11) as $index) {
+            Client::query()->create([
+                'nombre' => 'Persona'.str_pad((string) $index, 2, '0', STR_PAD_LEFT),
+                'apellidos' => 'Prueba',
+                'telefono' => '60000000'.$index,
+            ]);
+
+            Carbon::setTestNow(Carbon::now()->addSecond());
+        }
+
+        $component = Livewire::test(AppointmentForm::class)
+            ->set('filter_nombre', 'Persona');
+
+        $html = $component->html();
+
+        $this->assertStringContainsString('Hay más de 10 resultados, afina la búsqueda.', $html);
+        $this->assertSame(10, substr_count($html, 'wire:key="appointment-form-client-'));
+        $this->assertStringNotContainsString('Persona01 Prueba', $html);
+        $this->assertStringContainsString('Persona11 Prueba', $html);
+
+        Carbon::setTestNow();
+    }
+
+    public function test_appointment_create_page_hides_management_until_client_is_selected(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->get(route('appointments.create'))
+            ->assertOk()
+            ->assertSee('Buscar cliente')
+            ->assertDontSee('Gestión cita');
+    }
+
+    public function test_appointment_create_page_shows_management_when_client_is_selected(): void
+    {
+        $user = User::factory()->create();
+
+        Carbon::setTestNow('2026-06-23 09:00:00');
+
+        $client = Client::query()->create([
+            'nombre' => 'Lucía',
+            'apellidos' => 'Martín',
+            'telefono' => '600123123',
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('appointments.create', ['client' => $client->id]))
+            ->assertOk()
+            ->assertSee('Gestión cita')
+            ->assertSee('Cliente seleccionado')
+            ->assertSee('Lucía Martín');
+
+        Carbon::setTestNow();
+    }
+
     public function test_appointment_manager_can_update_active_status_from_listing(): void
     {
         Carbon::setTestNow('2026-06-23 09:00:00');
@@ -171,6 +231,114 @@ class AppointmentManagerTest extends TestCase
             ->assertSee('11:30')
             ->assertDontSee('Luis Gómez')
             ->assertDontSee('09:00');
+    }
+
+    public function test_active_filter_excludes_past_and_sent_appointments(): void
+    {
+        Carbon::setTestNow('2026-06-23 09:00:00');
+
+        $client = Client::query()->create([
+            'nombre' => 'Ana',
+            'apellidos' => 'Pérez',
+            'telefono' => '+34600111222',
+        ]);
+
+        $futureActiveAppointment = Appointment::query()->create([
+            'client_id' => $client->id,
+            'fecha' => '2026-06-30',
+            'hora' => '11:30',
+            'enviado' => false,
+            'activo' => true,
+        ]);
+        Appointment::query()->create([
+            'client_id' => $client->id,
+            'fecha' => '2026-06-01',
+            'hora' => '11:30',
+            'enviado' => false,
+            'activo' => true,
+        ]);
+        Appointment::query()->create([
+            'client_id' => $client->id,
+            'fecha' => '2026-06-30',
+            'hora' => '12:30',
+            'enviado' => true,
+            'activo' => true,
+        ]);
+        Appointment::query()->create([
+            'client_id' => $client->id,
+            'fecha' => '2026-06-30',
+            'hora' => '13:30',
+            'enviado' => false,
+            'activo' => false,
+        ]);
+
+        Livewire::test(AppointmentList::class)
+            ->set('filter_activo', true)
+            ->assertSee('11:30')
+            ->assertSeeHtml('wire:key="appointment-'.$futureActiveAppointment->id.'"')
+            ->assertDontSee('2026-06-01')
+            ->assertDontSee('12:30')
+            ->assertDontSee('13:30');
+
+        Carbon::setTestNow();
+    }
+
+    public function test_active_filter_turns_off_sent_toggle(): void
+    {
+        Carbon::setTestNow('2026-06-23 09:00:00');
+
+        $client = Client::query()->create([
+            'nombre' => 'Ana',
+            'apellidos' => 'Pérez',
+            'telefono' => '+34600111222',
+        ]);
+
+        Appointment::query()->create([
+            'client_id' => $client->id,
+            'fecha' => '2026-06-30',
+            'hora' => '11:30',
+            'enviado' => false,
+            'activo' => true,
+        ]);
+
+        Livewire::test(AppointmentList::class)
+            ->set('filter_activo', true)
+            ->assertSet('filter_enviado', false);
+
+        Livewire::test(AppointmentList::class)
+            ->set('filter_activo', true)
+            ->set('filter_enviado', true)
+            ->assertSet('filter_activo', false)
+            ->assertSet('filter_enviado', true);
+
+        Carbon::setTestNow();
+    }
+
+    public function test_sent_filter_turns_off_active_toggle(): void
+    {
+        Carbon::setTestNow('2026-06-23 09:00:00');
+
+        $client = Client::query()->create([
+            'nombre' => 'Ana',
+            'apellidos' => 'Pérez',
+            'telefono' => '+34600111222',
+        ]);
+
+        Appointment::query()->create([
+            'client_id' => $client->id,
+            'fecha' => '2026-06-30',
+            'hora' => '11:30',
+            'enviado' => true,
+            'activo' => true,
+        ]);
+
+        Livewire::test(AppointmentList::class)
+            ->set('filter_activo', true)
+            ->set('filter_enviado', true)
+            ->assertSet('filter_activo', false)
+            ->assertSeeHtml('disabled');
+
+        Carbon::setTestNow();
     }
 
     public function test_future_appointments_can_be_deactivated_from_active_toggle(): void

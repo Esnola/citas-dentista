@@ -17,7 +17,6 @@
                 </div>
             </div>
             <div class="flex flex-wrap items-center gap-6">
-
                 @if ($selectedClient)
                     <x-botones.accion href="{{ route('appointments.index') }}" icono="calendar"
                     >Todas las citas</x-botones.accion>
@@ -38,16 +37,20 @@
                 <x-formularios.input wire:model.live.debounce.300ms="filter_apellidos" placeholder="Filtrar por apellidos" />
             </flux:field>
 
-            <flux:field class="flex flex-col ml-6">
-                <flux:label>Enviadas</flux:label>
-                <x-formularios.toggle wire:model.live="filter_enviado"  />
-            </flux:field>
+                <div class="flex flex-col items-center justify-center gap-2">
+                    <flux:label class="text-[14px] font-bold">Notificaciones</flux:label>
+                <div class="flex items-center jusitfy-center ml-6 gap-4">
+                <flux:field class="flex flex-col">
+                    <flux:label>Enviadas</flux:label>
+                    <x-formularios.toggle wire:model.live="filter_enviado" :disabled="$filter_activo" :locked="$filter_activo"/>
+                </flux:field>
 
-            <flux:field class="flex flex-col ml-6">
-                <flux:label>Activas</flux:label>
-                <x-formularios.toggle wire:model.live="filter_activo" />
-            </flux:field>
-
+                <flux:field class="flex flex-col">
+                    <flux:label>Activas</flux:label>
+                    <x-formularios.toggle wire:model.live="filter_activo" :disabled="$filter_enviado" :locked="$filter_enviado"/>
+                </flux:field>
+            </div>
+            </div>
         </div>
 
         <div class="mt-4 overflow-hidden rounded-2xl border border-white/10">
