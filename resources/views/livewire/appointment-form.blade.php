@@ -1,14 +1,10 @@
 <div class="rounded-3xl border border-white/10 p-12">
-    @if (session('status'))
-        <div
-            class="xl:col-span-2 rounded-2xl border border-emerald-400/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
-            {{ session('status') }}
-        </div>
-    @endif
-
     <div class="rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur">
+
+        @if(! $isEditing)
         <div class="flex items-center justify-between">
-            <div class=""><h2 class="text-xl font-semibold">Buscar cliente</h2>
+            <div class="">
+                <h2 class="text-xl font-semibold">Buscar cliente</h2>
                 <p class="mt-2 text-sm text-slate-300">
                     Escribe al menos un carácter en cualquier campo para ver coincidencias.
                 </p>
@@ -62,7 +58,13 @@
                 </p>
             @endif
         </div>
-
+        @endif
+        @if (session('status'))
+            <div
+                class="xl:col-span-2 rounded-2xl border border-emerald-400/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
+                {{ session('status') }}
+            </div>
+        @endif
         @if ($hasMoreThanTenClientResults)
             <div class="mt-4 inline-flex gap-4 items-center rounded-full border border-yellow-100/80 bg-yellow-300/10 px-6 py-2 text-sm font-medium text-yellow-100 ">
               <x-iconos.alert clase="size-8 mr-1.5" />
@@ -115,9 +117,33 @@
                             <p class="mt-1 text-sm text-slate-300">{{ $selectedClient->telefono }}</p>
                             <p class="mt-1 text-sm text-slate-300">
                                 Alta: {{ $selectedClient->created_at?->format('d/m/Y H:i') }}</p>
+                            @if (! $selectedAppointment)
+                                <div class="mt-4">
+                                    <x-formularios.toggle
+                                        wire:model="sendImmediately"
+                                        texto="Enviar WhatsApp ahora"
+                                        variant="sky"
+                                        :disabled="! $canChangeAppointment"
+                                        :locked="! $canChangeAppointment"
+                                    />
+                                    <flux:error name="sendImmediately"/>
+                                </div>
+                            @endif
                         </div>
                     </div>
                     <div class="flex flex-wrap gap-2">
+                        @if ($selectedAppointment)
+                            <x-botones.accion
+                                variant="indigo"
+                                icono="check"
+                                type="button"
+                                wire:click="sendNow"
+                                wire:loading.attr="disabled"
+                                :disabled="! $canSendAppointmentNow"
+                            >
+                                Enviar ya
+                            </x-botones.accion>
+                        @endif
                         <x-botones.accion variant="add" icono="check" type="submit"
                                           :disabled="! $selectedClient || ! $canChangeAppointment">
                             {{ $selectedAppointment ? 'Guardar cambios' : 'Crear cita' }}

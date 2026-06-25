@@ -4,11 +4,16 @@ namespace App\Livewire;
 
 use App\Models\Appointment;
 use App\Models\Client;
+use App\Models\WhatsAppMessage;
+use App\Services\WhatsApp\WhatsAppSender;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Livewire\Component;
+use Throwable;
 
 class AppointmentForm extends Component
 {
@@ -30,11 +35,16 @@ class AppointmentForm extends Component
 
     public bool $activo = true;
 
+    public bool $sendImmediately = false;
+
+    public bool $isEditing = false;
+
     public function mount(): void
     {
         $appointmentId = (int) request()->route('appointment');
 
         if ($appointmentId > 0) {
+            $this->isEditing = true;
             $this->loadAppointment($appointmentId);
 
             return;
@@ -60,7 +70,7 @@ class AppointmentForm extends Component
         $this->selectedClientId = $client->id;
     }
 
-    public function save(): void
+    public function save(WhatsAppSender $sender): void
     {
         $data = $this->validate();
         $this->validateSelectableDate($data['fecha'], 'fecha');
@@ -89,8 +99,60 @@ class AppointmentForm extends Component
         } else {
             $appointment = Appointment::query()->create($payload);
             $this->selectedAppointmentId = $appointment->id;
+
+            if ((bool) $data['sendImmediately']) {
+                $this->sendAppointmentNow(
+                    $appointment,
+                    $client,
+                    $sender,
+                    'Cita creada correctamente y WhatsApp enviado ahora.',
+                    'Cita creada, pero no se pudo enviar el WhatsApp.'
+                );
+
+                return;
+            }
+
             session()->flash('status', 'Cita creada correctamente.');
         }
+    }
+
+    public function sendNow(WhatsAppSender $sender): void
+    {
+        if (! $this->selectedAppointmentId) {
+            return;
+        }
+
+        $appointment = Appointment::query()
+            ->with('client')
+            ->findOrFail($this->selectedAppointmentId);
+
+        if ($appointment->enviado) {
+            session()->flash('status', 'Esta cita ya tiene el WhatsApp enviado.');
+
+            return;
+        }
+
+        if (! $appointment->isFuture()) {
+            session()->flash('status', 'Las citas pasadas no pueden enviarse.');
+
+            return;
+        }
+
+        $client = $appointment->client;
+
+        if (! $client) {
+            session()->flash('status', 'No se pudo enviar el WhatsApp porque la cita no tiene cliente asociado.');
+
+            return;
+        }
+
+        $this->sendAppointmentNow(
+            $appointment,
+            $client,
+            $sender,
+            'WhatsApp enviado ahora correctamente.',
+            'No se pudo enviar el WhatsApp.'
+        );
     }
 
     public function getSelectedClientProperty(): ?Client
@@ -117,6 +179,19 @@ class AppointmentForm extends Component
             ->whereKey($this->selectedAppointmentId)
             ->first()
             ?->canBeChanged();
+    }
+
+    public function getCanSendAppointmentNowProperty(): bool
+    {
+        if (! $this->selectedAppointmentId) {
+            return false;
+        }
+
+        $appointment = Appointment::query()
+            ->whereKey($this->selectedAppointmentId)
+            ->first();
+
+        return (bool) $appointment && ! $appointment->enviado && $appointment->isFuture();
     }
 
     public function getHasClientSearchProperty(): bool
@@ -150,7 +225,9 @@ class AppointmentForm extends Component
             'clients' => $clients,
             'selectedClient' => $this->selectedClient,
             'selectedAppointment' => $this->selectedAppointment,
+            'isEditing' => $this->isEditing,
             'canChangeAppointment' => $this->canChangeAppointment,
+            'canSendAppointmentNow' => $this->canSendAppointmentNow,
             'hasClientSearch' => $this->hasClientSearch,
             'hasMoreThanTenClientResults' => $clientResultsCount > 10,
             'minimumSelectableDate' => $this->minimumSelectableDate(),
@@ -169,7 +246,156 @@ class AppointmentForm extends Component
             'hora' => ['required', 'date_format:H:i'],
             'enviado' => ['boolean'],
             'activo' => ['boolean'],
+            'sendImmediately' => ['boolean'],
         ];
+    }
+
+    private function sendAppointmentNow(
+        Appointment $appointment,
+        Client $client,
+        WhatsAppSender $sender,
+        string $successMessage,
+        string $failureMessage,
+    ): void {
+        $scheduledFor = $appointment->scheduledFor();
+        $message = WhatsAppMessage::query()->create([
+            'user_id' => Auth::id(),
+            'client_id' => $client->id,
+            'appointment_id' => $appointment->id,
+            'nombre' => $client->nombre,
+            'apellidos' => $client->apellidos,
+            'telefono' => $client->telefono,
+            'scheduled_for' => $scheduledFor,
+            'message' => WhatsAppMessage::buildMessage([
+                'nombre' => $client->nombre,
+                'apellidos' => $client->apellidos,
+                'telefono' => $client->telefono,
+                'scheduled_for' => $scheduledFor,
+            ]),
+            'source' => WhatsAppMessage::SOURCE_APPOINTMENT,
+            'status' => WhatsAppMessage::STATUS_PENDING,
+            'metadata' => [
+                'origin_appointment_id' => $appointment->id,
+                'immediate_send' => true,
+                'immediate_sent_at' => now()->toDateTimeString(),
+            ],
+        ]);
+
+        try {
+            $result = $sender->send($message);
+            $providerStatus = (string) data_get($result, 'raw.status', '');
+            $providerErrorCode = data_get($result, 'raw.error_code');
+            $providerErrorMessage = data_get($result, 'raw.error_message');
+
+            $message->update([
+                'status' => $this->whatsAppMessageStatus($providerStatus),
+                'sent_at' => $this->isSuccessfulWhatsAppStatus($providerStatus) ? now() : null,
+                'last_error' => null,
+                'provider_message_id' => $result['message_id'],
+                'provider_payload' => [
+                    'provider' => $result['provider'],
+                    'payload' => $result['payload'],
+                    'raw' => $result['raw'],
+                ],
+            ]);
+
+            if ($this->isCompletedWhatsAppStatus($providerStatus)) {
+                $appointment->update([
+                    'enviado' => true,
+                ]);
+
+                $this->enviado = true;
+                session()->flash('status', $successMessage);
+
+                return;
+            }
+
+            if ($this->isFailedWhatsAppStatus($providerStatus)) {
+                $errorDetail = collect([
+                    $providerStatus !== '' ? 'estado: '.$providerStatus : null,
+                    $providerErrorCode ? 'código: '.$providerErrorCode : null,
+                    $providerErrorMessage ? 'mensaje: '.$providerErrorMessage : null,
+                ])->filter()->implode(', ');
+
+                $message->update([
+                    'last_error' => $errorDetail !== '' ? $errorDetail : 'El proveedor no completó el envío.',
+                ]);
+
+                session()->flash(
+                    'status',
+                    $failureMessage.' '.($errorDetail !== '' ? $errorDetail.'. ' : '').'La cita no se ha marcado como enviada.'
+                );
+
+                return;
+            }
+
+            if ($this->isAcceptedWhatsAppStatus($providerStatus)) {
+                $appointment->update([
+                    'enviado' => true,
+                ]);
+
+                $this->enviado = true;
+
+                session()->flash('status', $successMessage);
+
+                return;
+            }
+
+            $pendingStatus = $providerStatus !== '' ? $providerStatus : 'pendiente';
+
+            session()->flash(
+                'status',
+                'WhatsApp enviado al proveedor, pero no se pudo confirmar el resultado (estado: '.$pendingStatus.'). La cita no se ha marcado como enviada.'
+            );
+        } catch (Throwable $throwable) {
+            $message->update([
+                'status' => WhatsAppMessage::STATUS_FAILED,
+                'last_error' => $throwable->getMessage(),
+            ]);
+
+            session()->flash(
+                'status',
+                $failureMessage.' Error: '.Str::limit($throwable->getMessage(), 220).'. La cita no se ha marcado como enviada.'
+            );
+        }
+    }
+
+    private function isCompletedWhatsAppStatus(string $providerStatus): bool
+    {
+        return in_array($providerStatus, ['sent', 'delivered'], true);
+    }
+
+    private function isAcceptedWhatsAppStatus(string $providerStatus): bool
+    {
+        return in_array($providerStatus, ['accepted', 'queued', 'sending'], true);
+    }
+
+    private function isSuccessfulWhatsAppStatus(string $providerStatus): bool
+    {
+        return $this->isCompletedWhatsAppStatus($providerStatus)
+            || $this->isAcceptedWhatsAppStatus($providerStatus);
+    }
+
+    private function isFailedWhatsAppStatus(string $providerStatus): bool
+    {
+        return in_array($providerStatus, ['failed', 'undelivered'], true);
+    }
+
+    private function whatsAppMessageStatus(string $providerStatus): string
+    {
+        if ($this->isCompletedWhatsAppStatus($providerStatus)) {
+            return WhatsAppMessage::STATUS_SENT;
+        }
+
+        if ($this->isFailedWhatsAppStatus($providerStatus)) {
+            return WhatsAppMessage::STATUS_FAILED;
+        }
+
+        if ($this->isAcceptedWhatsAppStatus($providerStatus)) {
+            return WhatsAppMessage::STATUS_SENT;
+        }
+
+        return WhatsAppMessage::STATUS_PENDING;
     }
 
     private function minimumSelectableDate(): string

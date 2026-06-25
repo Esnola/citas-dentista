@@ -242,8 +242,7 @@
              class="mt-4 h-1 rounded-full bg-emerald-400/80 shadow-[0_0_24px_rgba(52,211,153,0.45)]"></div>
       </section>
 
-      <section
-              data-settings-section="connection"
+      <section data-settings-section="connection"
               data-default-open="true"
               class="rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur"
               x-bind:class="sectionStateClasses('connection')"
@@ -276,8 +275,7 @@
              class="mt-4 h-1 rounded-full bg-emerald-400/80 shadow-[0_0_24px_rgba(52,211,153,0.45)]"></div>
       </section>
 
-      <section
-              data-settings-section="templates"
+      <section data-settings-section="templates"
               data-default-open="true"
               class="rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur"
               x-bind:class="sectionStateClasses('templates')"
@@ -310,8 +308,7 @@
              class="mt-4 h-1 rounded-full bg-emerald-400/80 shadow-[0_0_24px_rgba(52,211,153,0.45)]"></div>
       </section>
 
-      <section
-              data-settings-section="reminders"
+      <section data-settings-section="reminders"
               data-default-open="true"
               class="rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur"
               x-bind:class="sectionStateClasses('reminders')"

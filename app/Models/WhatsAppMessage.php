@@ -78,7 +78,7 @@ class WhatsAppMessage extends Model
 
     public static function buildMessage(array $data, ?string $template = null): string
     {
-        $templateKey = $template ?: config('whatsapp.default_template');
+        $templateKey = $template ?: WhatsAppTemplate::defaultKey();
         $template = WhatsAppTemplate::hasKey($templateKey)
             ? WhatsAppTemplate::resolve($templateKey)['message']
             : $templateKey;

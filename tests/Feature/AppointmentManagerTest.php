@@ -10,6 +10,8 @@ use App\Models\User;
 use App\Models\WhatsAppMessage;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\Http;
 use Livewire\Livewire;
 use Tests\TestCase;
 
@@ -43,6 +45,64 @@ class AppointmentManagerTest extends TestCase
             'enviado' => 0,
             'activo' => 1,
         ]);
+
+        Carbon::setTestNow();
+    }
+
+    public function test_appointment_create_can_send_whatsapp_immediately(): void
+    {
+        Carbon::setTestNow('2026-06-23 09:00:00');
+
+        $admin = User::factory()->create();
+        $client = Client::query()->create([
+            'nombre' => 'Ana',
+            'apellidos' => 'Pérez',
+            'telefono' => '+34600111222',
+        ]);
+
+        Config::set('whatsapp.driver', 'twilio');
+        Config::set('whatsapp.message_mode', 'text');
+        Config::set('whatsapp.twilio.account_sid', 'AC123');
+        Config::set('whatsapp.twilio.auth_token', 'test-token');
+        Config::set('whatsapp.twilio.mode', 'sandbox');
+        Config::set('whatsapp.twilio.from', 'whatsapp:+14155238886');
+
+        Http::fake([
+            'api.twilio.com/*/Messages.json' => Http::response([
+                'sid' => 'SMAPPOINTMENTNOW123',
+                'status' => 'delivered',
+            ], 201),
+        ]);
+
+        $this->actingAs($admin);
+
+        Livewire::test(AppointmentForm::class)
+            ->set('selectedClientId', $client->id)
+            ->set('fecha', '2026-06-30')
+            ->set('hora', '11:30')
+            ->set('sendImmediately', true)
+            ->call('save')
+            ->assertSee('Cita creada correctamente y WhatsApp enviado ahora.');
+
+        $appointment = Appointment::query()->firstOrFail();
+
+        Http::assertSent(function ($request): bool {
+            return $request->url() === 'https://api.twilio.com/2010-04-01/Accounts/AC123/Messages.json'
+                && $request['From'] === 'whatsapp:+14155238886'
+                && $request['To'] === 'whatsapp:+34600111222'
+                && $request['Body'] === 'Hola Ana te recordamos que el día 30/06/2026 tienes una cita a las 11:30 ; saludos Clínica Dental Eugénia';
+        });
+
+        $message = WhatsAppMessage::query()->firstOrFail();
+
+        $this->assertTrue($appointment->enviado);
+        $this->assertSame($client->id, $message->client_id);
+        $this->assertSame($appointment->id, $message->appointment_id);
+        $this->assertSame(WhatsAppMessage::STATUS_SENT, $message->status);
+        $this->assertSame('SMAPPOINTMENTNOW123', $message->provider_message_id);
+        $this->assertTrue($message->metadata['immediate_send']);
+        $this->assertSame('2026-06-23 09:00:00', $message->metadata['immediate_sent_at']);
+        $this->assertNotNull($message->sent_at);
 
         Carbon::setTestNow();
     }
@@ -521,6 +581,7 @@ class AppointmentManagerTest extends TestCase
             ->get(route('appointments.edit', $appointment))
             ->assertOk()
             ->assertSee('Editar cita')
+            ->assertDontSee('Buscar cliente')
             ->assertSee('Ana Pérez');
     }
 
@@ -542,6 +603,7 @@ class AppointmentManagerTest extends TestCase
         ]);
 
         Livewire::test(AppointmentForm::class)
+            ->set('isEditing', true)
             ->set('selectedAppointmentId', $appointment->id)
             ->set('selectedClientId', $client->id)
             ->set('fecha', '2026-06-30')
@@ -549,9 +611,280 @@ class AppointmentManagerTest extends TestCase
             ->set('enviado', false)
             ->set('activo', false)
             ->call('save')
-            ->assertSee('Cita actualizada correctamente.');
+            ->assertSee('Cita actualizada correctamente.')
+            ->assertDontSee('Buscar cliente');
 
         $this->assertFalse($appointment->refresh()->activo);
+
+        Carbon::setTestNow();
+    }
+
+    public function test_appointment_edit_can_send_whatsapp_immediately(): void
+    {
+        Carbon::setTestNow('2026-06-23 09:00:00');
+
+        $admin = User::factory()->create();
+        $client = Client::query()->create([
+            'nombre' => 'Ana',
+            'apellidos' => 'Pérez',
+            'telefono' => '+34600111222',
+        ]);
+        $appointment = Appointment::query()->create([
+            'client_id' => $client->id,
+            'fecha' => '2026-06-30',
+            'hora' => '11:30',
+            'enviado' => false,
+            'activo' => true,
+        ]);
+
+        Config::set('whatsapp.driver', 'twilio');
+        Config::set('whatsapp.message_mode', 'text');
+        Config::set('whatsapp.twilio.account_sid', 'AC123');
+        Config::set('whatsapp.twilio.auth_token', 'test-token');
+        Config::set('whatsapp.twilio.mode', 'sandbox');
+        Config::set('whatsapp.twilio.from', 'whatsapp:+14155238886');
+
+        Http::fake([
+            'api.twilio.com/*/Messages.json' => Http::response([
+                'sid' => 'SMAPPOINTMENTEDIT123',
+                'status' => 'delivered',
+            ], 201),
+        ]);
+
+        $this->actingAs($admin);
+
+        $component = Livewire::test(AppointmentForm::class)
+            ->set('selectedAppointmentId', $appointment->id)
+            ->set('selectedClientId', $client->id)
+            ->set('fecha', '2026-06-30')
+            ->set('hora', '11:30')
+            ->set('enviado', false)
+            ->set('activo', true);
+
+        $this->assertStringContainsString('wire:click="sendNow"', $component->html());
+        $this->assertStringNotContainsString('wire:click="sendNow" disabled="disabled"', $component->html());
+
+        $component
+            ->call('sendNow')
+            ->assertSee('WhatsApp enviado ahora correctamente.');
+
+        Http::assertSent(function ($request): bool {
+            return $request->url() === 'https://api.twilio.com/2010-04-01/Accounts/AC123/Messages.json'
+                && $request['From'] === 'whatsapp:+14155238886'
+                && $request['To'] === 'whatsapp:+34600111222'
+                && $request['Body'] === 'Hola Ana te recordamos que el día 30/06/2026 tienes una cita a las 11:30 ; saludos Clínica Dental Eugénia';
+        });
+
+        $message = WhatsAppMessage::query()->firstOrFail();
+
+        $this->assertTrue($appointment->refresh()->enviado);
+        $this->assertSame($appointment->id, $message->appointment_id);
+        $this->assertSame(WhatsAppMessage::STATUS_SENT, $message->status);
+        $this->assertSame('SMAPPOINTMENTEDIT123', $message->provider_message_id);
+        $this->assertStringContainsString('Enviar ya', $component->html());
+        $this->assertStringContainsString('disabled="disabled"', $component->html());
+
+        Carbon::setTestNow();
+    }
+
+    public function test_appointment_edit_marks_sent_when_provider_status_is_sent(): void
+    {
+        Carbon::setTestNow('2026-06-23 09:00:00');
+
+        $admin = User::factory()->create();
+        $client = Client::query()->create([
+            'nombre' => 'Ana',
+            'apellidos' => 'Pérez',
+            'telefono' => '+34600111222',
+        ]);
+        $appointment = Appointment::query()->create([
+            'client_id' => $client->id,
+            'fecha' => '2026-06-30',
+            'hora' => '11:30',
+            'enviado' => false,
+            'activo' => true,
+        ]);
+
+        Config::set('whatsapp.driver', 'twilio');
+        Config::set('whatsapp.message_mode', 'text');
+        Config::set('whatsapp.twilio.account_sid', 'AC123');
+        Config::set('whatsapp.twilio.auth_token', 'test-token');
+        Config::set('whatsapp.twilio.mode', 'sandbox');
+        Config::set('whatsapp.twilio.from', 'whatsapp:+14155238886');
+
+        Http::fake([
+            'api.twilio.com/*/Messages.json' => Http::response([
+                'sid' => 'SMSENT123',
+                'status' => 'sent',
+            ], 201),
+        ]);
+
+        $this->actingAs($admin);
+
+        Livewire::test(AppointmentForm::class)
+            ->set('selectedAppointmentId', $appointment->id)
+            ->set('selectedClientId', $client->id)
+            ->set('fecha', '2026-06-30')
+            ->set('hora', '11:30')
+            ->set('enviado', false)
+            ->set('activo', true)
+            ->call('sendNow')
+            ->assertSee('WhatsApp enviado ahora correctamente.');
+
+        $message = WhatsAppMessage::query()->firstOrFail();
+
+        $this->assertTrue($appointment->refresh()->enviado);
+        $this->assertSame(WhatsAppMessage::STATUS_SENT, $message->status);
+        $this->assertSame('SMSENT123', $message->provider_message_id);
+        $this->assertNotNull($message->sent_at);
+
+        Carbon::setTestNow();
+    }
+
+    public function test_appointment_edit_marks_sent_when_provider_status_is_queued(): void
+    {
+        Carbon::setTestNow('2026-06-23 09:00:00');
+
+        $client = Client::query()->create([
+            'nombre' => 'Ana',
+            'apellidos' => 'Pérez',
+            'telefono' => '+34600111222',
+        ]);
+        $appointment = Appointment::query()->create([
+            'client_id' => $client->id,
+            'fecha' => '2026-06-30',
+            'hora' => '11:30',
+            'enviado' => false,
+            'activo' => true,
+        ]);
+
+        Config::set('whatsapp.driver', 'twilio');
+        Config::set('whatsapp.message_mode', 'text');
+        Config::set('whatsapp.twilio.account_sid', 'AC123');
+        Config::set('whatsapp.twilio.auth_token', 'test-token');
+        Config::set('whatsapp.twilio.mode', 'sandbox');
+        Config::set('whatsapp.twilio.from', 'whatsapp:+14155238886');
+
+        Http::fake([
+            'api.twilio.com/*/Messages.json' => Http::response([
+                'sid' => 'SMQUEUED123',
+                'status' => 'queued',
+            ], 201),
+        ]);
+
+        Livewire::test(AppointmentForm::class)
+            ->set('selectedAppointmentId', $appointment->id)
+            ->set('selectedClientId', $client->id)
+            ->set('fecha', '2026-06-30')
+            ->set('hora', '11:30')
+            ->set('enviado', false)
+            ->set('activo', true)
+            ->call('sendNow')
+            ->assertSee('WhatsApp enviado ahora correctamente.');
+
+        $message = WhatsAppMessage::query()->firstOrFail();
+
+        $this->assertTrue($appointment->refresh()->enviado);
+        $this->assertSame(WhatsAppMessage::STATUS_SENT, $message->status);
+        $this->assertNotNull($message->sent_at);
+        $this->assertSame('SMQUEUED123', $message->provider_message_id);
+
+        Carbon::setTestNow();
+    }
+
+    public function test_appointment_edit_shows_provider_failure_reason_without_marking_sent(): void
+    {
+        Carbon::setTestNow('2026-06-23 09:00:00');
+
+        $client = Client::query()->create([
+            'nombre' => 'Ana',
+            'apellidos' => 'Pérez',
+            'telefono' => '+34600111222',
+        ]);
+        $appointment = Appointment::query()->create([
+            'client_id' => $client->id,
+            'fecha' => '2026-06-30',
+            'hora' => '11:30',
+            'enviado' => false,
+            'activo' => true,
+        ]);
+
+        Config::set('whatsapp.driver', 'twilio');
+        Config::set('whatsapp.message_mode', 'text');
+        Config::set('whatsapp.twilio.account_sid', 'AC123');
+        Config::set('whatsapp.twilio.auth_token', 'test-token');
+        Config::set('whatsapp.twilio.mode', 'sandbox');
+        Config::set('whatsapp.twilio.from', 'whatsapp:+14155238886');
+
+        Http::fake([
+            'api.twilio.com/*/Messages.json' => Http::response([
+                'sid' => 'SMUNDELIVERED123',
+                'status' => 'undelivered',
+                'error_code' => 63016,
+                'error_message' => 'Sandbox recipient is not joined.',
+            ], 201),
+        ]);
+
+        Livewire::test(AppointmentForm::class)
+            ->set('selectedAppointmentId', $appointment->id)
+            ->set('selectedClientId', $client->id)
+            ->set('fecha', '2026-06-30')
+            ->set('hora', '11:30')
+            ->set('enviado', false)
+            ->set('activo', true)
+            ->call('sendNow')
+            ->assertSee('No se pudo enviar el WhatsApp.')
+            ->assertSee('estado: undelivered')
+            ->assertSee('código: 63016')
+            ->assertSee('La cita no se ha marcado como enviada.');
+
+        $message = WhatsAppMessage::query()->firstOrFail();
+
+        $this->assertFalse($appointment->refresh()->enviado);
+        $this->assertSame(WhatsAppMessage::STATUS_FAILED, $message->status);
+        $this->assertNull($message->sent_at);
+        $this->assertSame('SMUNDELIVERED123', $message->provider_message_id);
+        $this->assertStringContainsString('undelivered', $message->last_error);
+        $this->assertStringContainsString('63016', $message->last_error);
+
+        Carbon::setTestNow();
+    }
+
+    public function test_past_appointment_edit_cannot_send_whatsapp_immediately(): void
+    {
+        Carbon::setTestNow('2026-06-23 09:00:00');
+
+        $client = Client::query()->create([
+            'nombre' => 'Ana',
+            'apellidos' => 'Pérez',
+            'telefono' => '+34600111222',
+        ]);
+        $appointment = Appointment::query()->create([
+            'client_id' => $client->id,
+            'fecha' => '2026-06-01',
+            'hora' => '11:30',
+            'enviado' => false,
+            'activo' => true,
+        ]);
+
+        Http::fake();
+
+        $component = Livewire::test(AppointmentForm::class)
+            ->set('selectedAppointmentId', $appointment->id)
+            ->set('selectedClientId', $client->id)
+            ->set('fecha', '2026-06-01')
+            ->set('hora', '11:30')
+            ->set('enviado', false)
+            ->set('activo', true)
+            ->assertSee('Enviar ya')
+            ->call('sendNow')
+            ->assertSee('Las citas pasadas no pueden enviarse.');
+
+        Http::assertNothingSent();
+
+        $this->assertFalse($appointment->refresh()->enviado);
+        $this->assertSame(0, WhatsAppMessage::query()->count());
+        $this->assertStringContainsString('disabled="disabled"', $component->html());
 
         Carbon::setTestNow();
     }
