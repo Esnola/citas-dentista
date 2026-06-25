@@ -11,6 +11,10 @@ use Throwable;
 
 class AppointmentImmediateSender
 {
+    public function __construct(
+        private readonly AppointmentDeliveryStatusSyncer $deliveryStatusSyncer,
+    ) {}
+
     /**
      * @return array{sent: bool, message: string}
      */
@@ -66,7 +70,10 @@ class AppointmentImmediateSender
             if ($this->isCompletedWhatsAppStatus($providerStatus) || $this->isAcceptedWhatsAppStatus($providerStatus)) {
                 $appointment->update([
                     'enviado' => true,
+                    'whatsapp_sent_at' => now(),
                 ]);
+
+                $this->deliveryStatusSyncer->sync([$appointment->id]);
 
                 return [
                     'sent' => true,

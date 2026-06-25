@@ -167,16 +167,7 @@ class ClientForm extends Component
             return null;
         }
 
-        $client = Client::query()
-            ->with(['appointments' => fn ($query) => $query->orderBy('fecha')->orderBy('hora')])
-            ->find($this->selectedClientId);
-
-        if ($client && ! $this->skipDeliverySync) {
-            $this->deliveryStatusSyncer->sync($client->appointments->pluck('id'));
-            $client->appointments->each->refresh();
-        }
-
-        return $client;
+        return Client::query()->find($this->selectedClientId);
     }
 
     public function render()

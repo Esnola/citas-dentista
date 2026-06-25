@@ -12,6 +12,7 @@ return [
         'account_sid' => env('TWILIO_ACCOUNT_SID'),
         'auth_token' => env('TWILIO_AUTH_TOKEN'),
         'from' => env('TWILIO_WHATSAPP_FROM'),
+        'status_callback_url' => env('TWILIO_STATUS_CALLBACK_URL'),
         'messaging_service_sid' => env('TWILIO_MESSAGING_SERVICE_SID'),
         'content_sid' => env('TWILIO_CONTENT_SID'),
         'content_variables' => json_decode(env('TWILIO_CONTENT_VARIABLES', '[]'), true) ?: [],

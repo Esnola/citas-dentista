@@ -50,6 +50,43 @@ body.bg-slate-950 :where(button, [role='button'], a[href], select, summary, inpu
     cursor: pointer;
 }
 
+@media (hover: hover) and (pointer: fine) {
+    body.bg-slate-950 :where(button[title], a[title], [role='button'][title]) {
+        position: relative;
+        overflow: visible;
+    }
+
+    body.bg-slate-950 :where(button[title], a[title], [role='button'][title])::after {
+        content: attr(title);
+        pointer-events: none;
+        position: absolute;
+        left: 50%;
+        bottom: calc(100% + 0.5rem);
+        z-index: 60;
+        max-width: 18rem;
+        transform: translateX(-50%) translateY(0.25rem);
+        border-radius: 9999px;
+        border: 1px solid rgb(255 255 255 / 0.12);
+        background: rgb(2 6 23 / 0.96);
+        padding: 0.375rem 0.75rem;
+        color: rgb(248 250 252);
+        font-size: 0.6875rem;
+        font-weight: 600;
+        line-height: 1;
+        letter-spacing: 0.01em;
+        white-space: nowrap;
+        opacity: 0;
+        box-shadow: 0 18px 50px rgb(2 6 23 / 0.45);
+        transition: opacity 120ms ease, transform 120ms ease;
+    }
+
+    body.bg-slate-950 :where(button[title], a[title], [role='button'][title]):hover::after,
+    body.bg-slate-950 :where(button[title], a[title], [role='button'][title]):focus-visible::after {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+    }
+}
+
 body.bg-slate-950 :where(input[type='date'], input[data-time-picker]) {
     background-position: right 0.85rem center;
     background-repeat: no-repeat;

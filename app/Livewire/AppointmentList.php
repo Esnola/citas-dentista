@@ -39,8 +39,6 @@ class AppointmentList extends Component
 
     private AppointmentDeliveryStatusSyncer $deliveryStatusSyncer;
 
-    private bool $skipDeliverySync = false;
-
     public function boot(AppointmentImmediateSender $immediateSender, AppointmentDeliveryStatusSyncer $deliveryStatusSyncer): void
     {
         $this->immediateSender = $immediateSender;
@@ -223,9 +221,20 @@ class AppointmentList extends Component
             'No se pudo enviar el WhatsApp.'
         );
 
-        $this->skipDeliverySync = true;
-
         session()->flash('status', $result['message']);
+    }
+
+    public function syncDeliveryStatuses(): void
+    {
+        $updated = $this->deliveryStatusSyncer->syncAll($this->clientId);
+
+        if ($updated > 0) {
+            session()->flash('status', sprintf('Se actualizaron %d cita(s) como entregadas.', $updated));
+
+            return;
+        }
+
+        session()->flash('status', 'No había entregas nuevas para sincronizar.');
     }
 
     public function render()
@@ -234,10 +243,6 @@ class AppointmentList extends Component
             ? Client::query()->find($this->clientId)
             : null;
         $now = Carbon::now(config('app.timezone'));
-
-        if (! $this->skipDeliverySync) {
-            $this->deliveryStatusSyncer->syncAll($selectedClient?->id);
-        }
 
         $appointmentsQuery = Appointment::query()
             ->select('appointments.*')
@@ -281,8 +286,11 @@ class AppointmentList extends Component
         }
 
         $appointments = $appointmentsQuery->paginate(15, ['appointments.*'], 'appointmentsPage');
-        $this->deliveryStatusSyncer->sync($appointments->getCollection()->pluck('id'));
-        $appointments->getCollection()->each->refresh();
+
+        $showSentColumns = $appointments->getCollection()->contains(fn (Appointment $appointment): bool => $appointment->enviado);
+        $showDeliveredColumns = $appointments->getCollection()->contains(fn (Appointment $appointment): bool => $appointment->entregado);
+        $showReadColumn = $appointments->getCollection()->contains(fn (Appointment $appointment): bool => filled($appointment->whatsapp_read_at));
+        $showPendingColumn = $appointments->getCollection()->contains(fn (Appointment $appointment): bool => ! $appointment->enviado);
 
         $appointmentPendingDeletion = $this->appointmentPendingDeletionId
             ? Appointment::query()->with('client')->find($this->appointmentPendingDeletionId)
@@ -292,6 +300,10 @@ class AppointmentList extends Component
             'appointments' => $appointments,
             'appointmentPendingDeletion' => $appointmentPendingDeletion,
             'selectedClient' => $selectedClient,
+            'showSentColumns' => $showSentColumns,
+            'showDeliveredColumns' => $showDeliveredColumns,
+            'showReadColumn' => $showReadColumn,
+            'showPendingColumn' => $showPendingColumn,
         ]);
     }
 

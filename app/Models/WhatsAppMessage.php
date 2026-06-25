@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -110,6 +111,58 @@ class WhatsAppMessage extends Model
         return $query->pending()->where('scheduled_for', '<=', now());
     }
 
+    public function isRead(): bool
+    {
+        return $this->deliveryStatus() === 'read';
+    }
+
+    public function isDelivered(): bool
+    {
+        return in_array($this->deliveryStatus(), ['delivered', 'read'], true);
+    }
+
+    public function deliveredAt(): ?Carbon
+    {
+        if (! $this->isDelivered()) {
+            return null;
+        }
+
+        $timestamp = data_get($this->provider_payload, 'callback.received_at')
+            ?? data_get($this->provider_payload, 'sync.received_at');
+
+        return $this->parseTimestamp($timestamp) ?? $this->sent_at ?? $this->created_at;
+    }
+
+    public function readAt(): ?Carbon
+    {
+        if (! $this->isRead()) {
+            return null;
+        }
+
+        return $this->deliveredAt();
+    }
+
+    public function deliveryStatus(): string
+    {
+        $callbackStatus = strtolower(trim((string) data_get($this->provider_payload, 'callback.message_status', '')));
+        $callbackEventType = strtoupper(trim((string) data_get($this->provider_payload, 'callback.event_type', '')));
+        $rawStatus = strtolower(trim((string) data_get($this->provider_payload, 'raw.status', '')));
+
+        if (in_array($callbackStatus, ['delivered', 'read'], true)) {
+            return $callbackStatus;
+        }
+
+        if ($callbackEventType === 'READ') {
+            return 'read';
+        }
+
+        if (in_array($rawStatus, ['delivered', 'read'], true)) {
+            return $rawStatus;
+        }
+
+        return $rawStatus;
+    }
+
     public function normalizedPhone(): string
     {
         $number = preg_replace('/\D+/', '', (string) $this->telefono) ?? '';
@@ -137,5 +190,18 @@ class WhatsAppMessage extends Model
     protected function formattedScheduledFor(): Attribute
     {
         return Attribute::get(fn () => $this->scheduled_for?->timezone(config('app.timezone'))?->format('d/m/Y H:i'));
+    }
+
+    private function parseTimestamp(mixed $timestamp): ?Carbon
+    {
+        if (! is_string($timestamp) || trim($timestamp) === '') {
+            return null;
+        }
+
+        try {
+            return Carbon::parse($timestamp, config('app.timezone'));
+        } catch (\Throwable) {
+            return null;
+        }
     }
 }

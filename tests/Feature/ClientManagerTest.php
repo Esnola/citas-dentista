@@ -147,9 +147,9 @@ class ClientManagerTest extends TestCase
         $this->actingAs($admin)
             ->get(route('clients.edit', $client))
             ->assertOk()
-            ->assertSee('Lucía Martín')
             ->assertSee('Editar cliente')
-            ->assertSee('25/06/2026 12:40');
+            ->assertDontSee('Nueva cita')
+            ->assertDontSee('client-form-appointment-');
 
         Carbon::setTestNow();
     }
@@ -175,7 +175,7 @@ class ClientManagerTest extends TestCase
             ->assertSee('Nuevo cliente');
     }
 
-    public function test_selected_client_card_shows_client_appointments(): void
+    public function test_selected_client_edit_page_does_not_show_appointments(): void
     {
         Carbon::setTestNow('2026-06-23 09:00:00');
 
@@ -201,19 +201,16 @@ class ClientManagerTest extends TestCase
         ]);
 
         Livewire::test(ClientForm::class, ['client' => $client->id])
-            ->assertSee('Citas')
-            ->assertSee('01/07/2026')
-            ->assertSee('10:15')
-            ->assertSee('Pendiente')
-            ->assertSeeHtmlInOrder([
-                'client-form-appointment-'.$earlierAppointment->id,
-                'client-form-appointment-'.$laterAppointment->id,
-            ]);
+            ->assertSee('Editar cliente')
+            ->assertDontSee('Citas')
+            ->assertDontSee('01/07/2026')
+            ->assertDontSee('10:15')
+            ->assertDontSee('Pendiente');
 
         Carbon::setTestNow();
     }
 
-    public function test_selected_client_card_shows_appointment_statuses_and_actions(): void
+    public function test_selected_client_edit_page_does_not_show_appointment_actions(): void
     {
         Carbon::setTestNow('2026-06-23 09:00:00');
 
@@ -252,20 +249,12 @@ class ClientManagerTest extends TestCase
             'activo' => false,
         ]);
 
-        $component = Livewire::test(ClientForm::class, ['client' => $client->id])
-            ->assertSee('No Enviado!')
-            ->assertSee('Enviado')
-            ->assertSee('Pendiente')
-            ->assertSee('Inactivo')
-            ->assertSeeHtml('text-red-400')
-            ->assertSeeHtml('text-green-400')
-            ->assertSeeHtml('text-yellow-400')
-            ->assertSeeHtml('text-blue-400');
-
-        $html = $component->html();
-
-        $this->assertSame(2, substr_count($html, 'aria-label="Eliminar cita"'));
-        $this->assertSame(2, substr_count($html, 'wire:change="updateAppointmentActiveStatus'));
+        Livewire::test(ClientForm::class, ['client' => $client->id])
+            ->assertSee('Editar cliente')
+            ->assertDontSee('No Enviado!')
+            ->assertDontSee('Enviado')
+            ->assertDontSee('Pendiente')
+            ->assertDontSee('Inactivo');
 
         Carbon::setTestNow();
     }
@@ -329,7 +318,6 @@ class ClientManagerTest extends TestCase
         ]);
 
         Livewire::test(ClientForm::class, ['client' => $client->id])
-            ->assertSeeHtml('aria-label="Eliminar cita"')
             ->call('deleteAppointment', $appointment->id)
             ->assertSee('Cita eliminada correctamente.');
 

@@ -1,6 +1,7 @@
 @props([
     'icono' => 'abrir',
     'variant' => 'emerald',
+    'titulo' => null,
 ])
 
 @php
@@ -15,10 +16,13 @@
       'rose' => 'stroke-rose-300',
       default => 'stroke-emerald-300',
   };
+  $buttonAttributes = filled($titulo)
+      ? ['title' => $titulo, 'aria-label' => $titulo]
+      : [];
 @endphp
 
 <button
-        {{ $attributes->merge([
+        {{ $attributes->merge($buttonAttributes + [
             'type' => 'button',
             'class' => 'group inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium uppercase tracking-[0.25em] transition-colors '.$classes,
         ]) }}

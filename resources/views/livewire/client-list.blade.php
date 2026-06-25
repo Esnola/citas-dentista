@@ -48,7 +48,6 @@
             </button>
           </th>
           <th class="px-4 py-3">Teléfono</th>
-          <th class="px-4 py-3">Alta</th>
           <th class="px-4 py-3 text-center">Acciones</th>
         </tr>
         </thead>
@@ -57,9 +56,8 @@
           <tr wire:key="client-{{ $client->id }}">
             <td class="px-4 py-3">{{ $client->nombre }} {{ $client->apellidos }}</td>
             <td class="px-4 py-3">{{ $client->telefono }}</td>
-            <td class="px-4 py-3">{{ $client->created_at?->format('d/m/Y H:i') }}</td>
             <td class="px-4 py-3 text-right">
-              <div class="flex justify-end gap-2">
+              <div class="flex justify-center  gap-4">
                 <x-botones.accion
                         variant="warning"
                         size="sm"
@@ -75,13 +73,21 @@
                 >
                 </x-botones.accion>
 
-                <x-botones.accion variant="edit" size="sm" icono="edit" href="{{ route('clients.edit', $client) }}"/>
+                <x-botones.accion
+                        variant="edit"
+                        size="sm"
+                        icono="edit"
+                        href="{{ route('clients.edit', $client) }}"
+                        tooltip="Editar cliente"
+                />
                 <x-botones.accion
                         variant="delete"
                         size="sm"
                         icono="delete"
                         type="button"
-                        onclick="if (! confirm('¿Eliminar este cliente?')) return; $wire.delete({{ $client->id }})"/>
+                        onclick="if (! confirm('¿Eliminar este cliente?')) return; $wire.delete({{ $client->id }})"
+                        tooltip="Eliminar cliente"
+                />
               </div>
             </td>
           </tr>

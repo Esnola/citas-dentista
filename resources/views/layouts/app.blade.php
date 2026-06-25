@@ -58,18 +58,17 @@
 	            <form class="border-t border-white/10 pt-4" method="POST" action="{{ route('logout') }}">
               @csrf
               <button type="submit"
-                      class="group flex w-full items-center justify-between gap-3 rounded-full border border-rose-400/25 bg-rose-400/10 px-3 py-2 font-medium text-rose-200 transition-colors hover:bg-rose-400/15">
+                      class="group flex w-full items-center gap-3 rounded-full border border-rose-400/25 bg-rose-400/10 px-3 py-2 font-medium text-rose-200 transition-colors hover:bg-rose-400/15">
+                  <svg viewBox="0 0 14 14"
+                       class="size-5.5 stroke-rose-300 transition-transform group-hover:translate-x-0.5"
+                       fill="none" aria-hidden="true">
+                      <path d="M5 3.5H3.5A1.5 1.5 0 0 0 2 5v4a1.5 1.5 0 0 0 1.5 1.5H5M8 4l3 3-3 3M11 7H5"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"/>
+                  </svg>
                             <span class="flex items-center gap-3">
-                                <span class="size-2 rounded-full bg-rose-300"></span>
                                 Salir
                             </span>
-                <svg viewBox="0 0 14 14"
-                     class="size-3.5 stroke-rose-300 transition-transform group-hover:translate-x-0.5"
-                     fill="none" aria-hidden="true">
-                  <path d="M5 3.5H3.5A1.5 1.5 0 0 0 2 5v4a1.5 1.5 0 0 0 1.5 1.5H5M8 4l3 3-3 3M11 7H5"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"/>
-                </svg>
               </button>
             </form>
       </nav>

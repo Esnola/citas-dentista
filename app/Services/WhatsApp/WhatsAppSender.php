@@ -203,6 +203,7 @@ class WhatsAppSender
             'Body' => $usesTemplate ? null : $payload['body'],
             'ContentSid' => $payload['content_sid'],
             'ContentVariables' => $contentVariables !== [] ? $this->jsonEncode($contentVariables) : null,
+            'StatusCallback' => $this->twilioStatusCallbackUrl(),
         ], static fn ($value) => $value !== null && $value !== '');
 
         return [$payload, $requestPayload];
@@ -416,5 +417,14 @@ class WhatsAppSender
         return filled(config('whatsapp.twilio.test_recipient'))
             ? (string) config('whatsapp.twilio.test_recipient')
             : null;
+    }
+
+    private function twilioStatusCallbackUrl(): string
+    {
+        $configuredUrl = trim((string) config('whatsapp.twilio.status_callback_url', ''));
+
+        return $configuredUrl !== ''
+            ? $configuredUrl
+            : route('webhooks.twilio.whatsapp-status', absolute: true);
     }
 }

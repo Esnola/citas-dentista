@@ -17,6 +17,15 @@
                 </div>
             </div>
             <div class="flex flex-wrap items-center gap-6">
+                <x-botones.accion
+                    variant="indigo"
+                    type="button"
+                    wire:click="syncDeliveryStatuses"
+                    wire:loading.attr="disabled"
+                    wire:target="syncDeliveryStatuses"
+                >
+                   Actualizar Datos
+                </x-botones.accion>
                 @if ($selectedClient)
                     <x-botones.accion href="{{ route('appointments.index') }}" icono="calendar"
                     >Todas las citas</x-botones.accion>
@@ -63,7 +72,7 @@
                 <thead class="bg-slate-900/70 text-slate-300">
                     <tr>
                         <th class="px-4 py-3">
-                            <button type="button" class="inline-flex cursor-pointer items-center gap-1 font-semibold text-slate-200 hover:text-white" wire:click="sortByColumn('cliente')">
+                            <button type="button" class="inline-flex cursor-pointer items-center gap-1 font-semibold text-slate-200 hover:text-white" wire:click="sortByColumn('cliente')" title="Ordenar por cliente" aria-label="Ordenar por cliente">
                                 Cliente
                                 <span class="text-xs text-slate-400">
                                     @if ($sort_by === 'cliente')
@@ -75,7 +84,7 @@
                             </button>
                         </th>
                         <th class="px-4 py-3">
-                            <button type="button" class="inline-flex cursor-pointer items-center gap-1 font-semibold text-slate-200 hover:text-white" wire:click="sortByColumn('fecha')">
+                            <button type="button" class="inline-flex cursor-pointer items-center gap-1 font-semibold text-slate-200 hover:text-white" wire:click="sortByColumn('fecha')" title="Ordenar por fecha" aria-label="Ordenar por fecha">
                                 Fecha
                                 <span class="text-xs text-slate-400">
                                     @if ($sort_by === 'fecha')
@@ -87,10 +96,21 @@
                             </button>
                         </th>
                         <th class="px-4 py-3">Hora</th>
-                        <th class="px-4 py-3">Enviado</th>
-                        <th class="px-4 py-3">Entregado</th>
-                        <th class="px-4 py-3">Pendiente</th>
-                        <th class="px-4 py-3"></th>
+                        @if ($showSentColumns)
+                            <th class="px-4 py-3">Enviado</th>
+                            <th class="px-4 py-3">Fecha envío</th>
+                        @endif
+                        @if ($showDeliveredColumns)
+                            <th class="px-4 py-3">Entregado</th>
+                            <th class="px-4 py-3">Fecha entrega</th>
+                        @endif
+                        @if ($showReadColumn)
+                            <th class="px-4 py-3">Leído</th>
+                        @endif
+                        @if ($showPendingColumn)
+                            <th class="px-4 py-3">Pendiente</th>
+                        @endif
+                        <th class="px-4 py-3 text-center">Acciones</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-white/10 bg-slate-950/40">
@@ -122,27 +142,48 @@
                             </td>
                             <td class="px-4 py-3">{{ $appointment->fecha?->format('d/m/Y') }}</td>
                             <td class="px-4 py-3">{{ $appointment->hora }}</td>
-                            <td class="px-4 py-3">
+                            @if ($showSentColumns)
+                                <td class="px-4 py-3">
                                 <span class="rounded-full px-2.5 py-1 text-xs font-medium {{ $appointment->enviado ? 'bg-emerald-500/20 text-emerald-200' : 'bg-slate-500/20 text-slate-200' }}">
                                     {{ $appointment->enviado ? 'Sí' : 'No' }}
                                 </span>
                             </td>
                             <td class="px-4 py-3">
-                                <span class="rounded-full px-2.5 py-1 text-xs font-medium {{ $appointment->entregado ? 'bg-sky-500/20 text-sky-200' : 'bg-slate-500/20 text-slate-200' }}">
-                                    {{ $appointment->entregado ? 'Sí' : 'No' }}
+                                <span class="text-slate-200">
+                                    {{ $appointment->whatsapp_sent_at?->format('d/m/Y H:i') ?? '—' }}
                                 </span>
                             </td>
-                            <td class="px-4 py-3" onclick="event.stopPropagation()">
-                                @if ($canChange)
-                                    <x-formularios.toggle
-                                        :estado="$appointment->activo ? 'Sí' : 'No'"
-                                        :checked="$appointment->activo"
-                                        wire:change="updateActiveStatus({{ $appointment->id }}, $event.target.checked)"
-                                    />
-                                @endif
-                            </td>
+                            @endif
+                            @if ($showDeliveredColumns)
+                                <td class="px-4 py-3">
+                                    <span class="rounded-full px-2.5 py-1 text-xs font-medium {{ $appointment->entregado ? 'bg-sky-500/20 text-sky-200' : 'bg-slate-500/20 text-slate-200' }}">
+                                        {{ $appointment->entregado ? 'Sí' : 'No' }}
+                                    </span>
+                                </td>
+                                <td class="px-4 py-3">
+                                    <span class="text-slate-200">
+                                        {{ $appointment->whatsapp_delivered_at?->format('d/m/Y H:i') ?? '—' }}
+                                    </span>
+                                </td>
+                            @endif
+                            @if ($showReadColumn)
+                                <td class="px-4 py-3">
+                                    <x-iconos.doble-check clase="size-6 {{ filled($appointment->whatsapp_read_at) ? 'text-green-400' : 'text-gray-400' }}" />
+                                </td>
+                            @endif
+                            @if ($showPendingColumn)
+                                <td class="px-4 py-3" onclick="event.stopPropagation()">
+                                    @if ($canChange && ! $appointment->enviado)
+                                        <x-formularios.toggle
+                                            :estado="$appointment->activo ? 'Sí' : 'No'"
+                                            :checked="$appointment->activo"
+                                            wire:change="updateActiveStatus({{ $appointment->id }}, $event.target.checked)"
+                                        />
+                                    @endif
+                                </td>
+                            @endif
                             <td class="px-4 py-3 text-right" onclick="event.stopPropagation()">
-                                <div class="flex justify-end gap-2">
+                                <div class="flex justify-center items-center gap-2">
                                     @if ($canSendNow)
                                         <x-botones.accion
                                             variant="add"
@@ -179,7 +220,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td class="px-4 py-6 text-slate-400" colspan="7">No hay citas para mostrar todavía.</td>
+                            <td class="px-4 py-6 text-slate-400" colspan="{{ 4 + ($showSentColumns ? 2 : 0) + ($showDeliveredColumns ? 2 : 0) + ($showReadColumn ? 1 : 0) + ($showPendingColumn ? 1 : 0) }}">No hay citas para mostrar todavía.</td>
                         </tr>
                     @endforelse
                 </tbody>

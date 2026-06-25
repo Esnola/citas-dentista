@@ -40,6 +40,7 @@ class WhatsAppTwilioDispatchTest extends TestCase
         Config::set('whatsapp.twilio.auth_token', 'test-token');
         Config::set('whatsapp.twilio.mode', 'sandbox');
         Config::set('whatsapp.twilio.from', 'whatsapp:+14155238886');
+        Config::set('whatsapp.twilio.status_callback_url', route('webhooks.twilio.whatsapp-status', absolute: true));
         Config::set('whatsapp.default_country_code', '+34');
 
         Http::fake([
@@ -57,6 +58,7 @@ class WhatsAppTwilioDispatchTest extends TestCase
             return $request->url() === 'https://api.twilio.com/2010-04-01/Accounts/AC123/Messages.json'
                 && $request['From'] === 'whatsapp:+14155238886'
                 && $request['To'] === 'whatsapp:+34600123123'
+                && $request['StatusCallback'] === route('webhooks.twilio.whatsapp-status', absolute: true)
                 && $request['Body'] === 'Hola Ana';
         });
 
@@ -92,6 +94,7 @@ class WhatsAppTwilioDispatchTest extends TestCase
         Config::set('whatsapp.twilio.mode', 'service');
         Config::set('whatsapp.twilio.messaging_service_sid', 'MG123');
         Config::set('whatsapp.twilio.from', 'whatsapp:+14155238886');
+        Config::set('whatsapp.twilio.status_callback_url', route('webhooks.twilio.whatsapp-status', absolute: true));
         Config::set('whatsapp.default_country_code', '+34');
 
         Http::fake([
@@ -142,6 +145,7 @@ class WhatsAppTwilioDispatchTest extends TestCase
         Config::set('whatsapp.twilio.mode', 'auto');
         Config::set('whatsapp.twilio.from', 'whatsapp:+14155238886');
         Config::set('whatsapp.twilio.messaging_service_sid', 'MG456');
+        Config::set('whatsapp.twilio.status_callback_url', route('webhooks.twilio.whatsapp-status', absolute: true));
         Config::set('whatsapp.default_country_code', '+34');
 
         Http::fake([
@@ -193,6 +197,7 @@ class WhatsAppTwilioDispatchTest extends TestCase
             '3' => '[HORA]',
             '4' => '[MENSAJE]',
         ]);
+        Config::set('whatsapp.twilio.status_callback_url', route('webhooks.twilio.whatsapp-status', absolute: true));
         Config::set('whatsapp.default_country_code', '+34');
 
         Http::fake([
@@ -245,6 +250,7 @@ class WhatsAppTwilioDispatchTest extends TestCase
         Config::set('whatsapp.twilio.auth_token', 'test-token');
         Config::set('whatsapp.twilio.mode', 'sandbox');
         Config::set('whatsapp.twilio.from', 'whatsapp:+14155238886');
+        Config::set('whatsapp.twilio.status_callback_url', route('webhooks.twilio.whatsapp-status', absolute: true));
         Config::set('whatsapp.default_country_code', '+34');
 
         Http::fake([
@@ -258,6 +264,43 @@ class WhatsAppTwilioDispatchTest extends TestCase
 
         Http::assertSent(function ($request): bool {
             return $request['To'] === 'whatsapp:+34618287914';
+        });
+    }
+
+    public function test_due_messages_use_configured_status_callback_url_when_available(): void
+    {
+        $admin = User::factory()->create();
+
+        WhatsAppMessage::query()->create([
+            'user_id' => $admin->id,
+            'nombre' => 'Ana',
+            'apellidos' => 'Pérez',
+            'telefono' => '600123123',
+            'scheduled_for' => now()->subMinute(),
+            'message' => 'Hola Ana',
+            'source' => WhatsAppMessage::SOURCE_MANUAL,
+            'status' => WhatsAppMessage::STATUS_PENDING,
+        ]);
+
+        Config::set('whatsapp.driver', 'twilio');
+        Config::set('whatsapp.twilio.account_sid', 'AC123');
+        Config::set('whatsapp.twilio.auth_token', 'test-token');
+        Config::set('whatsapp.twilio.mode', 'sandbox');
+        Config::set('whatsapp.twilio.from', 'whatsapp:+14155238886');
+        Config::set('whatsapp.twilio.status_callback_url', 'https://example.com/webhooks/twilio/whatsapp-status');
+        Config::set('whatsapp.default_country_code', '+34');
+
+        Http::fake([
+            'api.twilio.com/*/Messages.json' => Http::response([
+                'sid' => 'SMTESTCALLBACK123',
+                'status' => 'queued',
+            ], 201),
+        ]);
+
+        $this->artisan('whatsapp:dispatch-due')->assertExitCode(0);
+
+        Http::assertSent(function ($request): bool {
+            return $request['StatusCallback'] === 'https://example.com/webhooks/twilio/whatsapp-status';
         });
     }
 }

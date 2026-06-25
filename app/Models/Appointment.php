@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Appointment extends Model
 {
@@ -18,6 +19,9 @@ class Appointment extends Model
         'hora',
         'enviado',
         'entregado',
+        'whatsapp_sent_at',
+        'whatsapp_delivered_at',
+        'whatsapp_read_at',
         'activo',
     ];
 
@@ -33,6 +37,9 @@ class Appointment extends Model
             'fecha' => 'date',
             'enviado' => 'boolean',
             'entregado' => 'boolean',
+            'whatsapp_sent_at' => 'datetime',
+            'whatsapp_delivered_at' => 'datetime',
+            'whatsapp_read_at' => 'datetime',
             'activo' => 'boolean',
         ];
     }
@@ -45,6 +52,11 @@ class Appointment extends Model
     public function whatsAppMessages(): HasMany
     {
         return $this->hasMany(WhatsAppMessage::class);
+    }
+
+    public function latestWhatsAppMessage(): HasOne
+    {
+        return $this->hasOne(WhatsAppMessage::class)->latestOfMany();
     }
 
     public function scheduledFor(): Carbon

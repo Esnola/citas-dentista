@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Models\Appointment;
 use App\Models\AppointmentReminderPreference;
 use App\Models\WhatsAppMessage;
+use App\Services\WhatsApp\AppointmentDeliveryStatusSyncer;
 use App\Services\WhatsApp\WhatsAppSender;
 use Illuminate\Console\Command;
 use Throwable;
@@ -15,14 +16,14 @@ class DispatchDueWhatsAppMessages extends Command
 
     protected $description = 'Dispatch all due WhatsApp messages.';
 
-    public function handle(WhatsAppSender $sender): int
+    public function handle(WhatsAppSender $sender, AppointmentDeliveryStatusSyncer $deliveryStatusSyncer): int
     {
         $queued = $this->queueActiveAppointmentMessages();
         $count = 0;
 
         WhatsAppMessage::due()
             ->with('appointment')
-            ->chunkById(100, function ($messages) use (&$count, $sender): void {
+            ->chunkById(100, function ($messages) use (&$count, $sender, $deliveryStatusSyncer): void {
                 foreach ($messages as $message) {
                     if ($message->appointment && ! $message->appointment->activo) {
                         continue;
@@ -45,7 +46,10 @@ class DispatchDueWhatsAppMessages extends Command
 
                         $message->appointment?->update([
                             'enviado' => true,
+                            'whatsapp_sent_at' => now(),
                         ]);
+
+                        $deliveryStatusSyncer->sync([$message->appointment_id]);
                     } catch (Throwable $throwable) {
                         $message->update([
                             'status' => WhatsAppMessage::STATUS_FAILED,

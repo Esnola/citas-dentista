@@ -94,8 +94,12 @@ class WhatsAppDispatchCommandTest extends TestCase
         Http::fake([
             'api.twilio.com/*/Messages.json' => Http::response([
                 'sid' => 'SMDISPATCHDUE123',
-                'status' => 'delivered',
+                'status' => 'queued',
             ], 201),
+            'api.twilio.com/*/Messages/SMDISPATCHDUE123.json' => Http::response([
+                'sid' => 'SMDISPATCHDUE123',
+                'status' => 'delivered',
+            ], 200),
         ]);
 
         $this->artisan('whatsapp:dispatch-due')
@@ -114,7 +118,14 @@ class WhatsAppDispatchCommandTest extends TestCase
         $appointment->refresh();
 
         $this->assertTrue($appointment->enviado);
-        $this->assertFalse($appointment->entregado);
+        $this->assertTrue($appointment->entregado);
+        $this->assertNotNull($appointment->refresh()->whatsapp_sent_at);
+        $this->assertNotNull($appointment->whatsapp_delivered_at);
+
+        Http::assertSent(function ($request): bool {
+            return $request->method() === 'GET'
+                && $request->url() === 'https://api.twilio.com/2010-04-01/Accounts/AC123/Messages/SMDISPATCHDUE123.json';
+        });
 
         $this->artisan('whatsapp:dispatch-due')
             ->expectsOutput('Queued 0 appointment message(s).')
@@ -181,6 +192,112 @@ class WhatsAppDispatchCommandTest extends TestCase
         $this->assertSame(1, WhatsAppMessage::query()->where('status', WhatsAppMessage::STATUS_SENT)->count());
         $this->assertTrue($appointment->refresh()->enviado);
         $this->assertFalse($appointment->entregado);
+
+        Carbon::setTestNow();
+    }
+
+    public function test_delivery_sync_command_marks_appointments_as_delivered_when_logs_show_delivered(): void
+    {
+        Carbon::setTestNow('2026-06-23 12:00:00');
+
+        $client = Client::query()->create([
+            'nombre' => 'Ana',
+            'apellidos' => 'Pérez',
+            'telefono' => '600123123',
+        ]);
+        $appointment = Appointment::query()->create([
+            'client_id' => $client->id,
+            'fecha' => '2026-06-30',
+            'hora' => '11:45',
+            'enviado' => true,
+            'entregado' => false,
+            'activo' => true,
+        ]);
+
+        WhatsAppMessage::query()->create([
+            'client_id' => $client->id,
+            'appointment_id' => $appointment->id,
+            'nombre' => 'Ana',
+            'apellidos' => 'Pérez',
+            'telefono' => '600123123',
+            'scheduled_for' => now()->subMinute(),
+            'message' => 'Hola Ana',
+            'source' => WhatsAppMessage::SOURCE_APPOINTMENT,
+            'status' => WhatsAppMessage::STATUS_SENT,
+            'provider_message_id' => 'SMLOG123',
+            'provider_payload' => [
+                'provider' => 'twilio',
+                'raw' => [
+                    'status' => 'delivered',
+                ],
+            ],
+        ]);
+
+        $this->artisan('whatsapp:sync-delivery-status')
+            ->expectsOutput('Synced 1 delivered appointment(s).')
+            ->assertExitCode(0);
+
+        $this->assertTrue($appointment->refresh()->entregado);
+        $this->assertNotNull($appointment->whatsapp_delivered_at);
+
+        Carbon::setTestNow();
+    }
+
+    public function test_backfill_command_populates_appointment_delivery_timestamps_from_stored_messages(): void
+    {
+        Carbon::setTestNow('2026-06-23 12:00:00');
+
+        $client = Client::query()->create([
+            'nombre' => 'Ana',
+            'apellidos' => 'Pérez',
+            'telefono' => '600123123',
+        ]);
+        $appointment = Appointment::query()->create([
+            'client_id' => $client->id,
+            'fecha' => '2026-06-30',
+            'hora' => '11:45',
+            'enviado' => false,
+            'entregado' => false,
+            'activo' => true,
+        ]);
+
+        WhatsAppMessage::query()->create([
+            'client_id' => $client->id,
+            'appointment_id' => $appointment->id,
+            'nombre' => 'Ana',
+            'apellidos' => 'Pérez',
+            'telefono' => '600123123',
+            'scheduled_for' => now()->subMinute(),
+            'message' => 'Hola Ana',
+            'source' => WhatsAppMessage::SOURCE_APPOINTMENT,
+            'status' => WhatsAppMessage::STATUS_SENT,
+            'sent_at' => '2026-06-23 08:05:00',
+            'provider_message_id' => 'SMBACKFILL123',
+            'provider_payload' => [
+                'provider' => 'twilio',
+                'raw' => [
+                    'status' => 'delivered',
+                ],
+                'callback' => [
+                    'message_status' => 'read',
+                    'event_type' => 'READ',
+                    'received_at' => '2026-06-23 08:12:00',
+                    'payload' => [],
+                ],
+            ],
+        ]);
+
+        $this->artisan('whatsapp:backfill-appointment-delivery-state')
+            ->expectsOutput('Backfilled 1 appointment(s).')
+            ->assertExitCode(0);
+
+        $appointment->refresh();
+
+        $this->assertTrue($appointment->enviado);
+        $this->assertTrue($appointment->entregado);
+        $this->assertSame('2026-06-23 08:05:00', $appointment->whatsapp_sent_at?->toDateTimeString());
+        $this->assertSame('2026-06-23 08:12:00', $appointment->whatsapp_delivered_at?->toDateTimeString());
+        $this->assertSame('2026-06-23 08:12:00', $appointment->whatsapp_read_at?->toDateTimeString());
 
         Carbon::setTestNow();
     }

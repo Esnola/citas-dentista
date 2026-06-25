@@ -2,6 +2,7 @@
     'variant' => 'warning',
     'size' => 'md',
     'icono' => null,
+    'tooltip' => null,
 ])
 
 @php
@@ -31,10 +32,13 @@
     };
 
     $baseClasses = 'group inline-flex items-center justify-center gap-2 rounded-full border font-medium transition-colors disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50';
+    $tooltipAttributes = filled($tooltip)
+        ? ['title' => $tooltip, 'aria-label' => $tooltip]
+        : [];
 @endphp
 
 @if ($attributes->has('href'))
-    <a {{ $attributes->class([$baseClasses, $sizeClasses, $variantClasses]) }}>
+    <a {{ $attributes->class([$baseClasses, $sizeClasses, $variantClasses])->merge($tooltipAttributes) }}>
         @if ($icono)
             <svg viewBox="0 0 14 14" class="size-6 {{ $iconClasses }}" fill="none" aria-hidden="true">
                 @include('components.botones.partials.icono-accion', ['icono' => $icono])
@@ -43,7 +47,7 @@
         {{ $slot }}
     </a>
 @else
-    <button {{ $attributes->class([$baseClasses, $sizeClasses, $variantClasses])->merge(['type' => 'button']) }}>
+    <button {{ $attributes->class([$baseClasses, $sizeClasses, $variantClasses])->merge(['type' => 'button'] + $tooltipAttributes) }}>
         @if ($icono)
             <svg viewBox="0 0 14 14" class="size-3.5 {{ $iconClasses }}" fill="none" aria-hidden="true">
                 @include('components.botones.partials.icono-accion', ['icono' => $icono])

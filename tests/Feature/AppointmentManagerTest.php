@@ -97,7 +97,9 @@ class AppointmentManagerTest extends TestCase
         $message = WhatsAppMessage::query()->firstOrFail();
 
         $this->assertTrue($appointment->enviado);
-        $this->assertFalse($appointment->entregado);
+        $this->assertTrue($appointment->entregado);
+        $this->assertNotNull($appointment->refresh()->whatsapp_sent_at);
+        $this->assertNotNull($appointment->whatsapp_delivered_at);
         $this->assertSame($client->id, $message->client_id);
         $this->assertSame($appointment->id, $message->appointment_id);
         $this->assertSame(WhatsAppMessage::STATUS_SENT, $message->status);
@@ -312,7 +314,7 @@ class AppointmentManagerTest extends TestCase
         $appointment->refresh();
 
         $this->assertTrue($appointment->enviado);
-        $this->assertFalse($appointment->entregado);
+        $this->assertTrue($appointment->entregado);
         $this->assertSame($appointment->id, $message->appointment_id);
         $this->assertSame(WhatsAppMessage::STATUS_SENT, $message->status);
         $this->assertSame('SMAPPOINTMENTLIST123', $message->provider_message_id);
@@ -358,7 +360,180 @@ class AppointmentManagerTest extends TestCase
             ->set('filter_enviado', true)
             ->assertSee('11:30');
 
+        Livewire::test(AppointmentList::class)
+            ->call('syncDeliveryStatuses')
+            ->assertSee('Se actualizaron 1 cita(s) como entregadas.');
+
         $this->assertTrue($appointment->refresh()->entregado);
+
+        Carbon::setTestNow();
+    }
+
+    public function test_appointment_list_can_sync_delivery_statuses_manually(): void
+    {
+        Carbon::setTestNow('2026-06-23 09:00:00');
+
+        $client = Client::query()->create([
+            'nombre' => 'Ana',
+            'apellidos' => 'Pérez',
+            'telefono' => '+34600111222',
+        ]);
+        $appointment = Appointment::query()->create([
+            'client_id' => $client->id,
+            'fecha' => '2026-06-30',
+            'hora' => '11:30',
+            'enviado' => true,
+            'entregado' => false,
+            'activo' => true,
+        ]);
+
+        $message = WhatsAppMessage::query()->create([
+            'client_id' => $client->id,
+            'appointment_id' => $appointment->id,
+            'nombre' => 'Ana',
+            'apellidos' => 'Pérez',
+            'telefono' => '+34600111222',
+            'scheduled_for' => now(),
+            'message' => 'Recordatorio',
+            'source' => WhatsAppMessage::SOURCE_APPOINTMENT,
+            'status' => WhatsAppMessage::STATUS_SENT,
+            'provider_payload' => [
+                'provider' => 'twilio',
+                'raw' => ['status' => 'sent'],
+            ],
+        ]);
+
+        $component = Livewire::test(AppointmentList::class)
+            ->assertSee('Leer logs');
+
+        $message->update([
+            'provider_payload' => [
+                'provider' => 'twilio',
+                'raw' => ['status' => 'delivered'],
+            ],
+        ]);
+
+        $component
+            ->call('syncDeliveryStatuses')
+            ->assertSee('Se actualizaron 1 cita(s) como entregadas.');
+
+        $this->assertTrue($appointment->refresh()->entregado);
+
+        Carbon::setTestNow();
+    }
+
+    public function test_appointment_list_shows_sent_delivered_and_read_timestamps(): void
+    {
+        Carbon::setTestNow('2026-06-23 09:00:00');
+
+        $client = Client::query()->create([
+            'nombre' => 'Ana',
+            'apellidos' => 'Pérez',
+            'telefono' => '+34600111222',
+        ]);
+        $appointment = Appointment::query()->create([
+            'client_id' => $client->id,
+            'fecha' => '2026-06-30',
+            'hora' => '11:30',
+            'enviado' => true,
+            'entregado' => true,
+            'whatsapp_sent_at' => '2026-06-23 08:05:00',
+            'whatsapp_delivered_at' => '2026-06-23 08:10:00',
+            'whatsapp_read_at' => '2026-06-23 09:15:00',
+            'activo' => true,
+        ]);
+
+        Livewire::test(AppointmentList::class)
+            ->set('filter_entregado', true)
+            ->assertSee('23/06/2026 08:05')
+            ->assertSee('23/06/2026 08:10')
+            ->assertSee('Leído')
+            ->assertSeeHtml('text-green-400')
+            ->assertSee('Sí');
+
+        Carbon::setTestNow();
+    }
+
+    public function test_appointment_list_does_not_poll_twilio_on_render(): void
+    {
+        Carbon::setTestNow('2026-06-23 09:00:00');
+
+        $client = Client::query()->create([
+            'nombre' => 'Ana',
+            'apellidos' => 'Pérez',
+            'telefono' => '+34600111222',
+        ]);
+        $appointment = Appointment::query()->create([
+            'client_id' => $client->id,
+            'fecha' => '2026-06-30',
+            'hora' => '11:30',
+            'enviado' => true,
+            'entregado' => false,
+            'whatsapp_sent_at' => '2026-06-23 08:05:00',
+            'whatsapp_delivered_at' => '2026-06-23 08:10:00',
+            'activo' => true,
+        ]);
+
+        Http::fake();
+
+        Livewire::test(AppointmentList::class)
+            ->set('filter_enviado', true)
+            ->assertSee('11:30');
+
+        Http::assertNothingSent();
+
+        Carbon::setTestNow();
+    }
+
+    public function test_appointment_list_does_not_poll_twilio_for_messages_older_than_24_hours(): void
+    {
+        Carbon::setTestNow('2026-06-23 12:00:00');
+
+        Config::set('whatsapp.twilio.account_sid', 'AC123');
+        Config::set('whatsapp.twilio.auth_token', 'test-token');
+
+        $client = Client::query()->create([
+            'nombre' => 'Ana',
+            'apellidos' => 'Pérez',
+            'telefono' => '+34600111222',
+        ]);
+        $appointment = Appointment::query()->create([
+            'client_id' => $client->id,
+            'fecha' => '2026-06-30',
+            'hora' => '11:30',
+            'enviado' => true,
+            'entregado' => false,
+            'whatsapp_sent_at' => '2026-06-22 11:59:00',
+            'activo' => true,
+        ]);
+
+        WhatsAppMessage::query()->create([
+            'client_id' => $client->id,
+            'appointment_id' => $appointment->id,
+            'nombre' => 'Ana',
+            'apellidos' => 'Pérez',
+            'telefono' => '+34600111222',
+            'scheduled_for' => now()->subDay()->subMinute(),
+            'message' => 'Recordatorio',
+            'source' => WhatsAppMessage::SOURCE_APPOINTMENT,
+            'status' => WhatsAppMessage::STATUS_SENT,
+            'sent_at' => now()->subDay()->subMinute(),
+            'provider_message_id' => 'SMOLD123',
+            'provider_payload' => [
+                'provider' => 'twilio',
+                'raw' => ['status' => 'queued'],
+            ],
+        ]);
+
+        Http::fake();
+
+        Livewire::test(AppointmentList::class)
+            ->call('syncDeliveryStatuses')
+            ->assertSee('No había entregas nuevas para sincronizar.');
+
+        $this->assertFalse($appointment->refresh()->entregado);
+        $this->assertNull($appointment->whatsapp_delivered_at);
+        Http::assertNothingSent();
 
         Carbon::setTestNow();
     }
@@ -884,7 +1059,7 @@ class AppointmentManagerTest extends TestCase
         $appointment->refresh();
 
         $this->assertTrue($appointment->enviado);
-        $this->assertFalse($appointment->entregado);
+        $this->assertTrue($appointment->entregado);
         $this->assertSame($appointment->id, $message->appointment_id);
         $this->assertSame(WhatsAppMessage::STATUS_SENT, $message->status);
         $this->assertSame('SMAPPOINTMENTEDIT123', $message->provider_message_id);
@@ -1396,6 +1571,53 @@ class AppointmentManagerTest extends TestCase
             ->assertDontSee('10:00')
             ->assertSet('filter_enviado', false)
             ->assertSet('filter_activo', false);
+    }
+
+    public function test_appointment_list_hides_whatsapp_columns_when_nothing_has_been_sent(): void
+    {
+        $client = Client::query()->create([
+            'nombre' => 'Ana',
+            'apellidos' => 'Pérez',
+            'telefono' => '+34600111222',
+        ]);
+
+        Appointment::query()->create([
+            'client_id' => $client->id,
+            'fecha' => '2026-06-30',
+            'hora' => '09:00',
+            'enviado' => false,
+            'entregado' => false,
+            'activo' => true,
+        ]);
+
+        Livewire::test(AppointmentList::class)
+            ->assertDontSee('Enviado')
+            ->assertDontSee('Fecha envío')
+            ->assertDontSee('Entregado')
+            ->assertDontSee('Fecha entrega')
+            ->assertDontSee('Leído')
+            ->assertSee('Pendiente');
+    }
+
+    public function test_appointment_list_hides_pending_column_when_everything_is_sent(): void
+    {
+        $client = Client::query()->create([
+            'nombre' => 'Ana',
+            'apellidos' => 'Pérez',
+            'telefono' => '+34600111222',
+        ]);
+
+        Appointment::query()->create([
+            'client_id' => $client->id,
+            'fecha' => '2026-06-30',
+            'hora' => '09:00',
+            'enviado' => true,
+            'entregado' => false,
+            'activo' => true,
+        ]);
+
+        Livewire::test(AppointmentList::class)
+            ->assertDontSee('Pendiente');
     }
 
     public function test_appointment_form_shows_client_matches_after_one_character(): void
