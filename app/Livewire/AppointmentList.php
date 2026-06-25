@@ -5,7 +5,11 @@ namespace App\Livewire;
 use App\Models\Appointment;
 use App\Models\Client;
 use App\Models\WhatsAppMessage;
+use App\Services\WhatsApp\AppointmentDeliveryStatusSyncer;
+use App\Services\WhatsApp\AppointmentImmediateSender;
+use App\Services\WhatsApp\WhatsAppSender;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Builder;
 use Livewire\Component;
 use Livewire\WithPagination;
 
@@ -21,6 +25,8 @@ class AppointmentList extends Component
 
     public bool $filter_activo = false;
 
+    public bool $filter_entregado = false;
+
     public string $sort_by = 'fecha';
 
     public string $sort_direction = 'asc';
@@ -28,6 +34,18 @@ class AppointmentList extends Component
     public ?int $clientId = null;
 
     public ?int $appointmentPendingDeletionId = null;
+
+    private AppointmentImmediateSender $immediateSender;
+
+    private AppointmentDeliveryStatusSyncer $deliveryStatusSyncer;
+
+    private bool $skipDeliverySync = false;
+
+    public function boot(AppointmentImmediateSender $immediateSender, AppointmentDeliveryStatusSyncer $deliveryStatusSyncer): void
+    {
+        $this->immediateSender = $immediateSender;
+        $this->deliveryStatusSyncer = $deliveryStatusSyncer;
+    }
 
     public function mount(): void
     {
@@ -52,8 +70,7 @@ class AppointmentList extends Component
     {
         if ($this->filter_enviado) {
             $this->filter_activo = false;
-
-            return;
+            $this->filter_entregado = false;
         }
 
         $this->resetPage('appointmentsPage');
@@ -63,8 +80,17 @@ class AppointmentList extends Component
     {
         if ($this->filter_activo) {
             $this->filter_enviado = false;
+            $this->filter_entregado = false;
+        }
 
-            return;
+        $this->resetPage('appointmentsPage');
+    }
+
+    public function updatedFilterEntregado(): void
+    {
+        if ($this->filter_entregado) {
+            $this->filter_enviado = false;
+            $this->filter_activo = false;
         }
 
         $this->resetPage('appointmentsPage');
@@ -154,7 +180,52 @@ class AppointmentList extends Component
                 ->delete();
         }
 
-        session()->flash('status', 'Estado activo actualizado.');
+        session()->flash('status', 'Estado pendiente actualizado.');
+    }
+
+    public function sendNow(int $appointmentId, WhatsAppSender $sender): void
+    {
+        $appointment = Appointment::query()
+            ->with('client')
+            ->findOrFail($appointmentId);
+
+        if ($appointment->enviado) {
+            session()->flash('status', 'Esta cita ya tiene el WhatsApp enviado.');
+
+            return;
+        }
+
+        if (! $appointment->isFuture()) {
+            session()->flash('status', 'Las citas pasadas no pueden enviarse.');
+
+            return;
+        }
+
+        if (! $appointment->activo) {
+            session()->flash('status', 'Las citas no pendientes no pueden enviarse.');
+
+            return;
+        }
+
+        $client = $appointment->client;
+
+        if (! $client) {
+            session()->flash('status', 'No se pudo enviar el WhatsApp porque la cita no tiene cliente asociado.');
+
+            return;
+        }
+
+        $result = $this->immediateSender->send(
+            $appointment,
+            $client,
+            $sender,
+            'WhatsApp enviado ahora correctamente.',
+            'No se pudo enviar el WhatsApp.'
+        );
+
+        $this->skipDeliverySync = true;
+
+        session()->flash('status', $result['message']);
     }
 
     public function render()
@@ -164,6 +235,10 @@ class AppointmentList extends Component
             : null;
         $now = Carbon::now(config('app.timezone'));
 
+        if (! $this->skipDeliverySync) {
+            $this->deliveryStatusSyncer->syncAll($selectedClient?->id);
+        }
+
         $appointmentsQuery = Appointment::query()
             ->select('appointments.*')
             ->with('client')
@@ -171,17 +246,26 @@ class AppointmentList extends Component
             ->when($selectedClient, fn ($query) => $query->where('appointments.client_id', $selectedClient->id))
             ->when($this->filter_nombre, fn ($query) => $query->whereHas('client', fn ($clientQuery) => $clientQuery->where('nombre', 'like', '%'.$this->filter_nombre.'%')))
             ->when($this->filter_apellidos, fn ($query) => $query->whereHas('client', fn ($clientQuery) => $clientQuery->where('apellidos', 'like', '%'.$this->filter_apellidos.'%')))
+            ->when($this->filter_entregado, fn ($query) => $query->where('appointments.entregado', true))
             ->when($this->filter_enviado, fn ($query) => $query->where('appointments.enviado', true))
-            ->when($this->filter_activo, function ($query) use ($now): void {
-                $query->where('appointments.activo', true)
-                    ->where('appointments.enviado', false)
-                    ->where(function ($activeQuery) use ($now): void {
-                        $activeQuery->whereDate('appointments.fecha', '>', $now->toDateString())
-                            ->orWhere(function ($futureAppointmentQuery) use ($now): void {
-                                $futureAppointmentQuery->whereDate('appointments.fecha', $now->toDateString())
-                                    ->where('appointments.hora', '>', $now->format('H:i:s'));
-                            });
+            ->when(! $this->filter_entregado && ! $this->filter_enviado && $this->filter_activo, function (Builder $query) use ($now): void {
+                $query->where(function (Builder $nonPendingQuery) use ($now): void {
+                    $this->wherePastAppointment($nonPendingQuery, $now);
+                    $nonPendingQuery->orWhere(function (Builder $inactiveFutureQuery) use ($now): void {
+                        $inactiveFutureQuery
+                            ->where('appointments.enviado', false)
+                            ->where('appointments.activo', false);
+
+                        $this->whereFutureAppointment($inactiveFutureQuery, $now);
                     });
+                });
+            })
+            ->when(! $this->filter_entregado && ! $this->filter_enviado && ! $this->filter_activo, function (Builder $query) use ($now): void {
+                $query
+                    ->where('appointments.enviado', false)
+                    ->where('appointments.activo', true);
+
+                $this->whereFutureAppointment($query, $now);
             });
 
         if ($this->sort_by === 'cliente') {
@@ -196,7 +280,9 @@ class AppointmentList extends Component
                 ->orderBy('appointments.hora', $this->sort_direction);
         }
 
-        $appointments = $appointmentsQuery->paginate(10, ['appointments.*'], 'appointmentsPage');
+        $appointments = $appointmentsQuery->paginate(15, ['appointments.*'], 'appointmentsPage');
+        $this->deliveryStatusSyncer->sync($appointments->getCollection()->pluck('id'));
+        $appointments->getCollection()->each->refresh();
 
         $appointmentPendingDeletion = $this->appointmentPendingDeletionId
             ? Appointment::query()->with('client')->find($this->appointmentPendingDeletionId)
@@ -207,5 +293,31 @@ class AppointmentList extends Component
             'appointmentPendingDeletion' => $appointmentPendingDeletion,
             'selectedClient' => $selectedClient,
         ]);
+    }
+
+    private function whereFutureAppointment(Builder $query, Carbon $now): void
+    {
+        $query->where(function (Builder $futureQuery) use ($now): void {
+            $futureQuery
+                ->whereDate('appointments.fecha', '>', $now->toDateString())
+                ->orWhere(function (Builder $sameDayQuery) use ($now): void {
+                    $sameDayQuery
+                        ->whereDate('appointments.fecha', $now->toDateString())
+                        ->where('appointments.hora', '>', $now->format('H:i:s'));
+                });
+        });
+    }
+
+    private function wherePastAppointment(Builder $query, Carbon $now): void
+    {
+        $query->where(function (Builder $pastQuery) use ($now): void {
+            $pastQuery
+                ->whereDate('appointments.fecha', '<', $now->toDateString())
+                ->orWhere(function (Builder $sameDayQuery) use ($now): void {
+                    $sameDayQuery
+                        ->whereDate('appointments.fecha', $now->toDateString())
+                        ->where('appointments.hora', '<=', $now->format('H:i:s'));
+                });
+        });
     }
 }

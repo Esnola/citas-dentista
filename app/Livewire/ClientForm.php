@@ -5,6 +5,9 @@ namespace App\Livewire;
 use App\Models\Appointment;
 use App\Models\Client;
 use App\Models\WhatsAppMessage;
+use App\Services\WhatsApp\AppointmentDeliveryStatusSyncer;
+use App\Services\WhatsApp\AppointmentImmediateSender;
+use App\Services\WhatsApp\WhatsAppSender;
 use Livewire\Component;
 
 class ClientForm extends Component
@@ -16,6 +19,18 @@ class ClientForm extends Component
     public string $apellidos = '';
 
     public string $telefono = '';
+
+    private AppointmentImmediateSender $immediateSender;
+
+    private AppointmentDeliveryStatusSyncer $deliveryStatusSyncer;
+
+    private bool $skipDeliverySync = false;
+
+    public function boot(AppointmentImmediateSender $immediateSender, AppointmentDeliveryStatusSyncer $deliveryStatusSyncer): void
+    {
+        $this->immediateSender = $immediateSender;
+        $this->deliveryStatusSyncer = $deliveryStatusSyncer;
+    }
 
     public function mount(?int $client = null): void
     {
@@ -100,13 +115,68 @@ class ClientForm extends Component
         session()->flash('status', 'Cita eliminada correctamente.');
     }
 
+    public function sendAppointmentNow(int $appointmentId, WhatsAppSender $sender): void
+    {
+        $appointment = Appointment::query()
+            ->with('client')
+            ->where('client_id', $this->selectedClientId)
+            ->findOrFail($appointmentId);
+
+        if ($appointment->enviado) {
+            session()->flash('status', 'Esta cita ya tiene el WhatsApp enviado.');
+
+            return;
+        }
+
+        if (! $appointment->isFuture()) {
+            session()->flash('status', 'Las citas pasadas no pueden enviarse.');
+
+            return;
+        }
+
+        if (! $appointment->activo) {
+            session()->flash('status', 'Las citas inactivas no pueden enviarse.');
+
+            return;
+        }
+
+        $client = $appointment->client;
+
+        if (! $client) {
+            session()->flash('status', 'No se pudo enviar el WhatsApp porque la cita no tiene cliente asociado.');
+
+            return;
+        }
+
+        $result = $this->immediateSender->send(
+            $appointment,
+            $client,
+            $sender,
+            'WhatsApp enviado ahora correctamente.',
+            'No se pudo enviar el WhatsApp.'
+        );
+
+        $this->skipDeliverySync = true;
+
+        session()->flash('status', $result['message']);
+    }
+
     public function getSelectedClientProperty(): ?Client
     {
-        return $this->selectedClientId
-            ? Client::query()
-                ->with(['appointments' => fn ($query) => $query->orderBy('fecha')->orderBy('hora')])
-                ->find($this->selectedClientId)
-            : null;
+        if (! $this->selectedClientId) {
+            return null;
+        }
+
+        $client = Client::query()
+            ->with(['appointments' => fn ($query) => $query->orderBy('fecha')->orderBy('hora')])
+            ->find($this->selectedClientId);
+
+        if ($client && ! $this->skipDeliverySync) {
+            $this->deliveryStatusSyncer->sync($client->appointments->pluck('id'));
+            $client->appointments->each->refresh();
+        }
+
+        return $client;
     }
 
     public function render()

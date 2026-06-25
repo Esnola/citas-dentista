@@ -35,10 +35,10 @@
         </div>
         <div class="flex flex-wrap gap-2">
           <x-botones.accion-ajustes icono="abrir" variant="emerald" x-on:click="expandAll">
-            Abrir todo
+            Expandir todos
           </x-botones.accion-ajustes>
           <x-botones.accion-ajustes icono="cerrar" variant="yellow" x-on:click="collapseAll">
-            Cerrar todo
+            Contraer todos
           </x-botones.accion-ajustes>
           <x-botones.accion-ajustes icono="restablecer" variant="rose" x-on:click="resetLayout">
             Restablecer todo
@@ -66,7 +66,7 @@
              class="mb-4 h-1 rounded-full bg-emerald-400/80 shadow-[0_0_24px_rgba(52,211,153,0.45)]"></div>
         <div class="flex items-center justify-between gap-4">
           <div class="flex items-center gap-3">
-            <x-botones.arrastrar-seccion seccion="overview" />
+            <x-botones.arrastrar-seccion seccion="overview"/>
             <div>
               <h3 class="text-lg font-semibold">Resumen</h3>
               <p class="text-sm text-slate-300">Estado general de WhatsApp, plantillas y sandbox.</p>
@@ -139,7 +139,7 @@
              class="mb-4 h-1 rounded-full bg-emerald-400/80 shadow-[0_0_24px_rgba(52,211,153,0.45)]"></div>
         <div class="flex items-center justify-between gap-4">
           <div class="flex items-center gap-3">
-            <x-botones.arrastrar-seccion seccion="sandbox" />
+            <x-botones.arrastrar-seccion seccion="sandbox"/>
             <div>
               <h3 class="text-lg font-semibold">Twilio Sandbox</h3>
               <p class="text-sm text-slate-300">Guía rápida para pruebas antes de usar un remitente real.</p>
@@ -193,7 +193,7 @@
              class="mb-4 h-1 rounded-full bg-emerald-400/80 shadow-[0_0_24px_rgba(52,211,153,0.45)]"></div>
         <div class="flex items-center justify-between gap-4">
           <div class="flex items-center gap-3">
-            <x-botones.arrastrar-seccion seccion="status" />
+            <x-botones.arrastrar-seccion seccion="status"/>
             <div>
               <h3 class="text-lg font-semibold">Estado actual</h3>
               <p class="text-sm text-slate-300">Credenciales, sender y destino de prueba.</p>
@@ -243,18 +243,18 @@
       </section>
 
       <section data-settings-section="connection"
-              data-default-open="true"
-              class="rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur"
-              x-bind:class="sectionStateClasses('connection')"
-              x-on:dragenter.prevent="setDropTarget('connection', $event)"
-              x-on:dragover.prevent
-              x-on:drop.prevent="drop('connection', $event)"
+               data-default-open="true"
+               class="rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur"
+               x-bind:class="sectionStateClasses('connection')"
+               x-on:dragenter.prevent="setDropTarget('connection', $event)"
+               x-on:dragover.prevent
+               x-on:drop.prevent="drop('connection', $event)"
       >
         <div x-show="showDropHint('connection', 'before')" x-cloak
              class="mb-4 h-1 rounded-full bg-emerald-400/80 shadow-[0_0_24px_rgba(52,211,153,0.45)]"></div>
         <div class="flex items-center justify-between gap-4">
           <div class="flex items-center gap-3">
-            <x-botones.arrastrar-seccion seccion="connection" />
+            <x-botones.arrastrar-seccion seccion="connection"/>
             <div>
               <h3 class="text-lg font-semibold">Prueba de conexión</h3>
               <p class="text-sm text-slate-300">Panel de envío real y vista previa del payload.</p>
@@ -276,18 +276,18 @@
       </section>
 
       <section data-settings-section="templates"
-              data-default-open="true"
-              class="rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur"
-              x-bind:class="sectionStateClasses('templates')"
-              x-on:dragenter.prevent="setDropTarget('templates', $event)"
-              x-on:dragover.prevent
-              x-on:drop.prevent="drop('templates', $event)"
+               data-default-open="true"
+               class="rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur"
+               x-bind:class="sectionStateClasses('templates')"
+               x-on:dragenter.prevent="setDropTarget('templates', $event)"
+               x-on:dragover.prevent
+               x-on:drop.prevent="drop('templates', $event)"
       >
         <div x-show="showDropHint('templates', 'before')" x-cloak
              class="mb-4 h-1 rounded-full bg-emerald-400/80 shadow-[0_0_24px_rgba(52,211,153,0.45)]"></div>
         <div class="flex items-center justify-between gap-4">
           <div class="flex items-center gap-3">
-            <x-botones.arrastrar-seccion seccion="templates" />
+            <x-botones.arrastrar-seccion seccion="templates"/>
             <div>
               <h3 class="text-lg font-semibold">Plantillas</h3>
               <p class="text-sm text-slate-300">Editor y orden de plantillas guardadas.</p>
@@ -309,18 +309,18 @@
       </section>
 
       <section data-settings-section="reminders"
-              data-default-open="true"
-              class="rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur"
-              x-bind:class="sectionStateClasses('reminders')"
-              x-on:dragenter.prevent="setDropTarget('reminders', $event)"
-              x-on:dragover.prevent
-              x-on:drop.prevent="drop('reminders', $event)"
+               data-default-open="true"
+               class="rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur"
+               x-bind:class="sectionStateClasses('reminders')"
+               x-on:dragenter.prevent="setDropTarget('reminders', $event)"
+               x-on:dragover.prevent
+               x-on:drop.prevent="drop('reminders', $event)"
       >
         <div x-show="showDropHint('reminders', 'before')" x-cloak
              class="mb-4 h-1 rounded-full bg-emerald-400/80 shadow-[0_0_24px_rgba(52,211,153,0.45)]"></div>
         <div class="flex items-center justify-between gap-4">
           <div class="flex items-center gap-3">
-            <x-botones.arrastrar-seccion seccion="reminders" />
+            <x-botones.arrastrar-seccion seccion="reminders"/>
             <div>
               <h3 class="text-lg font-semibold">Tiempos de envío</h3>
               <p class="text-sm text-slate-300">Selecciona WhatsApp y email 1, 2, 3 días o una semana antes.</p>

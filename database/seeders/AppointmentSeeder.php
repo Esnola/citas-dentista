@@ -70,6 +70,7 @@ class AppointmentSeeder extends Seeder
                 ],
                 [
                     'enviado' => $appointment['enviado'],
+                    'entregado' => $appointment['entregado'] ?? false,
                     'activo' => $appointment['activo'],
                 ]
             );

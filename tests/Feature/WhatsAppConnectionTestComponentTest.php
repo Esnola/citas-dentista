@@ -13,20 +13,6 @@ class WhatsAppConnectionTestComponentTest extends TestCase
 {
     use RefreshDatabase;
 
-    protected function setUp(): void
-    {
-        parent::setUp();
-
-        config()->set('whatsapp.message_mode', 'text');
-    }
-
-    protected function tearDown(): void
-    {
-        Mockery::close();
-
-        parent::tearDown();
-    }
-
     public function test_settings_connection_form_calls_sender_and_shows_success(): void
     {
         $sender = Mockery::mock(WhatsAppSender::class);
@@ -66,13 +52,13 @@ class WhatsAppConnectionTestComponentTest extends TestCase
         $sender->shouldReceive('twilioTestRecipient')->once()->andReturn('+34600123123');
         $sender->shouldReceive('sendTestMessage')
             ->once()
-            ->with('+34600123123', 'Mensaje de prueba desde Clínica Dental Eugénia.', 'sandbox')
+            ->with('+34600123123', 'Mensaje de prueba desde Clínica Dental Eugenia.', 'sandbox')
             ->andReturn([
                 'provider' => 'twilio',
                 'message_id' => 'SMTEST777',
                 'payload' => [
                     'to' => 'whatsapp:+34600123123',
-                    'body' => 'Mensaje de prueba desde Clínica Dental Eugénia.',
+                    'body' => 'Mensaje de prueba desde Clínica Dental Eugenia.',
                     'mode' => 'sandbox',
                 ],
                 'raw' => [],
@@ -158,5 +144,19 @@ class WhatsAppConnectionTestComponentTest extends TestCase
             ->set('recipient', 'whatsapp:+34618287914')
             ->assertSee('whatsapp:+34618287914')
             ->assertDontSee('whatsapp:+3434618287914');
+    }
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        config()->set('whatsapp.message_mode', 'text');
+    }
+
+    protected function tearDown(): void
+    {
+        Mockery::close();
+
+        parent::tearDown();
     }
 }

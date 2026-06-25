@@ -42,12 +42,17 @@
                 <div class="flex items-center jusitfy-center ml-6 gap-4">
                 <flux:field class="flex flex-col">
                     <flux:label>Enviadas</flux:label>
-                    <x-formularios.toggle wire:model.live="filter_enviado" :disabled="$filter_activo" :locked="$filter_activo"/>
+                    <x-formularios.toggle wire:model.live="filter_enviado" :disabled="$filter_activo || $filter_entregado" :locked="$filter_activo || $filter_entregado"/>
                 </flux:field>
 
                 <flux:field class="flex flex-col">
-                    <flux:label>Activas</flux:label>
-                    <x-formularios.toggle wire:model.live="filter_activo" :disabled="$filter_enviado" :locked="$filter_enviado"/>
+                    <flux:label>Entregadas</flux:label>
+                    <x-formularios.toggle wire:model.live="filter_entregado" :disabled="$filter_enviado || $filter_activo" :locked="$filter_enviado || $filter_activo"/>
+                </flux:field>
+
+                <flux:field class="flex flex-col">
+                    <flux:label>No pendientes</flux:label>
+                    <x-formularios.toggle wire:model.live="filter_activo" :disabled="$filter_enviado || $filter_entregado" :locked="$filter_enviado || $filter_entregado"/>
                 </flux:field>
             </div>
             </div>
@@ -83,20 +88,32 @@
                         </th>
                         <th class="px-4 py-3">Hora</th>
                         <th class="px-4 py-3">Enviado</th>
-                        <th class="px-4 py-3">Activa</th>
+                        <th class="px-4 py-3">Entregado</th>
+                        <th class="px-4 py-3">Pendiente</th>
                         <th class="px-4 py-3"></th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-white/10 bg-slate-950/40">
                     @forelse ($appointments as $appointment)
-                        @php($canChange = $appointment->canBeChanged())
+                        @php
+                            $canChange = $appointment->canBeChanged();
+                            $canSendNow = $selectedClient && ! $appointment->enviado && $appointment->activo && $appointment->isFuture();
+                            $editUrl = route('appointments.edit', $appointment);
+                            $rowUrl = $selectedClient
+                                ? $editUrl
+                                : route('appointments.index', ['client' => $appointment->client_id]);
+                        @endphp
                         <tr
                             wire:key="appointment-{{ $appointment->id }}"
-                            class="{{ $canChange ? '' : 'bg-slate-900/50 text-slate-400' }}"
+                            role="link"
+                            tabindex="0"
+                            onclick="window.location='{{ $rowUrl }}'"
+                            onkeydown="if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); window.location='{{ $rowUrl }}'; }"
+                            class="cursor-pointer transition-colors hover:bg-white/5 {{ $canChange ? '' : 'bg-slate-900/50 text-slate-400' }}"
                         >
                             <td class="px-4 py-3">
                                 <a
-                                    href="{{ route('appointments.index', ['client' => $appointment->client_id]) }}"
+                                    href="{{ $rowUrl }}"
                                     class="font-medium {{ $canChange ? 'text-emerald-300 hover:text-emerald-200' : 'text-slate-400 hover:text-slate-300' }}"
                                 >
                                     {{ $appointment->client?->nombre }} {{ $appointment->client?->apellidos }}
@@ -111,6 +128,11 @@
                                 </span>
                             </td>
                             <td class="px-4 py-3">
+                                <span class="rounded-full px-2.5 py-1 text-xs font-medium {{ $appointment->entregado ? 'bg-sky-500/20 text-sky-200' : 'bg-slate-500/20 text-slate-200' }}">
+                                    {{ $appointment->entregado ? 'Sí' : 'No' }}
+                                </span>
+                            </td>
+                            <td class="px-4 py-3" onclick="event.stopPropagation()">
                                 @if ($canChange)
                                     <x-formularios.toggle
                                         :estado="$appointment->activo ? 'Sí' : 'No'"
@@ -119,14 +141,26 @@
                                     />
                                 @endif
                             </td>
-                            <td class="px-4 py-3 text-right">
+                            <td class="px-4 py-3 text-right" onclick="event.stopPropagation()">
                                 <div class="flex justify-end gap-2">
+                                    @if ($canSendNow)
+                                        <x-botones.accion
+                                            variant="add"
+                                            size="sm"
+                                            type="button"
+                                            wire:click="sendNow({{ $appointment->id }})"
+                                            wire:loading.attr="disabled"
+                                            wire:target="sendNow({{ $appointment->id }})"
+                                        >
+                                            Enviar ya
+                                        </x-botones.accion>
+                                    @endif
                                     @if ($canChange)
                                         <x-botones.accion
                                             variant="edit"
                                             size="icon"
                                             icono="edit"
-                                            href="{{ route('appointments.edit', $appointment) }}"
+                                            href="{{ $editUrl }}"
                                             aria-label="Editar cita"
                                             title="Editar cita"
                                         />
@@ -145,7 +179,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td class="px-4 py-6 text-slate-400" colspan="6">No hay citas para mostrar todavía.</td>
+                            <td class="px-4 py-6 text-slate-400" colspan="7">No hay citas para mostrar todavía.</td>
                         </tr>
                     @endforelse
                 </tbody>

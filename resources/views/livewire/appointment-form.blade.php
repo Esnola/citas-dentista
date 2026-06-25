@@ -79,7 +79,7 @@
                         <p class="mt-2 text-sm text-slate-300">Gestiona fecha y hora de la cita.</p>
                     </div>
                 </div>
-                @if($selectedAppointment && ! $canChangeAppointment)
+                @if($selectedAppointment && ! $canChangeAppointment && ! $showReturnAfterImmediateSend)
                     <div class="mt-6 rounded-2xl border border-amber-400/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
                         Esta cita ya fue enviada o pertenece al pasado. No se puede modificar; solo se puede eliminar desde el
                         listado.
@@ -132,23 +132,27 @@
                         </div>
                     </div>
                     <div class="flex flex-wrap gap-2">
-                        @if ($selectedAppointment)
-                            <x-botones.accion
-                                variant="indigo"
-                                icono="check"
-                                type="button"
-                                wire:click="sendNow"
-                                wire:loading.attr="disabled"
-                                :disabled="! $canSendAppointmentNow"
-                            >
-                                Enviar ya
+                        @if ($showReturnAfterImmediateSend)
+                            <x-botones.accion variant="indigo" icono="back" href="{{ $returnUrl }}">Volver</x-botones.accion>
+                        @else
+                            @if ($selectedAppointment)
+                                <x-botones.accion
+                                    variant="indigo"
+                                    icono="check"
+                                    type="button"
+                                    wire:click="sendNow"
+                                    wire:loading.attr="disabled"
+                                    :disabled="! $canSendAppointmentNow"
+                                >
+                                    Enviar ya
+                                </x-botones.accion>
+                            @endif
+                            <x-botones.accion variant="add" icono="check" type="submit"
+                                              :disabled="! $selectedClient || ! $canChangeAppointment">
+                                {{ $selectedAppointment ? 'Guardar cambios' : 'Crear cita' }}
                             </x-botones.accion>
+                            <x-botones.accion href="{{ route('appointments.index') }}">Cancelar</x-botones.accion>
                         @endif
-                        <x-botones.accion variant="add" icono="check" type="submit"
-                                          :disabled="! $selectedClient || ! $canChangeAppointment">
-                            {{ $selectedAppointment ? 'Guardar cambios' : 'Crear cita' }}
-                        </x-botones.accion>
-                        <x-botones.accion href="{{ route('appointments.index') }}">Cancelar</x-botones.accion>
                     </div>
                 </form>
             </div>

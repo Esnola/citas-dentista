@@ -5,12 +5,13 @@ namespace App\Livewire;
 use App\Services\WhatsApp\WhatsAppSender;
 use Illuminate\Support\Arr;
 use Livewire\Component;
+use Throwable;
 
 class WhatsAppConnectionTest extends Component
 {
     public string $recipient = '';
 
-    public string $body = 'Mensaje de prueba desde Clínica Dental Eugénia.';
+    public string $body = 'Mensaje de prueba desde Clínica Dental Eugenia.';
 
     public string $mode = 'sandbox';
 
@@ -26,6 +27,13 @@ class WhatsAppConnectionTest extends Component
         $this->mode = $this->initialTwilioMode();
     }
 
+    private function initialTwilioMode(): string
+    {
+        $configuredMode = strtolower(trim((string) config('whatsapp.twilio.mode', 'auto')));
+
+        return in_array($configuredMode, ['auto', 'sandbox', 'sender', 'service'], true) ? $configuredMode : 'auto';
+    }
+
     public function rules(): array
     {
         return [
@@ -33,6 +41,22 @@ class WhatsAppConnectionTest extends Component
             'body' => ['required', 'string', 'max:500'],
             'mode' => ['required', 'in:auto,sandbox,sender,service'],
         ];
+    }
+
+    public function sendSavedRecipient(WhatsAppSender $sender): void
+    {
+        $savedRecipient = $sender->twilioTestRecipient();
+
+        if (! $savedRecipient) {
+            $this->statusType = 'error';
+            $this->status = 'Define TWILIO_TEST_RECIPIENT para usar este acceso rápido.';
+            $this->details = [];
+
+            return;
+        }
+
+        $this->recipient = $savedRecipient;
+        $this->sendTest($sender);
     }
 
     public function sendTest(WhatsAppSender $sender): void
@@ -50,27 +74,11 @@ class WhatsAppConnectionTest extends Component
                 'to' => Arr::get($result, 'payload.to', $data['recipient']),
                 'mode' => Arr::get($result, 'payload.mode', $data['mode']),
             ];
-        } catch (\Throwable $throwable) {
+        } catch (Throwable $throwable) {
             $this->statusType = 'error';
             $this->status = $throwable->getMessage();
             $this->details = [];
         }
-    }
-
-    public function sendSavedRecipient(WhatsAppSender $sender): void
-    {
-        $savedRecipient = $sender->twilioTestRecipient();
-
-        if (! $savedRecipient) {
-            $this->statusType = 'error';
-            $this->status = 'Define TWILIO_TEST_RECIPIENT para usar este acceso rápido.';
-            $this->details = [];
-
-            return;
-        }
-
-        $this->recipient = $savedRecipient;
-        $this->sendTest($sender);
     }
 
     public function render()
@@ -111,13 +119,6 @@ class WhatsAppConnectionTest extends Component
         ];
     }
 
-    private function initialTwilioMode(): string
-    {
-        $configuredMode = strtolower(trim((string) config('whatsapp.twilio.mode', 'auto')));
-
-        return in_array($configuredMode, ['auto', 'sandbox', 'sender', 'service'], true) ? $configuredMode : 'auto';
-    }
-
     private function buildCloudApiPreviewPayload(array $preview): array
     {
         return [
@@ -132,6 +133,24 @@ class WhatsAppConnectionTest extends Component
                 ],
             ],
         ];
+    }
+
+    private function normalizePhoneNumber(string $recipient): string
+    {
+        $cleanRecipient = preg_replace('/^whatsapp:/i', '', trim($recipient)) ?? trim($recipient);
+        $digits = preg_replace('/\D+/', '', $cleanRecipient) ?? '';
+
+        if ($digits === '') {
+            return '';
+        }
+
+        if (str_starts_with($cleanRecipient, '+')) {
+            return '+'.$digits;
+        }
+
+        $countryCode = preg_replace('/\D+/', '', (string) config('whatsapp.default_country_code', '+34')) ?? '34';
+
+        return '+'.$countryCode.$digits;
     }
 
     private function buildLogPreviewPayload(array $preview): array
@@ -155,23 +174,5 @@ class WhatsAppConnectionTest extends Component
         $normalized = $this->normalizePhoneNumber($recipient);
 
         return $normalized !== '' ? 'whatsapp:'.$normalized : '';
-    }
-
-    private function normalizePhoneNumber(string $recipient): string
-    {
-        $cleanRecipient = preg_replace('/^whatsapp:/i', '', trim($recipient)) ?? trim($recipient);
-        $digits = preg_replace('/\D+/', '', $cleanRecipient) ?? '';
-
-        if ($digits === '') {
-            return '';
-        }
-
-        if (str_starts_with($cleanRecipient, '+')) {
-            return '+'.$digits;
-        }
-
-        $countryCode = preg_replace('/\D+/', '', (string) config('whatsapp.default_country_code', '+34')) ?? '34';
-
-        return '+'.$countryCode.$digits;
     }
 }

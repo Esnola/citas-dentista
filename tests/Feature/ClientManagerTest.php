@@ -45,7 +45,7 @@ class ClientManagerTest extends TestCase
 
     public function test_client_list_searches_after_one_character(): void
     {
-        Client::query()->create([
+        $client = Client::query()->create([
             'nombre' => 'Ana',
             'apellidos' => 'Pérez',
             'telefono' => '600123123',
@@ -60,7 +60,8 @@ class ClientManagerTest extends TestCase
         $component->set('filter_nombre', 'A')
             ->assertSee('Ana Pérez')
             ->assertSee('600123123')
-            ->assertSee('WhatsApp');
+            ->assertSeeHtml('href="'.route('appointments.index', ['client' => $client->id]).'"')
+            ->assertSeeHtml('href="'.route('appointments.create', ['client' => $client->id]).'"');
         $this->assertTrue($component->instance()->getHasClientSearchProperty());
     }
 
@@ -171,7 +172,7 @@ class ClientManagerTest extends TestCase
             ->assertSeeHtml('href="'.route('appointments.index', ['client' => $client->id]).'"')
             ->assertSeeHtml('href="'.route('appointments.create', ['client' => $client->id]).'"')
             ->assertSee('Citas')
-            ->assertSee('Nueva Cita');
+            ->assertSee('Nuevo cliente');
     }
 
     public function test_selected_client_card_shows_client_appointments(): void
@@ -346,7 +347,7 @@ class ClientManagerTest extends TestCase
         $this->actingAs($user)
             ->get(route('clients.index'))
             ->assertOk()
-            ->assertSee('Clientes registrados')
+            ->assertSee('Clientes')
             ->assertSee('Nuevo cliente')
             ->assertDontSee('Crear cliente');
     }

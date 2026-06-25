@@ -24,7 +24,7 @@ return new class extends Migration
             [
                 'key' => 'clinical_reminder',
                 'label' => 'Recordatorio clínica',
-                'message' => 'Hola [NOMBRE] te recordamos que el día [DIA] tienes una cita a las [HORA] ; saludos Clínica Dental Eugénia',
+                'message' => 'Hola [NOMBRE] te recordamos que el día [DIA] tienes una cita a las [HORA] ; saludos Clínica Dental Eugenia',
                 'is_default' => true,
                 'is_active' => true,
                 'sort_order' => 0,
@@ -34,7 +34,7 @@ return new class extends Migration
             [
                 'key' => 'formal_reminder',
                 'label' => 'Recordatorio formal',
-                'message' => 'Estimado/a [NOMBRE] [APELLIDOS], le recordamos su cita el [DIA] a las [HORA]. Saludos, Clínica Dental Eugénia',
+                'message' => 'Estimado/a [NOMBRE] [APELLIDOS], le recordamos su cita el [DIA] a las [HORA]. Saludos, Clínica Dental Eugenia',
                 'is_default' => false,
                 'is_active' => true,
                 'sort_order' => 1,

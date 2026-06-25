@@ -83,8 +83,20 @@ class WhatsAppDispatchCommandTest extends TestCase
             'activo' => true,
         ]);
 
-        Config::set('whatsapp.driver', 'log');
+        Config::set('whatsapp.driver', 'twilio');
+        Config::set('whatsapp.message_mode', 'text');
+        Config::set('whatsapp.twilio.account_sid', 'AC123');
+        Config::set('whatsapp.twilio.auth_token', 'test-token');
+        Config::set('whatsapp.twilio.mode', 'sandbox');
+        Config::set('whatsapp.twilio.from', 'whatsapp:+14155238886');
         Config::set('whatsapp.default_country_code', '+34');
+
+        Http::fake([
+            'api.twilio.com/*/Messages.json' => Http::response([
+                'sid' => 'SMDISPATCHDUE123',
+                'status' => 'delivered',
+            ], 201),
+        ]);
 
         $this->artisan('whatsapp:dispatch-due')
             ->expectsOutput('Queued 1 appointment message(s).')
@@ -97,8 +109,12 @@ class WhatsAppDispatchCommandTest extends TestCase
         $this->assertSame($client->id, $message->client_id);
         $this->assertSame(WhatsAppMessage::SOURCE_APPOINTMENT, $message->source);
         $this->assertSame(WhatsAppMessage::STATUS_SENT, $message->status);
+        $this->assertSame('SMDISPATCHDUE123', $message->provider_message_id);
         $this->assertSame(1, $message->metadata['lead_days']);
-        $this->assertTrue($appointment->refresh()->enviado);
+        $appointment->refresh();
+
+        $this->assertTrue($appointment->enviado);
+        $this->assertFalse($appointment->entregado);
 
         $this->artisan('whatsapp:dispatch-due')
             ->expectsOutput('Queued 0 appointment message(s).')
@@ -163,6 +179,8 @@ class WhatsAppDispatchCommandTest extends TestCase
 
         $this->assertSame(3, WhatsAppMessage::query()->where('appointment_id', $appointment->id)->count());
         $this->assertSame(1, WhatsAppMessage::query()->where('status', WhatsAppMessage::STATUS_SENT)->count());
+        $this->assertTrue($appointment->refresh()->enviado);
+        $this->assertFalse($appointment->entregado);
 
         Carbon::setTestNow();
     }

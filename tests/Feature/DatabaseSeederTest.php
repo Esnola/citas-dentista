@@ -20,13 +20,13 @@ class DatabaseSeederTest extends TestCase
         $this->seed(DatabaseSeeder::class);
 
         $this->assertDatabaseCount('users', 1);
-        $this->assertDatabaseCount('clients', 10);
-        $this->assertDatabaseCount('appointments', 12);
+        $this->assertDatabaseCount('clients', 11);
+        $this->assertDatabaseCount('appointments', 21);
 
         $admin = User::query()->firstOrFail();
 
         $this->assertSame(1, $admin->id);
-        $this->assertSame('admin@example.com', $admin->email);
+        $this->assertSame('test@example.com', $admin->email);
     }
 
     public function test_client_seeder_populates_clients_without_duplicates(): void
@@ -34,7 +34,7 @@ class DatabaseSeederTest extends TestCase
         $this->seed(ClientSeeder::class);
         $this->seed(ClientSeeder::class);
 
-        $this->assertDatabaseCount('clients', 10);
+        $this->assertDatabaseCount('clients', 11);
 
         $client = Client::query()->where('telefono', '+34600123123')->firstOrFail();
 
@@ -48,19 +48,20 @@ class DatabaseSeederTest extends TestCase
         $this->seed(AppointmentSeeder::class);
         $this->seed(AppointmentSeeder::class);
 
-        $this->assertDatabaseCount('appointments', 12);
+        $this->assertDatabaseCount('appointments', 21);
 
         $client = Client::query()->where('telefono', '+34600123123')->firstOrFail();
 
-        $this->assertSame(2, $client->appointments()->count());
+        $this->assertSame(1, $client->appointments()->count());
 
         $appointment = Appointment::query()
             ->whereBelongsTo($client)
-            ->whereDate('fecha', '2026-07-01')
+            ->whereDate('fecha', '2026-07-09')
             ->where('hora', '09:30')
             ->firstOrFail();
 
         $this->assertTrue($appointment->activo);
         $this->assertFalse($appointment->enviado);
+        $this->assertFalse($appointment->entregado);
     }
 }

@@ -26,9 +26,17 @@
                         @forelse ($selectedClient->appointments as $appointment)
                             @php
                                 $isFutureAppointment = $appointment->isFuture();
+                                $canSendAppointmentNow = ! $appointment->enviado && $appointment->activo && $isFutureAppointment;
+                                $editUrl = route('appointments.edit', $appointment);
                                 $badgeBaseClasses = 'inline-flex items-center rounded-full px-2 py-1 text-xs font-medium inset-ring';
 
                                 $appointmentStatus = match (true) {
+                                    $appointment->entregado => [
+                                        'label' => 'Entregado',
+                                        'classes' => "{$badgeBaseClasses} bg-sky-400/10 text-sky-400 inset-ring-sky-500/20",
+                                        'icono' => 'check-circle',
+                                        'canChange' => false,
+                                    ],
                                     $appointment->enviado => [
                                         'label' => 'Enviado',
                                         'classes' => "{$badgeBaseClasses} bg-green-400/10 text-green-400 inset-ring-green-500/20",
@@ -58,7 +66,14 @@
                                 $canChangeAppointment = $appointmentStatus['canChange'];
 
                             @endphp
-                            <div wire:key="client-form-appointment-{{ $appointment->id }}" class="rounded-2xl border border-white/10 bg-slate-950/40 p-3 {{ $canChangeAppointment ? '' : 'opacity-70' }}">
+                            <div
+                                wire:key="client-form-appointment-{{ $appointment->id }}"
+                                role="link"
+                                tabindex="0"
+                                onclick="window.location='{{ $editUrl }}'"
+                                onkeydown="if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); window.location='{{ $editUrl }}'; }"
+                                class="cursor-pointer rounded-2xl border border-white/10 bg-slate-950/40 p-3 transition-colors hover:bg-white/5 {{ $canChangeAppointment ? '' : 'opacity-70' }}"
+                            >
                                 <div class="flex items-start justify-between gap-3">
                                     <div class="flex gap-2 items-center">
                                         <p class="font-medium">{{ $appointment->fecha?->format('d/m/Y') }} {{ $appointment->hora }}</p>
@@ -69,13 +84,26 @@
                                             /> {{ $appointmentStatus['label'] }}
                                         </p>
                                     </div>
-                                    @if ($canChangeAppointment)
-                                        <x-formularios.toggle
-                                            :estado="$appointment->activo ? 'Activo' : 'Inactivo'"
-                                            :checked="$appointment->activo"
-                                            wire:change="updateAppointmentActiveStatus({{ $appointment->id }}, $event.target.checked)"
-                                        />
-                                    @else
+                                    <div class="flex flex-wrap justify-end gap-2" onclick="event.stopPropagation()">
+                                        @if ($canSendAppointmentNow)
+                                            <x-botones.accion
+                                                variant="add"
+                                                size="sm"
+                                                type="button"
+                                                wire:click="sendAppointmentNow({{ $appointment->id }})"
+                                                wire:loading.attr="disabled"
+                                                wire:target="sendAppointmentNow({{ $appointment->id }})"
+                                            >
+                                                Enviar ya
+                                            </x-botones.accion>
+                                        @endif
+                                        @if ($canChangeAppointment)
+                                            <x-formularios.toggle
+                                                :estado="$appointment->activo ? 'Activo' : 'Inactivo'"
+                                                :checked="$appointment->activo"
+                                                wire:change="updateAppointmentActiveStatus({{ $appointment->id }}, $event.target.checked)"
+                                            />
+                                        @else
                                         <x-botones.accion
                                             variant="delete"
                                             size="icon"
@@ -86,7 +114,8 @@
                                             aria-label="Eliminar cita"
                                             title="Eliminar cita"
                                         />
-                                    @endif
+                                        @endif
+                                    </div>
                                 </div>
                             </div>
                         @empty

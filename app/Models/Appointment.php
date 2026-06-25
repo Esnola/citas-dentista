@@ -17,11 +17,13 @@ class Appointment extends Model
         'fecha',
         'hora',
         'enviado',
+        'entregado',
         'activo',
     ];
 
     protected $attributes = [
         'enviado' => false,
+        'entregado' => false,
         'activo' => true,
     ];
 
@@ -30,6 +32,7 @@ class Appointment extends Model
         return [
             'fecha' => 'date',
             'enviado' => 'boolean',
+            'entregado' => 'boolean',
             'activo' => 'boolean',
         ];
     }
