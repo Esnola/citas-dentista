@@ -7,6 +7,13 @@
   <title>{{ config('app.name', 'Laravel') }}</title>
   <link rel="preconnect" href="https://fonts.bunny.net">
   <link href="https://fonts.bunny.net/css?family=inter:400,500,600,700&display=swap" rel="stylesheet"/>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg"/>
+  <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png"/>
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png"/>
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png"/>
+  <link rel="shortcut icon" href="/favicon.ico"/>
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png"/>
+  <link rel="manifest" href="/site.webmanifest"/>
   @fluxAppearance
   @if (file_exists(public_path('build/manifest.json')) || file_exists(public_path('hot')))
     @vite(['resources/css/app.css', 'resources/js/app.js'])
@@ -39,15 +46,10 @@
           class="sticky top-0 hidden h-screen w-72 shrink-0 border-r border-white/10 bg-slate-950/70 px-4 py-5 shadow-[18px_0_60px_rgba(15,23,42,0.32)] backdrop-blur-xl xl:block">
     <nav class="flex h-full min-h-0 flex-col gap-5 text-sm">
       <a href="{{ route('dashboard') }}"
-         class="group flex items-center gap-3 rounded-3xl border border-emerald-400/20 bg-emerald-400/10 p-3 text-emerald-100 transition-colors hover:bg-emerald-400/15">
-                <span
-                        class="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-emerald-300/25 bg-emerald-300/15 text-sm font-bold text-emerald-200 shadow-[0_10px_30px_rgba(16,185,129,0.14)]">WA</span>
-        <span class="min-w-0">
-                            <span
-                                    class="block truncate text-base font-semibold">{{ config('app.name', 'Laravel') }}</span>
-                            <span
-                                    class="mt-0.5 block text-xs uppercase tracking-[0.22em] text-emerald-300/75">Scheduler</span>
-                        </span>
+         class="group flex flex-col items-center gap-3 rounded-3xl border border-emerald-400/20 bg-emerald-400/1 p-3 text-emerald-100 transition-colors hover:bg-emerald-400/15">
+        <img src="/logo.png" alt="Logo">
+
+        <span class="block truncate text-base font-semibold">{{ config('app.name', 'Citas') }}</span>
       </a>
 
       <div class="min-h-0 flex-1 overflow-y-auto pr-1">

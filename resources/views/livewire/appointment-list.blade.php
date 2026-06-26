@@ -201,7 +201,7 @@
                   <x-iconos.doble-check
                           clase="size-6 {{ filled($appointment->whatsapp_read_at) ? 'text-green-400' : 'text-gray-400' }}"/>
                 @else
-                  <x-iconos.alert/>
+                  <x-iconos.alert clase="text-red-600/50 size-6"/>
                 @endif
               </td>
             @endif

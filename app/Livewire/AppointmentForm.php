@@ -37,6 +37,8 @@ class AppointmentForm extends Component
 
     public bool $isEditing = false;
 
+    public bool $hideClientSearch = false;
+
     public bool $showReturnAfterImmediateSend = false;
 
     public string $returnUrl = '';
@@ -63,6 +65,7 @@ class AppointmentForm extends Component
         $clientId = request()->integer('client');
 
         if ($clientId > 0) {
+            $this->hideClientSearch = true;
             $this->selectClient($clientId);
         }
     }
@@ -256,6 +259,7 @@ class AppointmentForm extends Component
             'selectedClient' => $this->selectedClient,
             'selectedAppointment' => $this->selectedAppointment,
             'isEditing' => $this->isEditing,
+            'hideClientSearch' => $this->hideClientSearch,
             'canChangeAppointment' => $this->canChangeAppointment,
             'canSendAppointmentNow' => $this->canSendAppointmentNow,
             'showReturnAfterImmediateSend' => $this->showReturnAfterImmediateSend,

@@ -1,7 +1,7 @@
 <div class="rounded-3xl border border-white/10 p-12">
     <div class="rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur">
 
-        @if(! $isEditing)
+        @if(! $isEditing && ! $hideClientSearch)
         <div class="flex items-center justify-between">
             <div class="">
                 <h2 class="text-xl font-semibold">Buscar cliente</h2>
