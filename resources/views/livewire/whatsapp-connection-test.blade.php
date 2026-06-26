@@ -92,8 +92,13 @@
         </div>
 
         <div class="flex flex-wrap gap-3">
-            <x-botones.accion variant="add" icono="check" type="submit">Enviar prueba</x-botones.accion>
-            <x-botones.accion type="button" wire:click="sendSavedRecipient">Enviar al guardado</x-botones.accion>
+            <x-botones.accion variant="add" type="submit">
+                <x-iconos.enviar clase="size-8 mr-2 " />
+                Enviar prueba
+            </x-botones.accion>
+            <x-botones.accion type="button" wire:click="sendSavedRecipient">
+                <x-iconos.guardar clase="size-8 mr-2 " />
+                Enviar al guardado</x-botones.accion>
         </div>
     </form>
 

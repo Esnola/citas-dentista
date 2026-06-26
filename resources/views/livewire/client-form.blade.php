@@ -31,7 +31,7 @@
                 <x-botones.accion variant="add" size="sm" icono="check" type="submit">
                     {{ $selectedClient ? 'Guardar cambios' : 'Crear cliente' }}
                 </x-botones.accion>
-                <x-botones.accion variant="indigo" size="sm" href="{{ route('clients.list') }}">Cancelar</x-botones.accion>
+                <x-botones.accion variant="indigo" size="sm" href="{{ route('clients.list') }}">Volver</x-botones.accion>
             </div>
         </form>
     </div>

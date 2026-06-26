@@ -10,7 +10,7 @@
                 </p>
             </div>
             <x-botones.accion variant="edit" href="{{ route('appointments.index') }}" class="mr-12">
-                <x-iconos.back-door />
+                <x-iconos.salir />
                 Volver al listado</x-botones.accion>
         </div>
         <div class="flex mt-6 items-start gap-4">
@@ -125,27 +125,36 @@
                             @endif
                         </div>
                     </div>
-                    <div class="flex flex-wrap gap-2">
+                    <div class="flex flex-wrap gap-6">
                         @if ($showReturnAfterImmediateSend)
                             <x-botones.accion variant="indigo" icono="back" href="{{ $returnUrl }}">Volver</x-botones.accion>
                         @else
                             @if ($selectedAppointment)
                                 <x-botones.accion
                                     variant="indigo"
-                                    icono="check"
                                     type="button"
                                     wire:click="sendNow"
                                     wire:loading.attr="disabled"
                                     :disabled="! $canSendAppointmentNow"
                                 >
-                                    Enviar ya
+                                    <x-iconos.whatsapp clase="size-8 mr-2.5" />
+                                   Ahora
                                 </x-botones.accion>
                             @endif
-                            <x-botones.accion variant="add" icono="check" type="submit"
-                                              :disabled="! $selectedClient || ! $canChangeAppointment">
-                                {{ $selectedAppointment ? 'Guardar cambios' : 'Crear cita' }}
+                            <x-botones.accion
+                                variant="add"
+                                type="submit"
+                                :disabled="! $selectedClient || ! $canChangeAppointment">
+                                @if($selectedAppointment)
+                                    <x-iconos.guardar clase="size-8 mr-2.5"/>
+                                    Guardar
+                                @else
+                                    Crear
+                                @endif
                             </x-botones.accion>
-                            <x-botones.accion href="{{ route('appointments.index') }}">Cancelar</x-botones.accion>
+                            <x-botones.accion href="{{ route('appointments.index') }}">
+                                <x-iconos.salir clase="size-8"/>
+                                Volver</x-botones.accion>
                         @endif
                     </div>
                 </form>
