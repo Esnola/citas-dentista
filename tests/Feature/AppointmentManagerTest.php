@@ -443,10 +443,24 @@ class AppointmentManagerTest extends TestCase
             'activo' => true,
         ]);
 
+        WhatsAppMessage::query()->create([
+            'client_id' => $client->id,
+            'appointment_id' => $appointment->id,
+            'nombre' => 'Ana',
+            'apellidos' => 'Pérez',
+            'telefono' => '+34600111222',
+            'scheduled_for' => now(),
+            'message' => 'Recordatorio',
+            'source' => WhatsAppMessage::SOURCE_APPOINTMENT,
+            'status' => WhatsAppMessage::STATUS_SENT,
+            'provider_message_id' => 'SMTOOLTIP123',
+        ]);
+
         Livewire::test(AppointmentList::class)
             ->set('filter_entregado', true)
             ->assertSee('23/06/2026 08:05')
             ->assertSee('23/06/2026 08:10')
+            ->assertSeeHtml('title="Message SID: SMTOOLTIP123"')
             ->assertSee('Leído')
             ->assertSeeHtml('text-green-400')
             ->assertSee('Sí');
@@ -485,7 +499,7 @@ class AppointmentManagerTest extends TestCase
         Carbon::setTestNow();
     }
 
-    public function test_appointment_list_does_not_poll_twilio_for_messages_older_than_24_hours(): void
+    public function test_appointment_list_force_sync_polls_old_twilio_messages_and_marks_read(): void
     {
         Carbon::setTestNow('2026-06-23 12:00:00');
 
@@ -502,8 +516,9 @@ class AppointmentManagerTest extends TestCase
             'fecha' => '2026-06-30',
             'hora' => '11:30',
             'enviado' => true,
-            'entregado' => false,
+            'entregado' => true,
             'whatsapp_sent_at' => '2026-06-22 11:59:00',
+            'whatsapp_delivered_at' => '2026-06-22 12:00:00',
             'activo' => true,
         ]);
 
@@ -521,19 +536,88 @@ class AppointmentManagerTest extends TestCase
             'provider_message_id' => 'SMOLD123',
             'provider_payload' => [
                 'provider' => 'twilio',
-                'raw' => ['status' => 'queued'],
+                'raw' => ['status' => 'delivered'],
             ],
         ]);
 
-        Http::fake();
+        Http::fake([
+            'api.twilio.com/*/Messages/SMOLD123.json' => Http::response([
+                'sid' => 'SMOLD123',
+                'status' => 'read',
+            ]),
+        ]);
 
         Livewire::test(AppointmentList::class)
             ->call('syncDeliveryStatuses')
-            ->assertSee('No había entregas nuevas para sincronizar.');
+            ->assertSee('Se actualizaron 1 cita(s) como entregadas.')
+            ->assertSee('Última actualización: 23/06/2026 12:00');
 
-        $this->assertFalse($appointment->refresh()->entregado);
-        $this->assertNull($appointment->whatsapp_delivered_at);
-        Http::assertNothingSent();
+        $appointment->refresh();
+
+        $this->assertTrue($appointment->entregado);
+        $this->assertSame('2026-06-23 12:00:00', $appointment->whatsapp_read_at?->toDateTimeString());
+        Http::assertSent(fn ($request): bool => str_contains($request->url(), '/Messages/SMOLD123.json'));
+
+        Livewire::test(AppointmentList::class)
+            ->assertSee('Última actualización: 23/06/2026 12:00');
+
+        Carbon::setTestNow();
+    }
+
+    public function test_appointment_list_toggles_force_sync_and_show_last_update_time(): void
+    {
+        Carbon::setTestNow('2026-06-23 12:00:00');
+
+        Config::set('whatsapp.twilio.account_sid', 'AC123');
+        Config::set('whatsapp.twilio.auth_token', 'test-token');
+
+        $client = Client::query()->create([
+            'nombre' => 'Ana',
+            'apellidos' => 'Pérez',
+            'telefono' => '+34600111222',
+        ]);
+        $appointment = Appointment::query()->create([
+            'client_id' => $client->id,
+            'fecha' => '2026-06-30',
+            'hora' => '11:30',
+            'enviado' => true,
+            'entregado' => true,
+            'whatsapp_sent_at' => '2026-06-22 11:59:00',
+            'whatsapp_delivered_at' => '2026-06-22 12:00:00',
+            'activo' => true,
+        ]);
+
+        WhatsAppMessage::query()->create([
+            'client_id' => $client->id,
+            'appointment_id' => $appointment->id,
+            'nombre' => 'Ana',
+            'apellidos' => 'Pérez',
+            'telefono' => '+34600111222',
+            'scheduled_for' => now()->subDay()->subMinute(),
+            'message' => 'Recordatorio',
+            'source' => WhatsAppMessage::SOURCE_APPOINTMENT,
+            'status' => WhatsAppMessage::STATUS_SENT,
+            'sent_at' => now()->subDay()->subMinute(),
+            'provider_message_id' => 'SMTOGGLEREAD123',
+            'provider_payload' => [
+                'provider' => 'twilio',
+                'raw' => ['status' => 'delivered'],
+            ],
+        ]);
+
+        Http::fake([
+            'api.twilio.com/*/Messages/SMTOGGLEREAD123.json' => Http::response([
+                'sid' => 'SMTOGGLEREAD123',
+                'status' => 'read',
+            ]),
+        ]);
+
+        Livewire::test(AppointmentList::class)
+            ->set('filter_entregado', true)
+            ->assertSee('Última actualización: 23/06/2026 12:00');
+
+        $this->assertSame('2026-06-23 12:00:00', $appointment->refresh()->whatsapp_read_at?->toDateTimeString());
+        Http::assertSent(fn ($request): bool => str_contains($request->url(), '/Messages/SMTOGGLEREAD123.json'));
 
         Carbon::setTestNow();
     }

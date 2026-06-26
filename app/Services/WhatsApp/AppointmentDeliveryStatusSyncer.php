@@ -12,7 +12,7 @@ use Throwable;
 
 class AppointmentDeliveryStatusSyncer
 {
-    public function syncAll(?int $clientId = null): int
+    public function syncAll(?int $clientId = null, bool $force = false): int
     {
         if (! $this->canSync()) {
             return 0;
@@ -23,7 +23,7 @@ class AppointmentDeliveryStatusSyncer
             ->when($clientId, fn ($query) => $query->where('client_id', $clientId))
             ->get(['id', 'appointment_id', 'provider_message_id', 'sent_at', 'created_at', 'provider_payload']);
 
-        return $this->syncAppointmentsFromMessages($this->refreshMessages($messages));
+        return $this->syncAppointmentsFromMessages($this->refreshMessages($messages, $force));
     }
 
     public function backfillFromStoredMessages(?int $clientId = null): int
@@ -43,7 +43,7 @@ class AppointmentDeliveryStatusSyncer
     /**
      * @param  iterable<int>|Collection<int, int>  $appointmentIds
      */
-    public function sync(iterable $appointmentIds): int
+    public function sync(iterable $appointmentIds, bool $force = false): int
     {
         if (! $this->canSync()) {
             return 0;
@@ -64,7 +64,7 @@ class AppointmentDeliveryStatusSyncer
             ->whereNotNull('appointment_id')
             ->get(['id', 'appointment_id', 'provider_message_id', 'sent_at', 'created_at', 'provider_payload']);
 
-        return $this->syncAppointmentsFromMessages($this->refreshMessages($messages));
+        return $this->syncAppointmentsFromMessages($this->refreshMessages($messages, $force));
     }
 
     /**
@@ -111,24 +111,24 @@ class AppointmentDeliveryStatusSyncer
      * @param  Collection<int, WhatsAppMessage>  $messages
      * @return Collection<int, WhatsAppMessage>
      */
-    private function refreshMessages(Collection $messages): Collection
+    private function refreshMessages(Collection $messages, bool $force = false): Collection
     {
         if ($messages->isEmpty()) {
             return $messages;
         }
 
-        return $messages->map(function (WhatsAppMessage $message): WhatsAppMessage {
-            if ($this->messageWasDelivered($message)) {
+        return $messages->map(function (WhatsAppMessage $message) use ($force): WhatsAppMessage {
+            if ($this->messageWasRead($message)) {
                 return $message;
             }
 
-            return $this->refreshMessageFromTwilio($message);
+            return $this->refreshMessageFromTwilio($message, $force);
         });
     }
 
-    private function refreshMessageFromTwilio(WhatsAppMessage $message): WhatsAppMessage
+    private function refreshMessageFromTwilio(WhatsAppMessage $message, bool $force = false): WhatsAppMessage
     {
-        if (! $this->shouldPollTwilio($message)) {
+        if (! $this->shouldPollTwilio($message, $force)) {
             return $message;
         }
 
@@ -174,7 +174,7 @@ class AppointmentDeliveryStatusSyncer
         return $message;
     }
 
-    private function shouldPollTwilio(WhatsAppMessage $message): bool
+    private function shouldPollTwilio(WhatsAppMessage $message, bool $force = false): bool
     {
         if ((string) data_get($message->provider_payload, 'provider') !== 'twilio') {
             return false;
@@ -184,8 +184,12 @@ class AppointmentDeliveryStatusSyncer
             return false;
         }
 
-        if ($this->messageWasDelivered($message)) {
+        if ($this->messageWasRead($message)) {
             return false;
+        }
+
+        if ($force) {
+            return true;
         }
 
         $messageAge = $this->messageAge($message);
@@ -250,6 +254,17 @@ class AppointmentDeliveryStatusSyncer
         }
 
         return in_array($rawStatus, ['delivered', 'read'], true);
+    }
+
+    private function messageWasRead(WhatsAppMessage $message): bool
+    {
+        $callbackStatus = strtolower(trim((string) data_get($message->provider_payload, 'callback.message_status', '')));
+        $callbackEventType = strtoupper(trim((string) data_get($message->provider_payload, 'callback.event_type', '')));
+        $rawStatus = strtolower(trim((string) data_get($message->provider_payload, 'raw.status', '')));
+
+        return $callbackStatus === 'read'
+            || $callbackEventType === 'READ'
+            || $rawStatus === 'read';
     }
 
     private function messageAge(WhatsAppMessage $message): ?Carbon

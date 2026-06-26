@@ -199,7 +199,7 @@ class WhatsAppMessage extends Model
         }
 
         try {
-            return Carbon::parse($timestamp, config('app.timezone'));
+            return Carbon::parse($timestamp)->timezone(config('app.timezone'));
         } catch (\Throwable) {
             return null;
         }

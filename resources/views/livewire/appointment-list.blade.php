@@ -1,22 +1,31 @@
 <div class="grid gap-6">
     @if (session('status'))
-        <div class="rounded-2xl border border-emerald-400/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
-            {{ session('status') }}
+        <div class="absolute top-5 right-14 z-100 flex items-center gap-4 rounded-2xl border border-emerald-200/50 bg-emerald-600 px-4 py-3 text-sm text-emerald-200">
+           <x-iconos.ojo clase="size-8" /> {{ session('status') }}
         </div>
     @endif
 
     <div class="rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur">
         <div class="flex flex-wrap items-start justify-between gap-4">
-            <div class="flex  gap-6 p-4">
-                   <x-iconos.calendar />
-                <h2 class="text-xl font-semibold">
-                    {{ $selectedClient ?  $selectedClient->full_name : 'Citas registradas' }}
-                </h2>
-                <div class="rounded-2xl border border-white/10 bg-slate-900/60 px-4 py-3 text-sm text-slate-300">
-                    {{ $appointments->total() }} cita{{ $appointments->total()>1 ? 's' : '' }}
+            <div>
+                <div class="flex gap-6 ">
+                    <x-iconos.calendar/>
+                    <h2 class="text-xl font-semibold">
+                        {{ $selectedClient ?  $selectedClient->full_name : 'Citas registradas' }}
+                    </h2>
+                    <h3 class="rounded-2xl border border-white/10 bg-slate-900/60 px-4 py-3 text-sm text-slate-300">
+                        {{ $appointments->total() }} cita{{ $appointments->total()>1 ? 's' : '' }}
+                    </h3>
+                </div>
+                <div>
+                    @if ($deliveryStatusesSyncedAt)
+                        <span class="text-xs font-medium text-slate-400">
+                        Actualizado: {{ $deliveryStatusesSyncedAt }}
+                    </span>
+                    @endif
                 </div>
             </div>
-            <div class="flex flex-wrap items-center gap-6">
+                <div class="flex flex-wrap items-center gap-6">
                 <x-botones.accion
                     variant="indigo"
                     type="button"
@@ -31,7 +40,6 @@
                     >Todas las citas</x-botones.accion>
                 @endif
                 <x-botones.accion variant="add" icono="plus" href="{{ route('appointments.create', $selectedClient ? ['client' => $selectedClient->id] : []) }}">Nueva cita</x-botones.accion>
-
             </div>
         </div>
 
@@ -144,7 +152,12 @@
                             <td class="px-4 py-3">{{ $appointment->hora }}</td>
                             @if ($showSentColumns)
                                 <td class="px-4 py-3">
-                                <span class="rounded-full px-2.5 py-1 text-xs font-medium {{ $appointment->enviado ? 'bg-emerald-500/20 text-emerald-200' : 'bg-slate-500/20 text-slate-200' }}">
+                                <span
+                                    @if ($appointment->enviado && $appointment->latestWhatsAppMessage?->provider_message_id)
+                                        title="Message SID: {{ $appointment->latestWhatsAppMessage->provider_message_id }}"
+                                    @endif
+                                    class="rounded-full px-2.5 py-1 text-xs font-medium {{ $appointment->enviado ? 'bg-emerald-500/20 text-emerald-200' : 'bg-slate-500/20 text-slate-200' }}"
+                                >
                                     {{ $appointment->enviado ? 'Sí' : 'No' }}
                                 </span>
                             </td>

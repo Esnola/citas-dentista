@@ -10,6 +10,7 @@ use App\Services\WhatsApp\AppointmentImmediateSender;
 use App\Services\WhatsApp\WhatsAppSender;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Cache;
 use Livewire\Component;
 use Livewire\WithPagination;
 
@@ -35,6 +36,8 @@ class AppointmentList extends Component
 
     public ?int $appointmentPendingDeletionId = null;
 
+    public ?string $deliveryStatusesSyncedAt = null;
+
     private AppointmentImmediateSender $immediateSender;
 
     private AppointmentDeliveryStatusSyncer $deliveryStatusSyncer;
@@ -52,6 +55,8 @@ class AppointmentList extends Component
         if ($clientId > 0 && Client::query()->whereKey($clientId)->exists()) {
             $this->clientId = $clientId;
         }
+
+        $this->deliveryStatusesSyncedAt = Cache::get('appointment_delivery_statuses_synced_at');
     }
 
     public function updatedFilterNombre(): void
@@ -66,6 +71,8 @@ class AppointmentList extends Component
 
     public function updatedFilterEnviado(): void
     {
+        $this->forceDeliveryStatusSync();
+
         if ($this->filter_enviado) {
             $this->filter_activo = false;
             $this->filter_entregado = false;
@@ -76,6 +83,8 @@ class AppointmentList extends Component
 
     public function updatedFilterActivo(): void
     {
+        $this->forceDeliveryStatusSync();
+
         if ($this->filter_activo) {
             $this->filter_enviado = false;
             $this->filter_entregado = false;
@@ -86,6 +95,8 @@ class AppointmentList extends Component
 
     public function updatedFilterEntregado(): void
     {
+        $this->forceDeliveryStatusSync();
+
         if ($this->filter_entregado) {
             $this->filter_enviado = false;
             $this->filter_activo = false;
@@ -226,15 +237,24 @@ class AppointmentList extends Component
 
     public function syncDeliveryStatuses(): void
     {
-        $updated = $this->deliveryStatusSyncer->syncAll($this->clientId);
+        $updated = $this->forceDeliveryStatusSync();
 
         if ($updated > 0) {
-            session()->flash('status', sprintf('Se actualizaron %d cita(s) como entregadas.', $updated));
+            session()->flash('status', sprintf('Se actualizaron %d cita(s) .', $updated));
 
             return;
         }
 
-        session()->flash('status', 'No había entregas nuevas para sincronizar.');
+        session()->flash('status', 'Todos los registros de citas y demás datos están actualizados.');
+    }
+
+    private function forceDeliveryStatusSync(): int
+    {
+        $updated = $this->deliveryStatusSyncer->syncAll($this->clientId, force: true);
+        $this->deliveryStatusesSyncedAt = now(config('app.timezone'))->format('H:i - d/m/Y');
+        Cache::forever('appointment_delivery_statuses_synced_at', $this->deliveryStatusesSyncedAt);
+
+        return $updated;
     }
 
     public function render()
@@ -246,7 +266,7 @@ class AppointmentList extends Component
 
         $appointmentsQuery = Appointment::query()
             ->select('appointments.*')
-            ->with('client')
+            ->with(['client', 'latestWhatsAppMessage'])
             ->leftJoin('clients', 'clients.id', '=', 'appointments.client_id')
             ->when($selectedClient, fn ($query) => $query->where('appointments.client_id', $selectedClient->id))
             ->when($this->filter_nombre, fn ($query) => $query->whereHas('client', fn ($clientQuery) => $clientQuery->where('nombre', 'like', '%'.$this->filter_nombre.'%')))
