@@ -59,12 +59,6 @@
             @endif
         </div>
         @endif
-        @if (session('status'))
-            <div
-                class="xl:col-span-2 rounded-2xl border border-emerald-400/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
-                {{ session('status') }}
-            </div>
-        @endif
         @if ($hasMoreThanTenClientResults)
             <div class="mt-4 inline-flex gap-4 items-center rounded-full border border-yellow-100/80 bg-yellow-300/10 px-6 py-2 text-sm font-medium text-yellow-100 ">
               <x-iconos.alert clase="size-8 mr-1.5" />

@@ -8,11 +8,17 @@ use Livewire\Component;
 class WhatsAppTemplateManager extends Component
 {
     public ?int $editingTemplateId = null;
+
     public string $key = '';
+
     public string $label = '';
+
     public string $message = '';
+
     public bool $is_default = false;
+
     public bool $is_active = true;
+
     public int $sort_order = 0;
 
     public function rules(): array
@@ -76,6 +82,8 @@ class WhatsAppTemplateManager extends Component
         $this->resetForm();
 
         session()->flash('status', 'Plantilla guardada correctamente.');
+
+        $this->redirect(url()->previous());
     }
 
     public function delete(int $templateId): void
@@ -97,6 +105,8 @@ class WhatsAppTemplateManager extends Component
         WhatsAppTemplate::flushCatalogCache();
 
         session()->flash('status', 'Plantilla eliminada.');
+
+        $this->redirect(url()->previous());
     }
 
     public function setDefault(int $templateId): void
@@ -107,6 +117,8 @@ class WhatsAppTemplateManager extends Component
         $this->resetForm();
 
         session()->flash('status', 'Plantilla predeterminada actualizada.');
+
+        $this->redirect(url()->previous());
     }
 
     public function render()

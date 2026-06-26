@@ -145,7 +145,7 @@ class ClientMessageScheduler extends Component
             ->when($this->filter_apellidos, fn ($query) => $query->where('apellidos', 'like', '%'.$this->filter_apellidos.'%'))
             ->when($this->filter_telefono, fn ($query) => $query->where('telefono', 'like', '%'.$this->filter_telefono.'%'))
             ->orderByDesc('created_at')
-            ->paginate(8, ['*'], 'clientsPage');
+            ->paginate(15, ['*'], 'clientsPage');
 
         $selectedClient = $this->selectedClientId
             ? Client::query()->find($this->selectedClientId)

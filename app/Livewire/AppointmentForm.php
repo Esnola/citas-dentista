@@ -75,6 +75,7 @@ class AppointmentForm extends Component
     {
         if (! $this->canChangeAppointment) {
             session()->flash('status', 'Esta cita no se puede modificar. Solo se puede eliminar.');
+            $this->redirect(url()->previous());
 
             return;
         }
@@ -104,12 +105,14 @@ class AppointmentForm extends Component
 
             if (! $appointment->canBeChanged()) {
                 session()->flash('status', 'Esta cita no se puede modificar. Solo se puede eliminar.');
+                $this->redirect(url()->previous());
 
                 return;
             }
 
             $appointment->update($payload);
             session()->flash('status', 'Cita actualizada correctamente.');
+            $this->redirect(url()->previous());
         } else {
             $appointment = Appointment::query()->create($payload);
             $this->selectedAppointmentId = $appointment->id;
@@ -127,6 +130,8 @@ class AppointmentForm extends Component
             }
 
             session()->flash('status', 'Cita creada correctamente.');
+
+            $this->redirect(url()->previous());
         }
     }
 
@@ -142,18 +147,21 @@ class AppointmentForm extends Component
 
         if ($appointment->enviado) {
             session()->flash('status', 'Esta cita ya tiene el WhatsApp enviado.');
+            $this->redirect(url()->previous());
 
             return;
         }
 
         if (! $appointment->isFuture()) {
             session()->flash('status', 'Las citas pasadas no pueden enviarse.');
+            $this->redirect(url()->previous());
 
             return;
         }
 
         if (! $appointment->activo) {
             session()->flash('status', 'Las citas inactivas no pueden enviarse.');
+            $this->redirect(url()->previous());
 
             return;
         }
@@ -162,6 +170,7 @@ class AppointmentForm extends Component
 
         if (! $client) {
             session()->flash('status', 'No se pudo enviar el WhatsApp porque la cita no tiene cliente asociado.');
+            $this->redirect(url()->previous());
 
             return;
         }
@@ -291,6 +300,8 @@ class AppointmentForm extends Component
         }
 
         session()->flash('status', $result['message']);
+
+        $this->redirect(url()->previous());
     }
 
     private function minimumSelectableDate(): string

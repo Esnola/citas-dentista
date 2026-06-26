@@ -62,6 +62,7 @@ class ClientForm extends Component
         if ($this->selectedClientId) {
             Client::query()->whereKey($this->selectedClientId)->update($payload);
             session()->flash('status', 'Cliente actualizado correctamente.');
+            $this->redirect(url()->previous());
         } else {
             $client = Client::query()->updateOrCreate(
                 ['telefono' => $payload['telefono']],
@@ -69,6 +70,7 @@ class ClientForm extends Component
             );
             $this->selectedClientId = $client->id;
             session()->flash('status', $client->wasRecentlyCreated ? 'Cliente creado correctamente.' : 'Cliente actualizado correctamente.');
+            $this->redirect(url()->previous());
         }
     }
 
@@ -88,6 +90,7 @@ class ClientForm extends Component
 
         if (! $appointment->canBeChanged()) {
             session()->flash('status', 'Esta cita no se puede modificar. Solo se puede eliminar.');
+            $this->redirect(url()->previous());
 
             return;
         }
@@ -103,6 +106,8 @@ class ClientForm extends Component
         }
 
         session()->flash('status', 'Estado activo actualizado.');
+
+        $this->redirect(url()->previous());
     }
 
     public function deleteAppointment(int $appointmentId): void
@@ -113,6 +118,8 @@ class ClientForm extends Component
             ->delete();
 
         session()->flash('status', 'Cita eliminada correctamente.');
+
+        $this->redirect(url()->previous());
     }
 
     public function sendAppointmentNow(int $appointmentId, WhatsAppSender $sender): void
@@ -124,18 +131,21 @@ class ClientForm extends Component
 
         if ($appointment->enviado) {
             session()->flash('status', 'Esta cita ya tiene el WhatsApp enviado.');
+            $this->redirect(url()->previous());
 
             return;
         }
 
         if (! $appointment->isFuture()) {
             session()->flash('status', 'Las citas pasadas no pueden enviarse.');
+            $this->redirect(url()->previous());
 
             return;
         }
 
         if (! $appointment->activo) {
             session()->flash('status', 'Las citas inactivas no pueden enviarse.');
+            $this->redirect(url()->previous());
 
             return;
         }
@@ -144,6 +154,7 @@ class ClientForm extends Component
 
         if (! $client) {
             session()->flash('status', 'No se pudo enviar el WhatsApp porque la cita no tiene cliente asociado.');
+            $this->redirect(url()->previous());
 
             return;
         }
@@ -159,6 +170,8 @@ class ClientForm extends Component
         $this->skipDeliverySync = true;
 
         session()->flash('status', $result['message']);
+
+        $this->redirect(url()->previous());
     }
 
     public function getSelectedClientProperty(): ?Client

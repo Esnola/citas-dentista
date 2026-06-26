@@ -159,6 +159,8 @@ class AppointmentList extends Component
         $this->appointmentPendingDeletionId = null;
 
         session()->flash('status', 'Cita eliminada correctamente.');
+
+        $this->redirect(url()->previous());
     }
 
     public function updateActiveStatus(int $appointmentId, bool|string $activo): void
@@ -175,6 +177,7 @@ class AppointmentList extends Component
 
         if (! $appointment->canBeChanged()) {
             session()->flash('status', 'Esta cita no se puede modificar. Solo se puede eliminar.');
+            $this->redirect(url()->previous());
 
             return;
         }
@@ -190,6 +193,8 @@ class AppointmentList extends Component
         }
 
         session()->flash('status', 'Estado pendiente actualizado.');
+
+        $this->redirect(url()->previous());
     }
 
     public function sendNow(int $appointmentId, WhatsAppSender $sender): void
@@ -200,18 +205,21 @@ class AppointmentList extends Component
 
         if ($appointment->enviado) {
             session()->flash('status', 'Esta cita ya tiene el WhatsApp enviado.');
+            $this->redirect(url()->previous());
 
             return;
         }
 
         if (! $appointment->isFuture()) {
             session()->flash('status', 'Las citas pasadas no pueden enviarse.');
+            $this->redirect(url()->previous());
 
             return;
         }
 
         if (! $appointment->activo) {
             session()->flash('status', 'Las citas no pendientes no pueden enviarse.');
+            $this->redirect(url()->previous());
 
             return;
         }
@@ -220,6 +228,7 @@ class AppointmentList extends Component
 
         if (! $client) {
             session()->flash('status', 'No se pudo enviar el WhatsApp porque la cita no tiene cliente asociado.');
+            $this->redirect(url()->previous());
 
             return;
         }
@@ -233,6 +242,8 @@ class AppointmentList extends Component
         );
 
         session()->flash('status', $result['message']);
+
+        $this->redirect(url()->previous());
     }
 
     public function syncDeliveryStatuses(): void
@@ -241,11 +252,14 @@ class AppointmentList extends Component
 
         if ($updated > 0) {
             session()->flash('status', sprintf('Se actualizaron %d cita(s) .', $updated));
+            $this->redirect(url()->previous());
 
             return;
         }
 
         session()->flash('status', 'Todos los registros de citas y demás datos están actualizados.');
+
+        $this->redirect(url()->previous());
     }
 
     private function forceDeliveryStatusSync(): int

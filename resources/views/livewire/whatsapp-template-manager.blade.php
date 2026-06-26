@@ -1,10 +1,4 @@
 <div class="grid gap-6 xl:grid-cols-[360px_minmax(0,1fr)]">
-    @if (session('status'))
-        <div class="xl:col-span-2 rounded-2xl border border-emerald-400/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
-            {{ session('status') }}
-        </div>
-    @endif
-
     <div class="rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur">
         <div class="flex items-center justify-between gap-3">
             <div>

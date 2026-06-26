@@ -48,6 +48,8 @@ class ClientList extends Component
         Client::query()->whereKey($clientId)->delete();
 
         session()->flash('status', 'Cliente eliminado correctamente.');
+
+        $this->redirect(url()->previous());
     }
 
     public function getHasClientSearchProperty(): bool
@@ -70,8 +72,8 @@ class ClientList extends Component
                 ->when($this->filter_telefono, fn ($query) => $query->where('telefono', 'like', '%'.$this->filter_telefono.'%'))
                 ->orderBy('nombre', $this->sort_direction)
                 ->orderBy('apellidos', $this->sort_direction)
-                ->paginate(10)
-            : new LengthAwarePaginator([], 0, 10);
+                ->paginate(15)
+            : new LengthAwarePaginator([], 0, 15);
 
         return view('livewire.client-list', [
             'clients' => $clients,

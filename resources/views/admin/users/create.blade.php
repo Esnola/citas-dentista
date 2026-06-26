@@ -2,12 +2,6 @@
 
 @section('content')
     <div class="grid gap-6">
-        @if (session('status'))
-            <div class="rounded-2xl border border-emerald-400/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
-                {{ session('status') }}
-            </div>
-        @endif
-
         <div class="rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur">
             <h2 class="text-xl font-semibold">Crear usuario</h2>
             <form class="mt-6 grid gap-4 md:grid-cols-2" method="POST" action="{{ route('admin.users.store') }}">

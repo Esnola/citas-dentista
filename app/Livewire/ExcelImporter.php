@@ -4,7 +4,7 @@ namespace App\Livewire;
 
 use App\Imports\WhatsAppMessagesImport;
 use App\Models\WhatsAppMessage;
-use Illuminate\Support\Collection;
+use App\Models\WhatsAppTemplate;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
@@ -18,17 +18,22 @@ class ExcelImporter extends Component
     public ?TemporaryUploadedFile $file = null;
 
     public string $status = '';
+
     public string $template_key = '';
+
     public string $filter_nombre = '';
+
     public string $filter_apellidos = '';
+
     public string $filter_telefono = '';
 
     public array $previewRows = [];
+
     public bool $previewLoaded = false;
 
     public function mount(): void
     {
-        $this->template_key = \App\Models\WhatsAppTemplate::defaultKey();
+        $this->template_key = WhatsAppTemplate::defaultKey();
     }
 
     public function preview(): void
@@ -45,6 +50,7 @@ class ExcelImporter extends Component
         $this->previewLoaded = true;
         $this->status = 'Previsualización generada correctamente.';
         session()->flash('status', $this->status);
+        $this->redirect(url()->previous());
     }
 
     public function import(): void
@@ -62,6 +68,7 @@ class ExcelImporter extends Component
         $this->reset('file', 'previewRows', 'previewLoaded');
         $this->status = 'Archivo importado correctamente.';
         session()->flash('status', $this->status);
+        $this->redirect(url()->previous());
     }
 
     public function getFilteredPreviewRowsProperty(): array

@@ -1,10 +1,4 @@
 <div class="grid gap-6">
-    @if (session('status'))
-        <div class="rounded-2xl border border-emerald-400/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
-            {{ session('status') }}
-        </div>
-    @endif
-
     <div class="grid gap-4 md:grid-cols-3">
         <div class="rounded-3xl border border-white/10 bg-white/5 p-6">
             <p class="text-sm text-slate-400">Pendientes</p>
