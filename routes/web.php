@@ -28,6 +28,7 @@ Route::middleware('auth')->group(function () {
     Route::view('/clients/create', 'clients.form')->name('clients.create');
     Route::view('/clients/{client}/edit', 'clients.form')->name('clients.edit');
     Route::view('/appointments', 'appointments.index')->name('appointments.index');
+    Route::view('/appointments/enviadas', 'appointments.sent')->name('appointments.sent');
     Route::view('/appointments/create', 'appointments.form')->name('appointments.create');
     Route::view('/appointments/{appointment}/edit', 'appointments.form')->name('appointments.edit');
     Route::view('/imports', 'imports.index')->name('imports.index');

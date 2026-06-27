@@ -5,10 +5,10 @@
         <div class="flex gap-6 ">
           <x-iconos.calendar/>
           <h2 class="text-xl font-semibold">
-            {{ $selectedClient ?  $selectedClient->full_name : 'Citas registradas' }}
+            {{ $sentOnly ? 'Citas enviadas' : ($selectedClient ?  $selectedClient->full_name : 'Citas registradas') }}
           </h2>
           <h3 class="rounded-2xl border border-white/10 bg-slate-900/60 px-4 py-3 text-sm text-slate-300">
-            {{ $appointments->total() }} cita{{ $appointments->total()>1 ? 's' : '' }}
+            {{ $appointmentsCount }} cita{{ $appointmentsCount > 1 ? 's' : '' }}
           </h3>
         </div>
         <div>
@@ -28,9 +28,18 @@
           <x-iconos.reload clase="size-4 mr-2" wire:loading.class="animate-spin"/>
           Actualizar Datos
         </x-botones.accion>
-        @if ($selectedClient)
+        @if ($selectedClient && ! $sentOnly)
           <x-botones.accion href="{{ route('appointments.index') }}" icono="calendar"
           >Todas las citas
+          </x-botones.accion>
+        @endif
+        @if (! $sentOnly)
+          <x-botones.accion href="{{ route('appointments.sent') }}" icono="whatsapp">
+            Citas enviadas
+          </x-botones.accion>
+        @else
+          <x-botones.accion href="{{ route('appointments.index') }}" icono="calendar">
+            Todas las citas
           </x-botones.accion>
         @endif
         <x-botones.accion
@@ -53,31 +62,33 @@
         <x-formularios.input wire:model.live.debounce.300ms="filter_apellidos" placeholder="Filtrar por apellidos"/>
       </flux:field>
 
-      <div class="flex flex-col items-center justify-center gap-2">
-        <flux:label class="text-[14px] font-bold">Notificaciones</flux:label>
-        <div class="flex items-center jusitfy-center ml-6 gap-4">
-          <flux:field class="flex flex-col">
-            <flux:label>Enviadas</flux:label>
-            <x-formularios.toggle
-                    wire:model.live="filter_enviado" :disabled="$filter_activo || $filter_entregado"
-                    :locked="$filter_activo || $filter_entregado"/>
-          </flux:field>
+      @unless ($sentOnly)
+        <div class="flex flex-col items-center justify-center gap-2">
+          <flux:label class="text-[14px] font-bold">Notificaciones</flux:label>
+          <div class="flex items-center justify-center ml-6 gap-4">
+            <flux:field class="flex flex-col">
+              <flux:label>Enviadas</flux:label>
+              <x-formularios.toggle
+                      wire:model.live="filter_enviado" :disabled="$filter_activo || $filter_entregado"
+                      :locked="$filter_activo || $filter_entregado"/>
+            </flux:field>
 
-          <flux:field class="flex flex-col">
-            <flux:label>Entregadas</flux:label>
-            <x-formularios.toggle
-                    wire:model.live="filter_entregado" :disabled="$filter_enviado || $filter_activo"
-                    :locked="$filter_enviado || $filter_activo"/>
-          </flux:field>
+            <flux:field class="flex flex-col">
+              <flux:label>Entregadas</flux:label>
+              <x-formularios.toggle
+                      wire:model.live="filter_entregado" :disabled="$filter_enviado || $filter_activo"
+                      :locked="$filter_enviado || $filter_activo"/>
+            </flux:field>
 
-          <flux:field class="flex flex-col">
-            <flux:label>No pendientes</flux:label>
-            <x-formularios.toggle
-                    wire:model.live="filter_activo" :disabled="$filter_enviado || $filter_entregado"
-                    :locked="$filter_enviado || $filter_entregado"/>
-          </flux:field>
+            <flux:field class="flex flex-col">
+              <flux:label>Supendidas</flux:label>
+              <x-formularios.toggle
+                      wire:model.live="filter_activo" :disabled="$filter_enviado || $filter_entregado"
+                      :locked="$filter_enviado || $filter_entregado"/>
+            </flux:field>
+          </div>
         </div>
-      </div>
+      @endunless
     </div>
 
     <div class="mt-4 overflow-hidden rounded-2xl border border-white/10">
@@ -104,8 +115,10 @@
           </th>
           <th class="px-4 py-3">
             <button type="button"
-                    class="inline-flex cursor-pointer items-center gap-1 font-semibold text-slate-200 hover:text-white"
-                    wire:click="sortByColumn('fecha')" title="Ordenar por fecha" aria-label="Ordenar por fecha">
+                    class="flex cursor-pointer items-center justify-center w-full gap-1 font-semibold text-slate-200 hover:text-white"
+                    wire:click="sortByColumn('fecha')"
+                    title="Ordenar por fecha"
+                    aria-label="Ordenar por fecha">
               Fecha Cita
               <span class="text-xs text-slate-400">
                 @if ($sort_by === 'fecha')
@@ -120,14 +133,22 @@
               </span>
             </button>
           </th>
-          <th class="px-4 py-3">Hora Cita</th>
+          <th class="px-4 py-3 text-center">Hora Cita</th>
           @if ($showSentColumns)
-            <th class="px-4 py-3">Enviado</th>
-            <th class="px-4 py-3">Fecha envío</th>
-          @endif
+            <th class="px-4 py-3 text-xs">
+              <div class="flex items-center justify-center gap-2">
+                <x-iconos.whatsapp clase="size-4" />
+                Enviado
+              </div>
+            </th>
+            @endif
           @if ($showDeliveredColumns)
-            <th class="px-4 py-3">Entregado</th>
-            <th class="px-4 py-3">Fecha entrega</th>
+            <th class="px-4 py-3 text-xs">
+              <div class="flex items-center justify-center gap-2">
+                <x-iconos.whatsapp clase="size-4" />
+                Entregado
+              </div>
+            </th>
           @endif
           @if ($showReadColumn)
             <th class="px-4 py-3">Leído</th>
@@ -146,10 +167,9 @@
             $editUrl = route('appointments.edit', $appointment);
             $rowUrl = $selectedClient
                 ? $editUrl
-                : route('appointments.index', ['client' => $appointment->client_id]);
+                : ($sentOnly ? $editUrl : route('appointments.index', ['client' => $appointment->client_id]));
           @endphp
-          <tr
-                  wire:key="appointment-{{ $appointment->id }}"
+          <tr wire:key="appointment-{{ $appointment->id }}"
                   role="link" tabindex="0"
                   onclick="window.location='{{ $rowUrl }}'"
                   onkeydown="if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); window.location='{{ $rowUrl }}'; }"
@@ -161,39 +181,53 @@
           >
             <td class="px-4 py-3">
               <a href="{{ $rowUrl }}"
-                 class="font-medium {{ $canChange ? 'text-emerald-300 hover:text-emerald-200' : 'text-slate-400 hover:text-slate-300' }}"
+                 class="inline-flex items-center gap-2 font-medium {{ $canChange ? 'text-emerald-300 hover:text-emerald-200' : 'text-slate-400 hover:text-slate-300' }}"
               >
-                {{ $appointment->client?->nombre }} {{ $appointment->client?->apellidos }}
+                <span>{{ $appointment->client?->nombre }} {{ $appointment->client?->apellidos }}</span>
+                @if (! $sentOnly && ($appointment->appointments_count ?? 1) > 1)
+                  <span
+                    class="inline-flex items-center rounded-full bg-sky-500/15 px-2 py-0.5 text-xs font-semibold text-sky-200 ring-1 ring-inset ring-sky-400/30"
+                    title="{{ $appointment->appointments_count }} citas"
+                    aria-label="{{ $appointment->appointments_count }} citas"
+                  >
+                    {{ $appointment->appointments_count }}
+                  </span>
+                @endif
               </a>
               <p class="text-xs text-slate-400">{{ $appointment->client?->telefono }}</p>
             </td>
-            <td class="px-4 py-3">{{ucwords($appointment->fecha?->translatedFormat('l, d - F - Y'))}}
-            </td>
-            <td class="px-4 py-3">{{ $appointment->hora }}</td>
+            <td class="px-4 py-3 text-center">{{ucwords($appointment->fecha?->translatedFormat('l, d - F - Y'))}}</td>
+              <td class="px-4 py-3 text-center text-xs">{{ $appointment->hora }}</td>
             @if ($showSentColumns)
-              <td class="px-4 py-3">
-                <span class="rounded-full px-2.5 py-1 text-xs font-medium {{ $appointment->enviado ? 'bg-emerald-500/20 text-emerald-200' : 'bg-slate-500/20 text-slate-200' }}"
-                >
-                  {{ $appointment->enviado ? 'Sí' : 'No' }}
-                </span>
+              <td class="px-4 py-3 text-center border">
+                <div class="relative flex flex-col items-center justify-center gap-1">
+                  <span class="flex items-center justify-center
+                  {{ $appointment->enviado && $appointment->whatsapp_sent_at ? 'text-green-400' : 'text-slate-300/40' }}">
+                    <span class="size-1 absolute top-1 left-1/2 rounded-full bg-red-500 {{ $appointment->whatsapp_sent_at ? 'hidden' : 'visible' }}"></span>
+                    <x-iconos.doble-check />
+                  </span>
+                  <h6 class="text-[10px] text-slate-400">
+                    {{ $appointment->whatsapp_sent_at?->format('H:i d/m/Y') }}
+                  </h6>
+                </div>
               </td>
-              <td class="px-4 py-3">
-                <span class="text-slate-200">
-                  {{ $appointment->whatsapp_sent_at?->format('H:i d/m/Y') ?? '—' }}
-                </span>
-              </td>
+
             @endif
             @if ($showDeliveredColumns)
-              <td class="px-4 py-3">
-                <span class="rounded-full px-2.5 py-1 text-xs font-medium {{ $appointment->entregado ? 'bg-sky-500/20 text-sky-200' : 'bg-slate-500/20 text-slate-200' }}">
-                  {{ $appointment->entregado ? 'Sí' : 'No' }}
-                </span>
-              </td>
-              <td class="px-4 py-3">
-                <span class="text-slate-200">
-                  {{ $appointment->whatsapp_delivered_at?->format('H:i d/m/Y') ?? '—' }}
-                </span>
-              </td>
+                  <td class="px-4 py-3 text-center border">
+                <div class="relative flex flex-col items-center justify-center gap-1">
+                  <span class="flex items-center justify-center
+                  {{ $appointment->entregado && $appointment->whatsapp_delivered_at ? 'text-green-400' : 'text-slate-300/40' }}">
+                    <span class="size-1 absolute top-1 left-1/2 rounded-full bg-red-500
+                    {{ $appointment->whatsapp_delivered_at ? 'hidden' : 'visible' }}">
+                    </span>
+                    <x-iconos.doble-check />
+                  </span>
+                  <h6 class="text-[10px] text-slate-400">
+                    {{ $appointment->whatsapp_delivered_at?->format('H:i d/m/Y') }}
+                  </h6>
+                </div>
+                  </td>
             @endif
             @if ($showReadColumn)
               <td class="px-4 py-3">
@@ -256,7 +290,7 @@
           <tr>
             <td class="px-4 py-6 text-slate-400"
                 colspan="{{ 4 + ($showSentColumns ? 2 : 0) + ($showDeliveredColumns ? 2 : 0) + ($showReadColumn ? 1 : 0) + ($showPendingColumn ? 1 : 0) }}">
-              No hay citas para mostrar todavía.
+              {{ $sentOnly ? 'No hay citas enviadas para mostrar todavía.' : 'No hay citas para mostrar todavía.' }}
             </td>
           </tr>
         @endforelse

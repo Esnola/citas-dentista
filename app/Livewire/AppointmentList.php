@@ -10,6 +10,8 @@ use App\Services\WhatsApp\AppointmentImmediateSender;
 use App\Services\WhatsApp\WhatsAppSender;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -27,6 +29,8 @@ class AppointmentList extends Component
     public bool $filter_activo = false;
 
     public bool $filter_entregado = false;
+
+    public bool $sentOnly = false;
 
     public string $sort_by = 'fecha';
 
@@ -54,6 +58,13 @@ class AppointmentList extends Component
 
         if ($clientId > 0 && Client::query()->whereKey($clientId)->exists()) {
             $this->clientId = $clientId;
+        }
+
+        if (request()->routeIs('appointments.sent')) {
+            $this->sentOnly = true;
+            $this->filter_enviado = true;
+            $this->filter_activo = false;
+            $this->filter_entregado = false;
         }
 
         $this->deliveryStatusesSyncedAt = Cache::get('appointment_delivery_statuses_synced_at');
@@ -285,9 +296,10 @@ class AppointmentList extends Component
             ->when($selectedClient, fn ($query) => $query->where('appointments.client_id', $selectedClient->id))
             ->when($this->filter_nombre, fn ($query) => $query->whereHas('client', fn ($clientQuery) => $clientQuery->where('nombre', 'like', '%'.$this->filter_nombre.'%')))
             ->when($this->filter_apellidos, fn ($query) => $query->whereHas('client', fn ($clientQuery) => $clientQuery->where('apellidos', 'like', '%'.$this->filter_apellidos.'%')))
-            ->when($this->filter_entregado, fn ($query) => $query->where('appointments.entregado', true))
-            ->when($this->filter_enviado, fn ($query) => $query->where('appointments.enviado', true))
-            ->when(! $this->filter_entregado && ! $this->filter_enviado && $this->filter_activo, function (Builder $query) use ($now): void {
+            ->when($this->sentOnly, fn ($query) => $query->where('appointments.enviado', true))
+            ->when(! $this->sentOnly && $this->filter_entregado, fn ($query) => $query->where('appointments.entregado', true))
+            ->when(! $this->sentOnly && $this->filter_enviado, fn ($query) => $query->where('appointments.enviado', true))
+            ->when(! $this->sentOnly && ! $this->filter_entregado && ! $this->filter_enviado && $this->filter_activo, function (Builder $query) use ($now): void {
                 $query->where(function (Builder $nonPendingQuery) use ($now): void {
                     $this->wherePastAppointment($nonPendingQuery, $now);
                     $nonPendingQuery->orWhere(function (Builder $inactiveFutureQuery) use ($now): void {
@@ -299,7 +311,7 @@ class AppointmentList extends Component
                     });
                 });
             })
-            ->when(! $this->filter_entregado && ! $this->filter_enviado && ! $this->filter_activo, function (Builder $query) use ($now): void {
+            ->when(! $this->sentOnly && ! $this->filter_entregado && ! $this->filter_enviado && ! $this->filter_activo, function (Builder $query) use ($now): void {
                 $query
                     ->where('appointments.enviado', false)
                     ->where('appointments.activo', true);
@@ -319,7 +331,15 @@ class AppointmentList extends Component
                 ->orderBy('appointments.hora', $this->sort_direction);
         }
 
-        $appointments = $appointmentsQuery->paginate(15, ['appointments.*'], 'appointmentsPage');
+        $appointmentsCount = (clone $appointmentsQuery)->count();
+
+        $appointments = $selectedClient || $this->sentOnly
+            ? $appointmentsQuery->paginate(15, ['appointments.*'], 'appointmentsPage')
+            : $this->paginateUniqueAppointments(
+                $this->sortUniqueAppointments(
+                    $this->buildUniqueAppointments($appointmentsQuery->get(), $now)
+                )
+            );
 
         $showSentColumns = $appointments->getCollection()->contains(fn (Appointment $appointment): bool => $appointment->enviado);
         $showDeliveredColumns = $appointments->getCollection()->contains(fn (Appointment $appointment): bool => $appointment->entregado);
@@ -332,8 +352,10 @@ class AppointmentList extends Component
 
         return view('livewire.appointment-list', [
             'appointments' => $appointments,
+            'appointmentsCount' => $appointmentsCount,
             'appointmentPendingDeletion' => $appointmentPendingDeletion,
             'selectedClient' => $selectedClient,
+            'sentOnly' => $this->sentOnly,
             'showSentColumns' => $showSentColumns,
             'showDeliveredColumns' => $showDeliveredColumns,
             'showReadColumn' => $showReadColumn,
@@ -365,5 +387,113 @@ class AppointmentList extends Component
                         ->where('appointments.hora', '<=', $now->format('H:i:s'));
                 });
         });
+    }
+
+    /**
+     * @param  Collection<int, Appointment>  $appointments
+     * @return Collection<int, Appointment>
+     */
+    private function buildUniqueAppointments(Collection $appointments, Carbon $now): Collection
+    {
+        return $appointments
+            ->groupBy('client_id')
+            ->map(function (Collection $clientAppointments) use ($now): Appointment {
+                $appointment = $this->closestAppointment($clientAppointments, $now);
+                $appointment->setAttribute('appointments_count', $clientAppointments->count());
+
+                return $appointment;
+            })
+            ->values();
+    }
+
+    /**
+     * @param  Collection<int, Appointment>  $appointments
+     */
+    private function paginateUniqueAppointments(Collection $appointments): LengthAwarePaginator
+    {
+        $currentPage = LengthAwarePaginator::resolveCurrentPage('appointmentsPage');
+        $perPage = 15;
+        $items = $appointments->forPage($currentPage, $perPage)->values();
+
+        return new LengthAwarePaginator(
+            $items,
+            $appointments->count(),
+            $perPage,
+            $currentPage,
+            [
+                'path' => request()->url(),
+                'pageName' => 'appointmentsPage',
+            ],
+        );
+    }
+
+    /**
+     * @param  Collection<int, Appointment>  $appointments
+     * @return Collection<int, Appointment>
+     */
+    private function sortUniqueAppointments(Collection $appointments): Collection
+    {
+        return $appointments
+            ->sort(function (Appointment $left, Appointment $right): int {
+                $comparison = $this->sort_by === 'cliente'
+                    ? $this->compareByClient($left, $right)
+                    : $this->compareBySchedule($left, $right);
+
+                return $this->sort_direction === 'desc' ? -$comparison : $comparison;
+            })
+            ->values();
+    }
+
+    private function compareByClient(Appointment $left, Appointment $right): int
+    {
+        $leftName = mb_strtolower($left->client?->full_name ?? '');
+        $rightName = mb_strtolower($right->client?->full_name ?? '');
+
+        $comparison = $leftName <=> $rightName;
+
+        if ($comparison !== 0) {
+            return $comparison;
+        }
+
+        return $left->scheduledFor()->getTimestamp() <=> $right->scheduledFor()->getTimestamp();
+    }
+
+    private function compareBySchedule(Appointment $left, Appointment $right): int
+    {
+        $leftTimestamp = $left->scheduledFor()->getTimestamp();
+        $rightTimestamp = $right->scheduledFor()->getTimestamp();
+
+        $comparison = $leftTimestamp <=> $rightTimestamp;
+
+        if ($comparison !== 0) {
+            return $comparison;
+        }
+
+        return mb_strtolower($left->client?->full_name ?? '') <=> mb_strtolower($right->client?->full_name ?? '');
+    }
+
+    /**
+     * @param  Collection<int, Appointment>  $appointments
+     */
+    private function closestAppointment(Collection $appointments, Carbon $now): Appointment
+    {
+        $appointment = $appointments
+            ->sort(function (Appointment $left, Appointment $right) use ($now): int {
+                $leftDifference = abs($left->scheduledFor()->getTimestamp() - $now->getTimestamp());
+                $rightDifference = abs($right->scheduledFor()->getTimestamp() - $now->getTimestamp());
+
+                if ($leftDifference !== $rightDifference) {
+                    return $leftDifference <=> $rightDifference;
+                }
+
+                return $left->scheduledFor()->getTimestamp() <=> $right->scheduledFor()->getTimestamp();
+            })
+            ->first();
+
+        if (! $appointment instanceof Appointment) {
+            throw new \RuntimeException('Unable to resolve the closest appointment for a client.');
+        }
+
+        return $appointment;
     }
 }

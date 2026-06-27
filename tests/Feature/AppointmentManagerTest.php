@@ -648,6 +648,59 @@ class AppointmentManagerTest extends TestCase
         Carbon::setTestNow();
     }
 
+    public function test_appointment_list_shows_one_row_per_client_with_a_badge_for_multiple_appointments(): void
+    {
+        Carbon::setTestNow('2026-06-23 09:00:00');
+
+        $firstClient = Client::query()->create([
+            'nombre' => 'Ana',
+            'apellidos' => 'Pérez',
+            'telefono' => '+34600111222',
+        ]);
+
+        Appointment::query()->create([
+            'client_id' => $firstClient->id,
+            'fecha' => '2026-06-24',
+            'hora' => '10:17',
+            'enviado' => false,
+            'activo' => true,
+        ]);
+        Appointment::query()->create([
+            'client_id' => $firstClient->id,
+            'fecha' => '2026-06-30',
+            'hora' => '11:23',
+            'enviado' => false,
+            'activo' => true,
+        ]);
+
+        $secondClient = Client::query()->create([
+            'nombre' => 'Luis',
+            'apellidos' => 'Gómez',
+            'telefono' => '+34699111222',
+        ]);
+
+        Appointment::query()->create([
+            'client_id' => $secondClient->id,
+            'fecha' => '2026-06-28',
+            'hora' => '09:45',
+            'enviado' => false,
+            'activo' => true,
+        ]);
+
+        $html = Livewire::test(AppointmentList::class)->html();
+
+        $this->assertSame(2, substr_count($html, 'wire:key="appointment-'));
+        $this->assertStringContainsString('3 citas', $html);
+
+        Livewire::test(AppointmentList::class)
+            ->assertSee('Ana Pérez')
+            ->assertSee('10:17')
+            ->assertDontSee('11:23')
+            ->assertSeeHtml('aria-label="2 citas"');
+
+        Carbon::setTestNow();
+    }
+
     public function test_appointment_list_does_not_allow_sending_inactive_appointments(): void
     {
         Carbon::setTestNow('2026-06-23 09:00:00');
@@ -698,6 +751,13 @@ class AppointmentManagerTest extends TestCase
             'activo' => true,
         ]);
         Appointment::query()->create([
+            'client_id' => $firstClient->id,
+            'fecha' => '2026-07-05',
+            'hora' => '12:45',
+            'enviado' => false,
+            'activo' => true,
+        ]);
+        Appointment::query()->create([
             'client_id' => $secondClient->id,
             'fecha' => '2026-07-01',
             'hora' => '09:00',
@@ -709,19 +769,21 @@ class AppointmentManagerTest extends TestCase
             ->test(AppointmentList::class)
             ->assertSee('Ana Pérez')
             ->assertSee('11:30')
+            ->assertSee('12:45')
+            ->assertSee('2 citas')
             ->assertDontSee('Luis Gómez')
             ->assertDontSee('09:00');
     }
 
     public function test_appointment_list_paginates_fifteen_pending_appointments_per_page(): void
     {
-        $client = Client::query()->create([
-            'nombre' => 'Ana',
-            'apellidos' => 'Pérez',
-            'telefono' => '+34600111222',
-        ]);
-
         for ($appointmentNumber = 1; $appointmentNumber <= 16; $appointmentNumber++) {
+            $client = Client::query()->create([
+                'nombre' => 'Cliente '.$appointmentNumber,
+                'apellidos' => 'Prueba',
+                'telefono' => '+3460011'.str_pad((string) $appointmentNumber, 4, '0', STR_PAD_LEFT),
+            ]);
+
             Appointment::query()->create([
                 'client_id' => $client->id,
                 'fecha' => '2026-07-'.str_pad((string) $appointmentNumber, 2, '0', STR_PAD_LEFT),
@@ -740,42 +802,66 @@ class AppointmentManagerTest extends TestCase
     {
         Carbon::setTestNow('2026-06-23 09:00:00');
 
-        $client = Client::query()->create([
+        $futurePendingClient = Client::query()->create([
             'nombre' => 'Ana',
             'apellidos' => 'Pérez',
             'telefono' => '+34600111222',
         ]);
 
         $futurePendingAppointment = Appointment::query()->create([
-            'client_id' => $client->id,
+            'client_id' => $futurePendingClient->id,
             'fecha' => '2026-06-30',
             'hora' => '11:30',
             'enviado' => false,
             'activo' => true,
         ]);
+
+        $pastPendingClient = Client::query()->create([
+            'nombre' => 'Marta',
+            'apellidos' => 'López',
+            'telefono' => '+34600333444',
+        ]);
         $pastPendingAppointment = Appointment::query()->create([
-            'client_id' => $client->id,
+            'client_id' => $pastPendingClient->id,
             'fecha' => '2026-06-01',
             'hora' => '10:15',
             'enviado' => false,
             'activo' => true,
         ]);
+
+        $sentFutureClient = Client::query()->create([
+            'nombre' => 'Sara',
+            'apellidos' => 'Núñez',
+            'telefono' => '+34600444555',
+        ]);
         Appointment::query()->create([
-            'client_id' => $client->id,
+            'client_id' => $sentFutureClient->id,
             'fecha' => '2026-06-30',
             'hora' => '12:30',
             'enviado' => true,
             'activo' => true,
         ]);
+
+        $sentPastClient = Client::query()->create([
+            'nombre' => 'Diego',
+            'apellidos' => 'Vega',
+            'telefono' => '+34600555666',
+        ]);
         Appointment::query()->create([
-            'client_id' => $client->id,
+            'client_id' => $sentPastClient->id,
             'fecha' => '2026-06-01',
             'hora' => '14:30',
             'enviado' => true,
             'activo' => true,
         ]);
+
+        $inactiveFutureClient = Client::query()->create([
+            'nombre' => 'Elena',
+            'apellidos' => 'Ruiz',
+            'telefono' => '+34600666777',
+        ]);
         Appointment::query()->create([
-            'client_id' => $client->id,
+            'client_id' => $inactiveFutureClient->id,
             'fecha' => '2026-06-30',
             'hora' => '13:30',
             'enviado' => false,
@@ -784,7 +870,7 @@ class AppointmentManagerTest extends TestCase
 
         Livewire::test(AppointmentList::class)
             ->assertSee('Pendiente')
-            ->assertSee('No pendientes')
+            ->assertSee('Supendidas')
             ->assertSee('11:30')
             ->assertSeeHtml('wire:key="appointment-'.$futurePendingAppointment->id.'"')
             ->assertDontSee('10:15')
@@ -792,8 +878,11 @@ class AppointmentManagerTest extends TestCase
             ->assertDontSee('14:30')
             ->assertDontSee('13:30')
             ->set('filter_activo', true)
+            ->assertSee('Marta López')
             ->assertSee('10:15')
+            ->assertSee('Elena Ruiz')
             ->assertSee('13:30')
+            ->assertSee('Diego Vega')
             ->assertSee('14:30')
             ->assertSeeHtml('wire:key="appointment-'.$pastPendingAppointment->id.'"')
             ->assertDontSee('11:30')
@@ -1021,6 +1110,45 @@ class AppointmentManagerTest extends TestCase
             ->assertSee('Citas registradas')
             ->assertSee('Nueva cita')
             ->assertDontSee('Buscar cliente');
+    }
+
+    public function test_sent_appointments_page_shows_only_sent_appointments(): void
+    {
+        $user = User::factory()->create();
+
+        $sentClient = Client::query()->create([
+            'nombre' => 'Ana',
+            'apellidos' => 'Enviada',
+            'telefono' => '+34600111222',
+        ]);
+        $pendingClient = Client::query()->create([
+            'nombre' => 'Berto',
+            'apellidos' => 'Pendiente',
+            'telefono' => '+34600113333',
+        ]);
+
+        Appointment::query()->create([
+            'client_id' => $sentClient->id,
+            'fecha' => '2026-06-30',
+            'hora' => '11:30',
+            'enviado' => true,
+            'activo' => true,
+        ]);
+        Appointment::query()->create([
+            'client_id' => $pendingClient->id,
+            'fecha' => '2026-07-01',
+            'hora' => '12:00',
+            'enviado' => false,
+            'activo' => true,
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('appointments.sent'))
+            ->assertOk()
+            ->assertSee('Citas enviadas')
+            ->assertSee('Ana Enviada')
+            ->assertDontSee('Berto Pendiente')
+            ->assertDontSee('Notificaciones');
     }
 
     public function test_appointment_edit_page_loads_selected_appointment(): void
