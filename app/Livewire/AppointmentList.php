@@ -32,6 +32,8 @@ class AppointmentList extends Component
 
     public bool $sentOnly = false;
 
+    public string $dateFilter = 'upcoming';
+
     public string $sort_by = 'fecha';
 
     public string $sort_direction = 'asc';
@@ -77,6 +79,15 @@ class AppointmentList extends Component
 
     public function updatedFilterApellidos(): void
     {
+        $this->resetPage('appointmentsPage');
+    }
+
+    public function updatedDateFilter(): void
+    {
+        if (! in_array($this->dateFilter, ['upcoming', 'all', 'past'], true)) {
+            $this->dateFilter = 'upcoming';
+        }
+
         $this->resetPage('appointmentsPage');
     }
 
@@ -297,6 +308,8 @@ class AppointmentList extends Component
             ->when($this->filter_nombre, fn ($query) => $query->whereHas('client', fn ($clientQuery) => $clientQuery->where('nombre', 'like', '%'.$this->filter_nombre.'%')))
             ->when($this->filter_apellidos, fn ($query) => $query->whereHas('client', fn ($clientQuery) => $clientQuery->where('apellidos', 'like', '%'.$this->filter_apellidos.'%')))
             ->when($this->sentOnly, fn ($query) => $query->where('appointments.enviado', true))
+            ->when($selectedClient && ! $this->sentOnly && $this->dateFilter === 'upcoming', fn (Builder $query) => $this->whereFutureAppointment($query, $now))
+            ->when($selectedClient && ! $this->sentOnly && $this->dateFilter === 'past', fn (Builder $query) => $this->wherePastAppointment($query, $now))
             ->when(! $this->sentOnly && $this->filter_entregado, fn ($query) => $query->where('appointments.entregado', true))
             ->when(! $this->sentOnly && $this->filter_enviado, fn ($query) => $query->where('appointments.enviado', true))
             ->when(! $this->sentOnly && ! $this->filter_entregado && ! $this->filter_enviado && $this->filter_activo, function (Builder $query) use ($now): void {
@@ -311,7 +324,7 @@ class AppointmentList extends Component
                     });
                 });
             })
-            ->when(! $this->sentOnly && ! $this->filter_entregado && ! $this->filter_enviado && ! $this->filter_activo, function (Builder $query) use ($now): void {
+            ->when(! $selectedClient && ! $this->sentOnly && ! $this->filter_entregado && ! $this->filter_enviado && ! $this->filter_activo, function (Builder $query) use ($now): void {
                 $query
                     ->where('appointments.enviado', false)
                     ->where('appointments.activo', true);

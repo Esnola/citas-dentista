@@ -775,6 +775,44 @@ class AppointmentManagerTest extends TestCase
             ->assertDontSee('09:00');
     }
 
+    public function test_client_appointment_list_shows_upcoming_by_default_and_can_show_all_or_past(): void
+    {
+        Carbon::setTestNow('2026-06-23 09:00:00');
+
+        $client = Client::query()->create([
+            'nombre' => 'Ana',
+            'apellidos' => 'Pérez',
+            'telefono' => '+34600111222',
+        ]);
+
+        foreach ([
+            ['fecha' => '2026-06-22', 'hora' => '08:00', 'enviado' => false, 'activo' => true],
+            ['fecha' => '2026-06-24', 'hora' => '09:00', 'enviado' => false, 'activo' => true],
+            ['fecha' => '2026-06-25', 'hora' => '10:00', 'enviado' => true, 'activo' => true],
+            ['fecha' => '2026-06-26', 'hora' => '11:00', 'enviado' => false, 'activo' => false],
+        ] as $appointment) {
+            Appointment::query()->create(['client_id' => $client->id, ...$appointment]);
+        }
+
+        Livewire::withQueryParams(['client' => $client->id])
+            ->test(AppointmentList::class)
+            ->assertSet('dateFilter', 'upcoming')
+            ->assertDontSee('08:00')
+            ->assertSee('09:00')
+            ->assertSee('10:00')
+            ->assertSee('11:00')
+            ->set('dateFilter', 'all')
+            ->assertSee('08:00')
+            ->assertSee('09:00')
+            ->set('dateFilter', 'past')
+            ->assertSee('08:00')
+            ->assertDontSee('09:00')
+            ->assertDontSee('10:00')
+            ->assertDontSee('11:00');
+
+        Carbon::setTestNow();
+    }
+
     public function test_appointment_list_paginates_fifteen_pending_appointments_per_page(): void
     {
         for ($appointmentNumber = 1; $appointmentNumber <= 16; $appointmentNumber++) {
