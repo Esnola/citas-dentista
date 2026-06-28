@@ -214,7 +214,7 @@
 
             @endif
             @if ($showDeliveredColumns)
-                  <td class="px-4 py-3 text-center border">
+                  <td class="px-4 py-3 text-center">
                 <div class="relative flex flex-col items-center justify-center gap-1">
                   <span class="flex items-center justify-center
                   {{ $appointment->entregado && $appointment->whatsapp_delivered_at ? 'text-green-400' : 'text-slate-300/40' }}">
