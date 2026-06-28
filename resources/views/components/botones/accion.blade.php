@@ -3,6 +3,7 @@
     'size' => 'md',
     'icono' => null,
     'tooltip' => null,
+    'back' => false,
 ])
 
 @php
@@ -35,10 +36,13 @@
     $tooltipAttributes = filled($tooltip)
         ? ['title' => $tooltip, 'aria-label' => $tooltip]
         : [];
+    $backAttributes = $back
+        ? ['onclick' => "if (document.referrer) { event.preventDefault(); window.history.back(); }"]
+        : [];
 @endphp
 
 @if ($attributes->has('href'))
-    <a {{ $attributes->class([$baseClasses, $sizeClasses, $variantClasses])->merge($tooltipAttributes) }}>
+    <a {{ $attributes->class([$baseClasses, $sizeClasses, $variantClasses])->merge($tooltipAttributes + $backAttributes) }}>
         @if ($icono)
             <svg viewBox="0 0 14 14" class="size-6 {{ $iconClasses }}" fill="none" aria-hidden="true">
                 @include('components.botones.partials.icono-accion', ['icono' => $icono])

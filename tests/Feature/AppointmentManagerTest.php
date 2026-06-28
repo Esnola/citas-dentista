@@ -19,6 +19,54 @@ class AppointmentManagerTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_appointment_edit_back_button_returns_to_the_previous_view(): void
+    {
+        $user = User::factory()->create();
+        $client = Client::query()->create([
+            'nombre' => 'Ana',
+            'apellidos' => 'Pérez',
+            'telefono' => '+34600111222',
+        ]);
+        $appointment = Appointment::query()->create([
+            'client_id' => $client->id,
+            'fecha' => now()->addWeek(),
+            'hora' => '11:30',
+            'enviado' => false,
+            'activo' => true,
+        ]);
+
+        $this->actingAs($user)
+            ->from(route('appointments.index', ['client' => $client->id]))
+            ->get(route('appointments.edit', $appointment))
+            ->assertOk()
+            ->assertSeeHtml('onclick="if (document.referrer) { event.preventDefault(); window.history.back(); }"');
+    }
+
+    public function test_appointment_navigation_buttons_only_appear_on_the_exact_appointments_url(): void
+    {
+        $user = User::factory()->create();
+        $client = Client::query()->create([
+            'nombre' => 'Ana',
+            'apellidos' => 'Pérez',
+            'telefono' => '+34600111222',
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('appointments.index'))
+            ->assertOk()
+            ->assertSeeHtml('data-appointment-navigation="sent"')
+            ->assertDontSee('Todas las citas');
+
+        $this->get(route('appointments.index', ['client' => $client->id]))
+            ->assertOk()
+            ->assertDontSeeHtml('data-appointment-navigation');
+
+        $this->get(route('appointments.sent'))
+            ->assertOk()
+            ->assertSeeHtml('data-appointment-navigation="all"')
+            ->assertSee('Todas las citas');
+    }
+
     public function test_appointment_manager_can_create_an_appointment_for_a_client(): void
     {
         Carbon::setTestNow('2026-06-23 09:00:00');
@@ -809,6 +857,62 @@ class AppointmentManagerTest extends TestCase
             ->assertDontSee('09:00')
             ->assertDontSee('10:00')
             ->assertDontSee('11:00');
+
+        Carbon::setTestNow();
+    }
+
+    public function test_client_appointment_list_can_delete_selected_appointments_in_bulk(): void
+    {
+        Carbon::setTestNow('2026-06-23 09:00:00');
+
+        $client = Client::query()->create([
+            'nombre' => 'Ana',
+            'apellidos' => 'Pérez',
+            'telefono' => '+34600111222',
+        ]);
+        $otherClient = Client::query()->create([
+            'nombre' => 'Luis',
+            'apellidos' => 'Gómez',
+            'telefono' => '+34699111222',
+        ]);
+
+        $firstAppointment = Appointment::query()->create([
+            'client_id' => $client->id,
+            'fecha' => '2026-06-24',
+            'hora' => '09:00',
+            'enviado' => false,
+            'activo' => true,
+        ]);
+        $secondAppointment = Appointment::query()->create([
+            'client_id' => $client->id,
+            'fecha' => '2026-06-25',
+            'hora' => '10:00',
+            'enviado' => false,
+            'activo' => true,
+        ]);
+        $otherAppointment = Appointment::query()->create([
+            'client_id' => $otherClient->id,
+            'fecha' => '2026-06-26',
+            'hora' => '11:00',
+            'enviado' => false,
+            'activo' => true,
+        ]);
+
+        Livewire::withQueryParams(['client' => $client->id])
+            ->test(AppointmentList::class)
+            ->assertSee('Acciones masivas')
+            ->call('toggleVisibleAppointments', [$firstAppointment->id, $secondAppointment->id])
+            ->assertSet('selectedAppointmentIds', [$firstAppointment->id, $secondAppointment->id])
+            ->call('toggleVisibleAppointments', [$firstAppointment->id, $secondAppointment->id])
+            ->assertSet('selectedAppointmentIds', [])
+            ->set('selectedAppointmentIds', [$firstAppointment->id, $secondAppointment->id, $otherAppointment->id])
+            ->call('confirmBulkDelete')
+            ->assertSet('bulkDeleteConfirmationOpen', true)
+            ->call('deleteSelected');
+
+        $this->assertModelMissing($firstAppointment);
+        $this->assertModelMissing($secondAppointment);
+        $this->assertModelExists($otherAppointment);
 
         Carbon::setTestNow();
     }

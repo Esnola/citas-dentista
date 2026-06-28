@@ -15,6 +15,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Livewire\Component;
 use Livewire\WithPagination;
+use RuntimeException;
 
 class AppointmentList extends Component
 {
@@ -32,6 +33,8 @@ class AppointmentList extends Component
 
     public bool $sentOnly = false;
 
+    public bool $showAppointmentNavigation = false;
+
     public string $dateFilter = 'upcoming';
 
     public string $sort_by = 'fecha';
@@ -41,6 +44,11 @@ class AppointmentList extends Component
     public ?int $clientId = null;
 
     public ?int $appointmentPendingDeletionId = null;
+
+    /** @var array<int, int|string> */
+    public array $selectedAppointmentIds = [];
+
+    public bool $bulkDeleteConfirmationOpen = false;
 
     public ?string $deliveryStatusesSyncedAt = null;
 
@@ -56,6 +64,9 @@ class AppointmentList extends Component
 
     public function mount(): void
     {
+        $this->showAppointmentNavigation = (request()->routeIs('appointments.index') || request()->routeIs('appointments.sent'))
+            && request()->query() === [];
+
         $clientId = request()->integer('client');
 
         if ($clientId > 0 && Client::query()->whereKey($clientId)->exists()) {
@@ -101,6 +112,15 @@ class AppointmentList extends Component
         }
 
         $this->resetPage('appointmentsPage');
+    }
+
+    private function forceDeliveryStatusSync(): int
+    {
+        $updated = $this->deliveryStatusSyncer->syncAll($this->clientId, force: true);
+        $this->deliveryStatusesSyncedAt = now(config('app.timezone'))->format('H:i - d/m/Y');
+        Cache::forever('appointment_delivery_statuses_synced_at', $this->deliveryStatusesSyncedAt);
+
+        return $updated;
     }
 
     public function updatedFilterActivo(): void
@@ -169,6 +189,41 @@ class AppointmentList extends Component
     public function cancelDelete(): void
     {
         $this->appointmentPendingDeletionId = null;
+    }
+
+    /** @param array<int, int|string> $appointmentIds */
+    public function toggleVisibleAppointments(array $appointmentIds): void
+    {
+        $appointmentIds = array_values(array_unique(array_map('intval', $appointmentIds)));
+        $selectedIds = array_values(array_unique(array_map('intval', $this->selectedAppointmentIds)));
+
+        $this->selectedAppointmentIds = array_diff($appointmentIds, $selectedIds) === []
+          ? array_values(array_diff($selectedIds, $appointmentIds))
+          : array_values(array_unique([...$selectedIds, ...$appointmentIds]));
+    }
+
+    public function confirmBulkDelete(): void
+    {
+        $this->bulkDeleteConfirmationOpen = $this->selectedAppointmentIds !== [];
+    }
+
+    public function deleteSelected(): void
+    {
+        if (! $this->clientId || $this->selectedAppointmentIds === []) {
+            return;
+        }
+
+        $deleted = Appointment::query()
+            ->where('client_id', $this->clientId)
+            ->whereKey(array_map('intval', $this->selectedAppointmentIds))
+            ->delete();
+
+        $this->selectedAppointmentIds = [];
+        $this->bulkDeleteConfirmationOpen = false;
+
+        session()->flash('status', sprintf('%d cita(s) eliminada(s) correctamente.', $deleted));
+
+        $this->redirect(route('appointments.index', ['client' => $this->clientId]));
     }
 
     public function deleteConfirmed(): void
@@ -284,20 +339,11 @@ class AppointmentList extends Component
         $this->redirect(url()->previous());
     }
 
-    private function forceDeliveryStatusSync(): int
-    {
-        $updated = $this->deliveryStatusSyncer->syncAll($this->clientId, force: true);
-        $this->deliveryStatusesSyncedAt = now(config('app.timezone'))->format('H:i - d/m/Y');
-        Cache::forever('appointment_delivery_statuses_synced_at', $this->deliveryStatusesSyncedAt);
-
-        return $updated;
-    }
-
     public function render()
     {
         $selectedClient = $this->clientId
-            ? Client::query()->find($this->clientId)
-            : null;
+          ? Client::query()->find($this->clientId)
+          : null;
         $now = Carbon::now(config('app.timezone'));
 
         $appointmentsQuery = Appointment::query()
@@ -347,21 +393,25 @@ class AppointmentList extends Component
         $appointmentsCount = (clone $appointmentsQuery)->count();
 
         $appointments = $selectedClient || $this->sentOnly
-            ? $appointmentsQuery->paginate(15, ['appointments.*'], 'appointmentsPage')
-            : $this->paginateUniqueAppointments(
-                $this->sortUniqueAppointments(
-                    $this->buildUniqueAppointments($appointmentsQuery->get(), $now)
-                )
-            );
+          ? $appointmentsQuery->paginate(15, ['appointments.*'], 'appointmentsPage')
+          : $this->paginateUniqueAppointments(
+              $this->sortUniqueAppointments(
+                  $this->buildUniqueAppointments($appointmentsQuery->get(), $now)
+              )
+          );
 
         $showSentColumns = $appointments->getCollection()->contains(fn (Appointment $appointment): bool => $appointment->enviado);
         $showDeliveredColumns = $appointments->getCollection()->contains(fn (Appointment $appointment): bool => $appointment->entregado);
         $showReadColumn = $appointments->getCollection()->contains(fn (Appointment $appointment): bool => filled($appointment->whatsapp_read_at));
         $showPendingColumn = $appointments->getCollection()->contains(fn (Appointment $appointment): bool => ! $appointment->enviado);
+        $showBulkActions = $selectedClient && ! $this->sentOnly;
+        $visibleAppointmentIds = $appointments->getCollection()->pluck('id')->all();
+        $allVisibleAppointmentsSelected = $visibleAppointmentIds !== []
+          && array_diff($visibleAppointmentIds, array_map('intval', $this->selectedAppointmentIds)) === [];
 
         $appointmentPendingDeletion = $this->appointmentPendingDeletionId
-            ? Appointment::query()->with('client')->find($this->appointmentPendingDeletionId)
-            : null;
+          ? Appointment::query()->with('client')->find($this->appointmentPendingDeletionId)
+          : null;
 
         return view('livewire.appointment-list', [
             'appointments' => $appointments,
@@ -373,6 +423,9 @@ class AppointmentList extends Component
             'showDeliveredColumns' => $showDeliveredColumns,
             'showReadColumn' => $showReadColumn,
             'showPendingColumn' => $showPendingColumn,
+            'showBulkActions' => $showBulkActions,
+            'visibleAppointmentIds' => $visibleAppointmentIds,
+            'allVisibleAppointmentsSelected' => $allVisibleAppointmentsSelected,
         ]);
     }
 
@@ -400,23 +453,6 @@ class AppointmentList extends Component
                         ->where('appointments.hora', '<=', $now->format('H:i:s'));
                 });
         });
-    }
-
-    /**
-     * @param  Collection<int, Appointment>  $appointments
-     * @return Collection<int, Appointment>
-     */
-    private function buildUniqueAppointments(Collection $appointments, Carbon $now): Collection
-    {
-        return $appointments
-            ->groupBy('client_id')
-            ->map(function (Collection $clientAppointments) use ($now): Appointment {
-                $appointment = $this->closestAppointment($clientAppointments, $now);
-                $appointment->setAttribute('appointments_count', $clientAppointments->count());
-
-                return $appointment;
-            })
-            ->values();
     }
 
     /**
@@ -449,8 +485,8 @@ class AppointmentList extends Component
         return $appointments
             ->sort(function (Appointment $left, Appointment $right): int {
                 $comparison = $this->sort_by === 'cliente'
-                    ? $this->compareByClient($left, $right)
-                    : $this->compareBySchedule($left, $right);
+                  ? $this->compareByClient($left, $right)
+                  : $this->compareBySchedule($left, $right);
 
                 return $this->sort_direction === 'desc' ? -$comparison : $comparison;
             })
@@ -487,6 +523,23 @@ class AppointmentList extends Component
 
     /**
      * @param  Collection<int, Appointment>  $appointments
+     * @return Collection<int, Appointment>
+     */
+    private function buildUniqueAppointments(Collection $appointments, Carbon $now): Collection
+    {
+        return $appointments
+            ->groupBy('client_id')
+            ->map(function (Collection $clientAppointments) use ($now): Appointment {
+                $appointment = $this->closestAppointment($clientAppointments, $now);
+                $appointment->setAttribute('appointments_count', $clientAppointments->count());
+
+                return $appointment;
+            })
+            ->values();
+    }
+
+    /**
+     * @param  Collection<int, Appointment>  $appointments
      */
     private function closestAppointment(Collection $appointments, Carbon $now): Appointment
     {
@@ -504,7 +557,7 @@ class AppointmentList extends Component
             ->first();
 
         if (! $appointment instanceof Appointment) {
-            throw new \RuntimeException('Unable to resolve the closest appointment for a client.');
+            throw new RuntimeException('Unable to resolve the closest appointment for a client.');
         }
 
         return $appointment;

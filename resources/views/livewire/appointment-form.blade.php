@@ -9,7 +9,7 @@
                     Escribe al menos un carácter en cualquier campo para ver coincidencias.
                 </p>
             </div>
-            <x-botones.accion variant="edit" href="{{ route('appointments.index') }}" class="mr-12">
+            <x-botones.accion variant="edit" back href="{{ route('appointments.index') }}" class="mr-12">
                 <x-iconos.salir />
                 Volver al listado</x-botones.accion>
         </div>
@@ -127,7 +127,7 @@
                     </div>
                     <div class="flex flex-wrap gap-6">
                         @if ($showReturnAfterImmediateSend)
-                            <x-botones.accion variant="indigo" icono="back" href="{{ $returnUrl }}">Volver</x-botones.accion>
+                            <x-botones.accion variant="indigo" icono="back" back href="{{ $returnUrl }}">Volver</x-botones.accion>
                         @else
                             @if ($selectedAppointment)
                                 <x-botones.accion
@@ -152,7 +152,7 @@
                                     Crear
                                 @endif
                             </x-botones.accion>
-                            <x-botones.accion href="{{ route('appointments.index') }}">
+                            <x-botones.accion back href="{{ route('appointments.index') }}">
                                 <x-iconos.salir clase="size-8"/>
                                 Volver</x-botones.accion>
                         @endif

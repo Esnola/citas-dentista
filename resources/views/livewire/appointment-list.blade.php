@@ -13,8 +13,7 @@
         </div>
         <div>
           @if ($deliveryStatusesSyncedAt)
-            <span
-                    class="text-xs font-medium text-slate-400">Sincronizado: {{ $deliveryStatusesSyncedAt }}</span>
+            <span class="text-xs font-medium text-slate-400">Sincronizado: {{ $deliveryStatusesSyncedAt }}</span>
           @endif
         </div>
       </div>
@@ -24,24 +23,24 @@
                 type="button"
                 wire:click="syncDeliveryStatuses"
                 wire:loading.attr="disabled"
-                wire:target="syncDeliveryStatuses"
-        >
+                wire:target="syncDeliveryStatuses">
           <x-iconos.reload clase="size-4 mr-2" wire:loading.class="animate-spin"/>
           Actualizar Datos
         </x-botones.accion>
-        @if ($selectedClient && ! $sentOnly)
-          <x-botones.accion href="{{ route('appointments.index') }}" icono="calendar"
-          >Todas las citas
-          </x-botones.accion>
-        @endif
-        @if (! $sentOnly)
-          <x-botones.accion href="{{ route('appointments.sent') }}" icono="whatsapp">
-            Citas enviadas
-          </x-botones.accion>
-        @else
-          <x-botones.accion href="{{ route('appointments.index') }}" icono="calendar">
-            Todas las citas
-          </x-botones.accion>
+        @if ($showAppointmentNavigation)
+          <div class="contents" data-appointment-navigation="{{ $sentOnly ? 'all' : 'sent' }}">
+            @if ($sentOnly)
+              <x-botones.accion href="{{ route('appointments.index') }}">
+                <x-iconos.calendar clase="size-4"/>
+                Todas las citas
+              </x-botones.accion>
+            @else
+              <x-botones.accion href="{{ route('appointments.sent') }}">
+                <x-iconos.calendario-filtro clase="size-4"/>
+                Citas enviadas
+              </x-botones.accion>
+            @endif
+          </div>
         @endif
         <x-botones.accion
                 variant="add"
@@ -54,13 +53,44 @@
 
     <div class="mt-4 flex flex-wrap items-center gap-4">
       @if ($selectedClient && ! $sentOnly)
-        <flux:radio.group wire:model.live="dateFilter" variant="segmented" label="Citas">
-          <flux:radio value="upcoming">Próximas</flux:radio>
-          <flux:radio value="all">Todas</flux:radio>
-          <flux:radio value="past">Pasadas</flux:radio>
+        <flux:radio.group wire:model.live="dateFilter" variant="segmented" label="Citas"
+                          class="border border-white/10 rounded-2xl gap-1">
+          <flux:radio value="upcoming"
+                      class="cursor-pointer bg-white/5 hover:bg-emerald-50/60 hover:text-white/60 transition-all duration-300 data-checked:bg-emerald-200/30! data-checked:text-emerald-200!">
+            <x-iconos.proxima-cita/>
+            Próximas
+          </flux:radio>
+          <flux:radio value="all"
+                      class="cursor-pointer bg-white/5 hover:bg-emerald-50/60 hover:text-white/60 transition-all duration-300 data-checked:bg-emerald-200/30! data-checked:text-emerald-200!">
+            <x-iconos.todos/>
+            Todas
+          </flux:radio>
+          <flux:radio value="past"
+                      class="cursor-pointer bg-white/5 hover:bg-emerald-50/60 hover:text-white/60 transition-all duration-300 data-checked:bg-emerald-200/30! data-checked:text-emerald-200!">
+            <x-iconos.calendario-pasado/>
+            Pasadas
+          </flux:radio>
         </flux:radio.group>
       @endif
 
+      @if ($showBulkActions && count($selectedAppointmentIds))
+        <div class="mt-4 flex flex-wrap items-center gap-3">
+          <flux:dropdown>
+            <flux:button icon:trailing="chevron-down"
+                         :disabled="$selectedAppointmentIds === []">
+              Acciones masivas
+            </flux:button>
+            <flux:menu>
+              <flux:menu.item variant="danger" icon="trash" wire:click="confirmBulkDelete">
+                Eliminar seleccionadas
+              </flux:menu.item>
+            </flux:menu>
+          </flux:dropdown>
+          @if ($selectedAppointmentIds !== [])
+            <flux:text>{{ count($selectedAppointmentIds) }} seleccionada(s)</flux:text>
+          @endif
+        </div>
+      @endif
       <flux:field>
         <flux:label>Nombre</flux:label>
         <x-formularios.input wire:model.live.debounce.300ms="filter_nombre" placeholder="Filtrar por nombre"/>
@@ -105,6 +135,11 @@
       <table class="min-w-full divide-y divide-white/10 text-left text-sm">
         <thead class="bg-slate-900/70 text-slate-300">
         <tr>
+          @if ($showBulkActions)
+            <th class="w-12 px-4 py-3">
+
+            </th>
+          @endif
           <th class="px-4 py-3">
             <button type="button"
                     class="inline-flex cursor-pointer items-center gap-1 font-semibold text-slate-200 hover:text-white"
@@ -195,6 +230,15 @@
                 title="Message SID: {{ $appointment->latestWhatsAppMessage?->provider_message_id }}"
                   @endif
           >
+            @if ($showBulkActions)
+              <td class="px-4 py-3" onclick="event.stopPropagation()">
+                <flux:checkbox
+                        wire:model.live="selectedAppointmentIds"
+                        value="{{ $appointment->id }}"
+                        aria-label="Seleccionar cita de {{ $appointment->client?->full_name }}"
+                />
+              </td>
+            @endif
             <td class="px-4 py-3">
               <a href="{{ $rowUrl }}"
                  class="inline-flex items-center gap-2 font-medium {{ $canChange ? 'text-emerald-300 hover:text-emerald-200' : 'text-slate-400 hover:text-slate-300' }}">
@@ -318,7 +362,7 @@
         @empty
           <tr>
             <td class="px-4 py-6 text-slate-400"
-                colspan="{{ 4 + ($showSentColumns ? 2 : 0) + ($showDeliveredColumns ? 2 : 0) + ($showReadColumn ? 1 : 0) + ($showPendingColumn ? 1 : 0) }}">
+                colspan="{{ 4 + ($showBulkActions ? 1 : 0) + ($showSentColumns ? 1 : 0) + ($showDeliveredColumns ? 1 : 0) + ($showReadColumn ? 1 : 0) + ($showPendingColumn ? 1 : 0) }}">
               {{ $sentOnly ? 'No hay citas enviadas para mostrar todavía.' : 'No hay citas para mostrar todavía.' }}
             </td>
           </tr>
@@ -353,4 +397,22 @@
       </div>
     </div>
   @endif
+
+  <flux:modal wire:model.self="bulkDeleteConfirmationOpen" class="min-w-[22rem]">
+    <div class="space-y-6">
+      <div>
+        <flux:heading size="lg">¿Eliminar citas seleccionadas?</flux:heading>
+        <flux:text class="mt-2">
+          Se eliminarán {{ count($selectedAppointmentIds) }} cita(s). Esta acción no se puede deshacer.
+        </flux:text>
+      </div>
+      <div class="flex gap-2">
+        <flux:spacer/>
+        <flux:modal.close>
+          <flux:button variant="ghost">Cancelar</flux:button>
+        </flux:modal.close>
+        <flux:button variant="danger" wire:click="deleteSelected">Eliminar</flux:button>
+      </div>
+    </div>
+  </flux:modal>
 </div>

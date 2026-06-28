@@ -28,7 +28,7 @@
                 </div>
                 <div class="md:col-span-2 flex items-center gap-3">
                     <x-botones.accion variant="add" icono="check" type="submit">Guardar cambios</x-botones.accion>
-                    <x-botones.accion href="{{ route('admin.users.create') }}">Volver</x-botones.accion>
+                    <x-botones.accion back href="{{ route('admin.users.create') }}">Volver</x-botones.accion>
                 </div>
             </form>
         </div>

@@ -5,7 +5,7 @@
                 <h2 class="text-xl font-semibold">{{ $selectedClient ? 'Editar cliente' : 'Crear cliente' }}</h2>
                 <p class="mt-2 text-sm text-slate-300">Gestiona los datos básicos de la ficha del cliente.</p>
             </div>
-            <x-botones.accion variant="indigo" size="sm" icono="back" href="{{ route('clients.list') }}">Volver al listado</x-botones.accion>
+            <x-botones.accion variant="indigo" size="sm" icono="back" back href="{{ route('clients.list') }}">Volver al listado</x-botones.accion>
         </div>
 
         <form class="mt-6 grid grid-cols-3 gap-4" wire:submit="save">
@@ -31,7 +31,7 @@
                 <x-botones.accion variant="add" size="sm" icono="check" type="submit">
                     {{ $selectedClient ? 'Guardar cambios' : 'Crear cliente' }}
                 </x-botones.accion>
-                <x-botones.accion variant="indigo" size="sm" href="{{ route('clients.list') }}">Volver</x-botones.accion>
+                <x-botones.accion variant="indigo" size="sm" back href="{{ route('clients.list') }}">Volver</x-botones.accion>
             </div>
         </form>
     </div>
