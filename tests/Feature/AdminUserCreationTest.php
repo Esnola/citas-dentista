@@ -10,17 +10,15 @@ class AdminUserCreationTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_only_user_id_one_can_access_admin_user_creation(): void
+    public function test_only_admin_can_access_admin_user_creation(): void
     {
-        $admin = User::factory()->create();
-        $this->assertSame(1, $admin->id);
+        $admin = User::factory()->create(['is_admin' => true]);
 
         $this->actingAs($admin)
             ->get(route('admin.users.create'))
             ->assertOk();
 
         $regularUser = User::factory()->create();
-        $this->assertSame(2, $regularUser->id);
 
         $this->actingAs($regularUser)
             ->get(route('admin.users.create'))

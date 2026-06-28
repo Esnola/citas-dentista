@@ -13,7 +13,7 @@ class AdminSecurityTest extends TestCase
 
     public function test_only_admin_can_access_security_screen(): void
     {
-        $admin = User::factory()->create();
+        $admin = User::factory()->create(['is_admin' => true]);
 
         $this->actingAs($admin)
             ->get(route('admin.security.edit'))
@@ -28,7 +28,7 @@ class AdminSecurityTest extends TestCase
 
     public function test_admin_can_change_own_password(): void
     {
-        $admin = User::factory()->create();
+        $admin = User::factory()->create(['is_admin' => true]);
 
         $this->actingAs($admin)
             ->put(route('admin.security.update'), [

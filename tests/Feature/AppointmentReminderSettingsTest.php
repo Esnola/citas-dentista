@@ -15,7 +15,10 @@ class AppointmentReminderSettingsTest extends TestCase
 
     public function test_reminder_settings_can_save_whatsapp_and_email_lead_days(): void
     {
-        Livewire::test(AppointmentReminderSettings::class)
+        $admin = User::factory()->create(['is_admin' => true]);
+
+        Livewire::actingAs($admin)
+            ->test(AppointmentReminderSettings::class)
             ->assertSet('whatsappLeadDays', [1])
             ->assertSet('emailLeadDays', [])
             ->set('whatsappLeadDays', [1, 3, 7])

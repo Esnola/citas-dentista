@@ -3,6 +3,7 @@
 namespace App\Services\WhatsApp;
 
 use App\Models\WhatsAppMessage;
+use App\Traits\NormalizesPhone;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -11,6 +12,8 @@ use RuntimeException;
 
 class WhatsAppSender
 {
+    use NormalizesPhone;
+
     private const TWILIO_AUTO_MODE = 'auto';
 
     private const TWILIO_SANDBOX_MODE = 'sandbox';
@@ -341,7 +344,7 @@ class WhatsAppSender
 
         $payload = [
             'messaging_product' => 'whatsapp',
-            'to' => $this->normalizePhoneNumber($recipient),
+            'to' => $this->normalizePhone($recipient),
             'type' => 'text',
             'text' => [
                 'preview_url' => false,
@@ -380,36 +383,6 @@ class WhatsAppSender
                 'body' => $body,
             ],
         ];
-    }
-
-    private function normalizeWhatsAppAddress(string $address): string
-    {
-        return str_starts_with($address, 'whatsapp:') ? $address : 'whatsapp:'.ltrim($address);
-    }
-
-    private function normalizePhoneNumber(string $recipient): string
-    {
-        $cleanRecipient = preg_replace('/^whatsapp:/i', '', trim($recipient)) ?? trim($recipient);
-        $digits = preg_replace('/\D+/', '', $cleanRecipient) ?? '';
-
-        if ($digits === '') {
-            return $recipient;
-        }
-
-        if (str_starts_with($cleanRecipient, '+')) {
-            return '+'.$digits;
-        }
-
-        $countryCode = preg_replace('/\D+/', '', (string) config('whatsapp.default_country_code', '+34')) ?? '34';
-
-        return '+'.$countryCode.$digits;
-    }
-
-    private function normalizeWhatsAppRecipient(string $recipient): string
-    {
-        $normalized = $this->normalizePhoneNumber($recipient);
-
-        return $normalized !== '' ? 'whatsapp:'.$normalized : '';
     }
 
     public function twilioTestRecipient(): ?string

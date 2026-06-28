@@ -1,10 +1,10 @@
 @props([
-    'route',
-    'routeIs',
+    'route' => null,
+    'routeIs'=> null,
     'color' => 'sky',
     'text' => null,
     'icono'=> null,
-    'iconoClase'=>null
+    'iconoClase'=>null,
 ])
 
 @php
@@ -54,7 +54,7 @@
             'group flex items-center gap-3 rounded-full border px-3 py-2 font-medium transition-colors',
             $palette['active'] => $active,
             $palette['inactive'] => ! $active,
-        ])->merge(['href' => route($route)]) }}
+        ])->merge(['href' => route($route) ]) }}
 >
   @if($icono)
     <x-dynamic-component :component="'iconos.' . $icono" :clase="$iconoClase"/>
@@ -62,5 +62,5 @@
     <span class=" size-2 rounded-full {{ $palette['dot'] }}"></span>
   @endif
 
-  {{ $text ?? $slot  }}
+  <span class="sidebar-text">{{ $text ?? $slot }}</span>
 </a>

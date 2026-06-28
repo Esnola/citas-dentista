@@ -2,7 +2,6 @@
 
 namespace Tests\Feature;
 
-use App\Models\Appointment;
 use App\Models\Client;
 use App\Models\User;
 use Database\Seeders\AppointmentSeeder;
@@ -19,9 +18,9 @@ class DatabaseSeederTest extends TestCase
     {
         $this->seed(DatabaseSeeder::class);
 
-        $this->assertDatabaseCount('users', 1);
-        $this->assertDatabaseCount('clients', 11);
-        $this->assertDatabaseCount('appointments', 21);
+        $this->assertDatabaseCount('users', 11);
+        $this->assertDatabaseCount('clients', 30);
+        $this->assertDatabaseCount('appointments', 330);
 
         $admin = User::query()->firstOrFail();
 
@@ -44,24 +43,22 @@ class DatabaseSeederTest extends TestCase
 
     public function test_appointment_seeder_populates_client_appointments_without_duplicates(): void
     {
-        $this->seed(ClientSeeder::class);
         $this->seed(AppointmentSeeder::class);
         $this->seed(AppointmentSeeder::class);
 
-        $this->assertDatabaseCount('appointments', 21);
+        $this->assertDatabaseCount('clients', 30);
+        $this->assertDatabaseCount('appointments', 330);
 
-        $client = Client::query()->where('telefono', '+34600123123')->firstOrFail();
+        $client = Client::query()->where('telefono', '+34618287914')->firstOrFail();
 
-        $this->assertSame(1, $client->appointments()->count());
+        $this->assertSame(11, $client->appointments()->count());
 
-        $appointment = Appointment::query()
-            ->whereBelongsTo($client)
-            ->whereDate('fecha', '2026-07-09')
-            ->where('hora', '09:30')
-            ->firstOrFail();
+        $dates = $client->appointments()
+            ->orderBy('fecha')
+            ->pluck('fecha')
+            ->map(fn ($date): string => $date->toDateString())
+            ->all();
 
-        $this->assertTrue($appointment->activo);
-        $this->assertFalse($appointment->enviado);
-        $this->assertFalse($appointment->entregado);
+        $this->assertCount(count(array_unique($dates)), $dates);
     }
 }

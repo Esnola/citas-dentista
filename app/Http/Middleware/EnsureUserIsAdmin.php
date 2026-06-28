@@ -12,7 +12,7 @@ class EnsureUserIsAdmin
     {
         $user = $request->user();
 
-        abort_unless($user && (int) $user->id === 1, 403);
+        abort_unless($user?->is_admin, 403);
 
         return $next($request);
     }

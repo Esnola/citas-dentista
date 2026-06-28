@@ -26,7 +26,4 @@
   @if ($texto || trim($slot->toHtml()) !== '')
     <span class="text-sm {{ $isLocked ? 'text-slate-500' : 'text-slate-200' }}">{{ $texto ?? $slot }}</span>
   @endif
-  {{--    @if ($estado)
-          <span class="rounded-full bg-white/10 px-2 py-0.5 text-xs {{ $isLocked ? 'text-slate-500' : 'text-slate-300' }}">{{ $estado }}</span>
-      @endif--}}
 </label>

@@ -12,7 +12,7 @@ class AdminUserManagementTest extends TestCase
 
     public function test_admin_can_update_a_user(): void
     {
-        $admin = User::factory()->create();
+        $admin = User::factory()->create(['is_admin' => true]);
         $user = User::factory()->create([
             'name' => 'Before',
             'email' => 'before@example.com',
@@ -34,9 +34,9 @@ class AdminUserManagementTest extends TestCase
         ]);
     }
 
-    public function test_admin_can_delete_non_admin_users_but_not_the_main_admin(): void
+    public function test_admin_can_delete_non_admin_users_but_not_admins(): void
     {
-        $admin = User::factory()->create();
+        $admin = User::factory()->create(['is_admin' => true]);
         $otherUser = User::factory()->create();
 
         $this->actingAs($admin)

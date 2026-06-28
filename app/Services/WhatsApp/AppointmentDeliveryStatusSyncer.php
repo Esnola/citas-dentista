@@ -166,10 +166,9 @@ class AppointmentDeliveryStatusSyncer
             'received_at' => now()->toDateTimeString(),
         ];
 
-        $message->forceFill([
+        $message->update([
             'provider_payload' => $providerPayload,
         ]);
-        $message->save();
 
         return $message;
     }
@@ -213,10 +212,13 @@ class AppointmentDeliveryStatusSyncer
             return 0;
         }
 
+        $appointmentIds = $groupedMessages->keys()->all();
+        $appointments = Appointment::query()->whereIn('id', $appointmentIds)->get()->keyBy('id');
+
         $updated = 0;
 
         foreach ($groupedMessages as $appointmentId => $appointmentMessages) {
-            $appointment = Appointment::query()->find($appointmentId);
+            $appointment = $appointments->get($appointmentId);
 
             if (! $appointment) {
                 continue;
@@ -226,7 +228,7 @@ class AppointmentDeliveryStatusSyncer
             $deliveredAt = $this->latestTimestamp($appointmentMessages->map(fn (WhatsAppMessage $message): ?Carbon => $message->deliveredAt()));
             $readAt = $this->latestTimestamp($appointmentMessages->map(fn (WhatsAppMessage $message): ?Carbon => $message->readAt()));
 
-            $appointment->forceFill([
+            $appointment->update([
                 'enviado' => $appointment->enviado || $sentAt !== null,
                 'whatsapp_sent_at' => $this->latestTimestamp(collect([$appointment->whatsapp_sent_at, $sentAt])),
                 'entregado' => $appointment->entregado || $deliveredAt !== null,
@@ -234,10 +236,7 @@ class AppointmentDeliveryStatusSyncer
                 'whatsapp_read_at' => $this->latestTimestamp(collect([$appointment->whatsapp_read_at, $readAt])),
             ]);
 
-            if ($appointment->isDirty()) {
-                $appointment->save();
-                $updated++;
-            }
+            $updated++;
         }
 
         return $updated;

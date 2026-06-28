@@ -1,10 +1,13 @@
+@php use App\Models\User; @endphp
 @extends('layouts.app')
-
+@php
+  $desactivado = count( App\Models\User::query()->where('is_admin', true)->get()) <= 1 && $user->id === 1;
+@endphp
 @section('content')
     <div class="grid gap-6">
-        <div class="rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur">
-            <h2 class="text-xl font-semibold">Editar usuario #{{ $user->id }}</h2>
-            <form class="mt-6 grid gap-4 md:grid-cols-2" method="POST" action="{{ route('admin.users.update', $user) }}">
+        <div class="rounded-3xl lg:max-w-2xl border border-white/10 bg-white/5 p-6 backdrop-blur">
+          <h2 class="text-xl ">Editar usuario:&nbsp; <span class="font-semibold">{{ $user->name }}</span></h2>
+            <form class="mt-6 grid gap-4 sm:grid-cols-2" method="POST" action="{{ route('admin.users.update', $user) }}">
                 @csrf
                 @method('PUT')
                 <div>
@@ -26,9 +29,22 @@
                     <label class="mb-2 block text-sm text-slate-300">Confirmar nueva contraseña</label>
                     <x-formularios.input name="password_confirmation" type="password" />
                 </div>
-                <div class="md:col-span-2 flex items-center gap-3">
-                    <x-botones.accion variant="add" icono="check" type="submit">Guardar cambios</x-botones.accion>
-                    <x-botones.accion back href="{{ route('admin.users.create') }}">Volver</x-botones.accion>
+                <div class="flex flex-col gap-4 pt-2">
+                  <flux:checkbox value="is_admin" name="is_admin" label="Administrador"
+                  :disabled="$desactivado" :checked="old('is_admin',$user->is_admin)" />
+                  @if ($desactivado)
+                    <span class="text-red-400 text-xs">Con un solo admin no se puede cambiar.</span>
+                    @endif
+                  <div class="flex gap-4 justify-end mt-12">
+                    <x-botones.accion variant="add" size="sm" type="submit">
+                      <x-iconos.guardar clase="size-5" />
+                      Guardar
+                    </x-botones.accion>
+                    <x-botones.accion back href="{{ route('admin.users.create') }}">
+                      <x-iconos.salir clase="size-5" />
+                      Volver
+                    </x-botones.accion>
+                  </div>
                 </div>
             </form>
         </div>

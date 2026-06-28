@@ -8,10 +8,11 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Appointment extends Model
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
     protected $fillable = [
         'client_id',
@@ -72,5 +73,37 @@ class Appointment extends Model
     public function canBeChanged(): bool
     {
         return ! $this->enviado && $this->isFuture();
+    }
+
+    public function hasConflict(): bool
+    {
+        return static::query()
+            ->where('fecha', $this->fecha)
+            ->where('hora', $this->hora)
+            ->where('id', '!=', $this->id)
+            ->exists();
+    }
+
+    public function scopeActive($query)
+    {
+        return $query->where('activo', true);
+    }
+
+    public function scopePending($query)
+    {
+        return $query->where('enviado', false);
+    }
+
+    public function scopeUpcoming($query)
+    {
+        $now = now(config('app.timezone'));
+
+        return $query->where(function ($q) use ($now) {
+            $q->whereDate('fecha', '>', $now->toDateString())
+                ->orWhere(function ($q2) use ($now) {
+                    $q2->whereDate('fecha', $now->toDateString())
+                        ->where('hora', '>', $now->format('H:i:s'));
+                });
+        });
     }
 }

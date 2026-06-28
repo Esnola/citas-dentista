@@ -2,22 +2,21 @@
 
 namespace App\Livewire;
 
+use App\Jobs\SendWhatsAppMessage;
 use App\Models\Client;
 use App\Models\WhatsAppMessage;
 use App\Models\WhatsAppTemplate;
 use App\Services\WhatsApp\WhatsAppSender;
+use App\Traits\ValidatesSelectableDate;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
-use Illuminate\Validation\ValidationException;
 use Livewire\Component;
 use Livewire\WithPagination;
-use Throwable;
 
 class ClientMessageScheduler extends Component
 {
-    use WithPagination;
+    use ValidatesSelectableDate, WithPagination;
 
     public string $filter_nombre = '';
 
@@ -110,29 +109,14 @@ class ClientMessageScheduler extends Component
             'immediate_sent_at' => now()->toDateTimeString(),
         ]);
 
-        try {
-            $result = $sender->send($message);
+        SendWhatsAppMessage::dispatchSync($message->id);
 
-            $message->update([
-                'status' => WhatsAppMessage::STATUS_SENT,
-                'sent_at' => now(),
-                'last_error' => null,
-                'provider_message_id' => $result['message_id'],
-                'provider_payload' => [
-                    'provider' => $result['provider'],
-                    'payload' => $result['payload'],
-                    'raw' => $result['raw'],
-                ],
-            ]);
+        $message->refresh();
 
+        if ($message->status === WhatsAppMessage::STATUS_SENT) {
             $this->statusType = 'success';
             $this->status = 'WhatsApp enviado ahora y registrado correctamente.';
-        } catch (Throwable $throwable) {
-            $message->update([
-                'status' => WhatsAppMessage::STATUS_FAILED,
-                'last_error' => $throwable->getMessage(),
-            ]);
-
+        } else {
             $this->statusType = 'error';
             $this->status = 'No se pudo enviar el WhatsApp. El intento ha quedado registrado como fallido.';
         }
@@ -220,22 +204,5 @@ class ClientMessageScheduler extends Component
         }
 
         return $date->toDateString();
-    }
-
-    private function validateSelectableDate(string $date, string $field): void
-    {
-        $validator = Validator::make([$field => $date], [
-            $field => [
-                function (string $attribute, mixed $value, \Closure $fail): void {
-                    if (Carbon::parse((string) $value)->isSunday()) {
-                        $fail('No se pueden seleccionar citas en domingo.');
-                    }
-                },
-            ],
-        ]);
-
-        if ($validator->fails()) {
-            throw new ValidationException($validator);
-        }
     }
 }

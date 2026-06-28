@@ -6,8 +6,8 @@ use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
 
 class WhatsAppTemplate extends Model
 {
@@ -41,7 +41,7 @@ class WhatsAppTemplate extends Model
             return static::$catalogCache;
         }
 
-        if (! Schema::hasTable((new static())->getTable())) {
+        if (! Schema::hasTable((new static)->getTable())) {
             return static::$catalogCache = collect(config('whatsapp.templates', []))
                 ->map(function (array $template, string $key): array {
                     return [
@@ -136,20 +136,18 @@ class WhatsAppTemplate extends Model
 
     public static function defaultKey(): string
     {
-        if (! Schema::hasTable((new static())->getTable())) {
-            return config('whatsapp.default_template');
-        }
+        $catalog = static::catalog();
 
-        $default = static::query()->where('is_default', true)->where('is_active', true)->first();
+        $default = $catalog->firstWhere('is_default', true);
 
         if ($default) {
-            return $default->key;
+            return $default['key'];
         }
 
-        $fallback = static::query()->where('is_active', true)->orderBy('sort_order')->orderBy('label')->first();
+        $fallback = $catalog->first();
 
         if ($fallback) {
-            return $fallback->key;
+            return $fallback['key'];
         }
 
         return config('whatsapp.default_template');
@@ -157,7 +155,7 @@ class WhatsAppTemplate extends Model
 
     public static function generateKey(string $label, ?int $exceptId = null): string
     {
-        if (! Schema::hasTable((new static())->getTable())) {
+        if (! Schema::hasTable((new static)->getTable())) {
             return Str::slug($label) ?: 'template';
         }
 

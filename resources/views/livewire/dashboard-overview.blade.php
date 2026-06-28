@@ -15,20 +15,20 @@
     </div>
 
     <div class="rounded-3xl border border-white/10 bg-white/5 p-6">
-        <h2 class="text-xl font-semibold">Próximos mensajes</h2>
+        <h2 class="text-xl font-semibold">Próximas citas</h2>
         <div class="mt-4 space-y-3">
-            @forelse ($nextMessages as $message)
+            @forelse ($nextAppointments as $appointment)
                 <div class="flex flex-col gap-2 rounded-2xl border border-white/10 bg-slate-900/50 p-4 md:flex-row md:items-center md:justify-between">
                     <div>
-                        <p class="font-medium">{{ $message->full_name }}</p>
-                        <p class="text-sm text-slate-400">{{ $message->telefono }}</p>
+                        <p class="font-medium">{{ $appointment->client?->full_name }}</p>
+                        <p class="text-sm text-slate-400">{{ $appointment->client?->telefono }}</p>
                     </div>
                     <div class="text-sm text-slate-300">
-                        {{ $message->formatted_scheduled_for }}
+                        {{ $appointment->scheduledFor()->format('d/m/Y H:i') }}
                     </div>
                 </div>
             @empty
-                <p class="text-sm text-slate-400">No hay mensajes pendientes.</p>
+                <p class="text-sm text-slate-400">No hay citas próximas.</p>
             @endforelse
         </div>
     </div>

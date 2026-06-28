@@ -4,7 +4,7 @@
     <div class="grid gap-6">
         <div class="rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur">
             <h2 class="text-xl font-semibold">Crear usuario</h2>
-            <form class="mt-6 grid gap-4 md:grid-cols-2" method="POST" action="{{ route('admin.users.store') }}">
+            <form class="mt-6 grid gap-4 sm:grid-cols-2 md:grid-cols-4" method="POST" action="{{ route('admin.users.store') }}">
                 @csrf
                 <div>
                     <label class="mb-2 block text-sm text-slate-300">Nombre</label>
@@ -25,8 +25,13 @@
                     <label class="mb-2 block text-sm text-slate-300">Confirmar contraseña</label>
                     <x-formularios.input name="password_confirmation" type="password" required />
                 </div>
-                <div class="md:col-span-2">
-                    <x-botones.accion variant="add" icono="plus" type="submit">Crear usuario</x-botones.accion>
+                <div class="flex flex-col gap-8">
+
+                  <flux:checkbox name="is_admin" label="Administrador" :checked="old('is_admin')" />
+                  <x-botones.accion variant="add" class="max-w-fit" size="sm" type="submit">
+                      <x-heroicon-o-user-plus class="w-4 h-4" />
+                      Crear usuario
+                    </x-botones.accion>
                 </div>
             </form>
         </div>
@@ -40,6 +45,7 @@
                             <th class="px-4 py-3">ID</th>
                             <th class="px-4 py-3">Nombre</th>
                             <th class="px-4 py-3">Email</th>
+                            <th class="px-4 py-3">Rol</th>
                             <th class="px-4 py-3">Acciones</th>
                         </tr>
                     </thead>
@@ -50,13 +56,28 @@
                                 <td class="px-4 py-3">{{ $user->name }}</td>
                                 <td class="px-4 py-3">{{ $user->email }}</td>
                                 <td class="px-4 py-3">
+                                    @if ($user->is_admin)
+                                        <span class="inline-flex items-center rounded-full bg-amber-400/15 px-2.5 py-0.5 text-xs font-semibold text-amber-200 ring-1 ring-inset ring-amber-400/30">Admin</span>
+                                    @else
+                                        <span class="inline-flex items-center rounded-full bg-slate-400/15 px-2.5 py-0.5 text-xs font-semibold text-slate-300 ring-1 ring-inset ring-slate-400/30">Usuario</span>
+                                    @endif
+                                </td>
+                                <td class="px-4 py-3">
                                     <div class="flex items-center gap-3">
-                                        <x-botones.accion variant="edit" size="sm" icono="edit" href="{{ route('admin.users.edit', $user) }}">Editar</x-botones.accion>
-                                        @if ($user->id !== 1)
+                                        <x-botones.accion
+                                                ariant="edit"
+                                                size="sm"
+                                                href="{{ route('admin.users.edit', $user) }}">
+                                          <x-heroicon-o-pencil class="w-4 h-4" />
+                                          Editar
+                                        </x-botones.accion>
+                                        @if (! $user->is_admin || $user->id === Auth::id())
                                             <form method="POST" action="{{ route('admin.users.destroy', $user) }}" onsubmit="return confirm('¿Eliminar este usuario?')">
                                                 @csrf
                                                 @method('DELETE')
-                                                <x-botones.accion variant="delete" size="sm" icono="delete" type="submit">Eliminar</x-botones.accion>
+                                                <x-botones.accion variant="delete" size="sm" type="submit">
+                                                  <x-heroicon-o-trash class="w-4 h-4" />
+                                                  Eliminar</x-botones.accion>
                                             </form>
                                         @else
                                             <span class="text-slate-500">Protegido</span>

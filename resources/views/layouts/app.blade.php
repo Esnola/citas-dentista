@@ -19,6 +19,15 @@
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     @endif
     @livewireStyles
+    <style>
+        [x-cloak] { display: none !important; }
+        aside[data-collapsed="true"] .sidebar-text { display: none; }
+        aside[data-collapsed="true"] a.sidebar-link { justify-content: center; padding-left: 0.5rem; padding-right: 0.5rem; }
+        aside[data-collapsed="true"] .sidebar-logout { justify-content: center; padding-left: 0.5rem; padding-right: 0.5rem; }
+        aside[data-collapsed="true"] .sidebar-admin-header { justify-content: center; padding-left: 0.5rem; padding-right: 0.5rem; letter-spacing: normal; }
+        aside[data-collapsed="true"] .sidebar-logo-link { padding: 0.5rem; }
+        aside[data-collapsed="true"] .sidebar-logo-text { display: none; }
+    </style>
 </head>
 <body class="min-h-screen bg-slate-950 text-slate-100 antialiased">
 @if (session('status'))
@@ -42,28 +51,43 @@
 <div
     class="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(16,185,129,0.18),transparent_35%),linear-gradient(180deg,#020617,#0f172a)]"></div>
 <div class="relative mx-auto flex min-h-screen min-w-6/8">
-    <aside
-        class="sticky top-0 hidden h-screen w-72 shrink-0 border-r border-white/10 bg-slate-950/70 px-4 py-5 shadow-[18px_0_60px_rgba(15,23,42,0.32)] backdrop-blur-xl xl:block">
+  <aside
+          x-data="{ collapsed: localStorage.getItem('sidebar-collapsed') === 'true' }"
+          x-init="$el.dataset.collapsed = collapsed"
+          x-cloak
+          :data-collapsed="collapsed"
+          :class="[
+        collapsed ? 'w-20 bg-slate-950/85' : 'w-72 bg-slate-900/70',
+        'sticky top-0 hidden h-screen shrink-0 border-r border-white/10 px-4 py-5 shadow-[18px_0_60px_rgba(15,23,42,0.32)] backdrop-blur-xl transition-all duration-300 xl:block',
+    ]"
+  >
         <nav class="flex flex-col h-full justify-between text-sm">
+
+
             <div class="grid gap-12 items-center jusitfy-center">
                 <a href="{{ route('dashboard') }}"
-                   class="group flex flex-col items-center gap-3 rounded-3xl border border-emerald-400/20 bg-emerald-400/1 p-3 text-emerald-100 transition-colors hover:bg-emerald-400/15">
-                    <img src="/logo.png" alt="Logo">
-
-                    <span class="block truncate text-base font-semibold">{{ config('app.name', 'Citas') }}</span>
+                   class="sidebar-logo-link group flex flex-col items-center gap-3 rounded-3xl border border-emerald-400/20 bg-emerald-400/1 p-3 text-emerald-100 transition-colors hover:bg-emerald-400/15">
+                    <img src="/logo.png" alt="Logo" class="w-full">
+                    <span class="sidebar-logo-text block truncate text-base font-semibold">{{ config('app.name', 'Citas') }}</span>
                 </a>
+
+              <x-botones.sidebar-toggle
+                      x-on:click="collapsed = !collapsed; localStorage.setItem('sidebar-collapsed', collapsed)"
+              />
                 <div class="grid gap-2">
+
                     <x-navegacion.aside-link route="dashboard" route-is="dashboard" color="sky" icono="dashboard"
-                                             text="Dashboard"/>
+                                             text="Dashboard" class="sidebar-link"/>
                     <x-navegacion.aside-link route="clients.list" route-is="clients.*" color="emerald" icono="customer"
-                                             text="Clientes"/>
+                                             text="Clientes" class="sidebar-link"/>
                     <x-navegacion.aside-link route="appointments.index" route-is="appointments.*" color="yellow"
-                                             icono="calendar" icono-clase="size-5" text="Citas"/>
+                                             icono="calendar" icono-clase="size-5" text="Citas" class="sidebar-link"/>
                 </div>
+
+
             </div>
 
-
-            @if (auth()->check() && (int) auth()->id() === 1)
+            @if (auth()->check() && auth()->user()->is_admin)
                 <div class="mb-12 grid gap-2">
                     <div
                         data-control-acordeon
@@ -71,11 +95,11 @@
                         tabindex="0"
                         aria-expanded="true"
                         aria-controls="admin-accordion-panel"
-                        class="flex items-center gap-3 rounded-t-md border-b border-white/10 bg-white/10 px-4 py-2 text-xs font-bold uppercase tracking-[0.25em] text-slate-500 transition-colors duration-200 hover:bg-white/15 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/40"
+                        class="sidebar-admin-header flex items-center gap-3 rounded-t-md border-b border-white/10 bg-white/10 px-4 py-2 text-xs font-bold uppercase tracking-[0.25em] text-slate-500 transition-colors duration-200 hover:bg-white/15 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/40"
                     >
                         <x-iconos.admin-user/>
-                        <h4>Administración</h4>
-                        <x-iconos.up data-control-acordeon-icon clase="ml-auto size-6 transition-transform duration-300 ease-in-out"/>
+                        <span class="sidebar-text">Administración</span>
+                        <x-iconos.up data-control-acordeon-icon clase="sidebar-text ml-auto size-6 transition-transform duration-300 ease-in-out"/>
                     </div>
                     <div
                         id="admin-accordion-panel"
@@ -83,25 +107,21 @@
                         class="mt-2 mb-4 grid gap-2 overflow-hidden transition-[max-height,opacity,margin-top] duration-300 ease-in-out"
                     >
                         <x-navegacion.aside-link route="admin.users.create" route-is="admin.users.*"
-                                                 color="orange" text="Usuarios" icono="usuarios">
-                        </x-navegacion.aside-link>
+                                                 color="orange" text="Usuarios" icono="usuarios" class="sidebar-link"/>
                         <x-navegacion.aside-link route="admin.security.edit" route-is="admin.security.*"
-                                                 color="rose"
-                                                 text="Seguridad" icono="seguridad"/>
+                                                 color="rose" text="Seguridad" icono="seguridad" class="sidebar-link"/>
                         <x-navegacion.aside-link route="imports.index" route-is="imports.*" color="violet"
-                                                 icono="excel"
-                                                 text="Importar Excel"/>
+                                                 icono="excel" text="Importar Excel" class="sidebar-link"/>
                         <x-navegacion.aside-link route="settings.index" route-is="settings.*" color="cyan"
-                                                 text="Ajustes"
-                                                 icono="ajustes"/>
+                                                 text="Ajustes" icono="ajustes" class="sidebar-link"/>
                     </div>
 
                     <form class="border-t border-white/10 pt-4" method="POST" action="{{ route('logout') }}">
                         @csrf
                         <button type="submit"
-                                class="group flex w-full items-center gap-3 rounded-full border border-rose-400/25 bg-rose-400/10 px-3 py-2 font-medium text-rose-200 transition-colors hover:bg-rose-400/15">
+                                class="sidebar-logout group flex w-full items-center gap-3 rounded-full border border-rose-400/25 bg-rose-400/10 px-3 py-2 font-medium text-rose-200 transition-colors hover:bg-rose-400/15">
                                 <x-iconos.salir clase="size-8"/>
-                            <span class="flex items-center gap-3">
+                            <span class="sidebar-text flex items-center gap-3">
                                 Salir
                             </span>
                         </button>

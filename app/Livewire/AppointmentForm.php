@@ -7,14 +7,14 @@ use App\Models\Client;
 use App\Services\WhatsApp\AppointmentDeliveryStatusSyncer;
 use App\Services\WhatsApp\AppointmentImmediateSender;
 use App\Services\WhatsApp\WhatsAppSender;
-use Carbon\Carbon;
-use Illuminate\Support\Facades\Validator;
+use App\Traits\ValidatesSelectableDate;
 use Illuminate\Validation\Rule;
-use Illuminate\Validation\ValidationException;
 use Livewire\Component;
 
 class AppointmentForm extends Component
 {
+    use ValidatesSelectableDate;
+
     public string $filter_nombre = '';
 
     public string $filter_apellidos = '';
@@ -321,23 +321,6 @@ class AppointmentForm extends Component
         return $previousUrl !== $currentUrl
             ? $previousUrl
             : route('appointments.index');
-    }
-
-    private function validateSelectableDate(string $date, string $field): void
-    {
-        $validator = Validator::make([$field => $date], [
-            $field => [
-                function (string $attribute, mixed $value, \Closure $fail): void {
-                    if (Carbon::parse((string) $value)->isSunday()) {
-                        $fail('No se pueden seleccionar citas en domingo.');
-                    }
-                },
-            ],
-        ]);
-
-        if ($validator->fails()) {
-            throw new ValidationException($validator);
-        }
     }
 
     private function loadAppointment(int $appointmentId): void

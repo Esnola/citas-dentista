@@ -2,13 +2,15 @@
 
 namespace App\Models;
 
+use App\Traits\NormalizesPhone;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Client extends Model
 {
-    use HasFactory;
+    use HasFactory, NormalizesPhone, SoftDeletes;
 
     protected $fillable = [
         'nombre',
@@ -34,21 +36,17 @@ class Client extends Model
         return $this->hasMany(Appointment::class);
     }
 
-    public static function normalizePhone(string $phone): string
+    public static function isValidPhone(string $phone): bool
     {
-        $digits = preg_replace('/\D+/', '', trim($phone)) ?? '';
+        $normalized = static::normalizePhone($phone);
 
-        if ($digits === '') {
-            return '';
+        if ($normalized === '') {
+            return false;
         }
 
-        if (str_starts_with(trim($phone), '+')) {
-            return '+'.$digits;
-        }
+        $digits = preg_replace('/\D+/', '', $normalized) ?? '';
 
-        $countryCode = preg_replace('/\D+/', '', (string) config('whatsapp.default_country_code', '+34')) ?? '34';
-
-        return '+'.$countryCode.$digits;
+        return strlen($digits) >= 7 && strlen($digits) <= 15;
     }
 
     public static function upsertFromImport(array $data): self

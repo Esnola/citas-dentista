@@ -29,6 +29,8 @@ class AppointmentReminderSettings extends Component
 
     public function save(): void
     {
+        abort_unless(auth()->user()?->is_admin, 403);
+
         $data = $this->validate();
 
         AppointmentReminderPreference::saveSelections([

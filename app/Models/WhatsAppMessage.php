@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Traits\NormalizesPhone;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -10,7 +11,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class WhatsAppMessage extends Model
 {
-    use HasFactory;
+    use HasFactory, NormalizesPhone;
 
     protected $table = 'whatsapp_messages';
 
@@ -165,24 +166,12 @@ class WhatsAppMessage extends Model
 
     public function normalizedPhone(): string
     {
-        $number = preg_replace('/\D+/', '', (string) $this->telefono) ?? '';
-
-        if ($number === '') {
-            return '';
-        }
-
-        if (str_starts_with((string) $this->telefono, '+')) {
-            return '+'.$number;
-        }
-
-        $countryCode = preg_replace('/\D+/', '', (string) config('whatsapp.default_country_code', '+34')) ?? '34';
-
-        return '+'.$countryCode.$number;
+        return static::normalizePhone((string) $this->telefono);
     }
 
     public function twilioPhone(): string
     {
-        $normalized = $this->normalizedPhone();
+        $normalized = static::normalizePhone((string) $this->telefono);
 
         return $normalized !== '' ? 'whatsapp:'.$normalized : '';
     }

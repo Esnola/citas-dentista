@@ -3,12 +3,15 @@
 namespace App\Livewire;
 
 use App\Services\WhatsApp\WhatsAppSender;
+use App\Traits\NormalizesPhone;
 use Illuminate\Support\Arr;
 use Livewire\Component;
 use Throwable;
 
 class WhatsAppConnectionTest extends Component
 {
+    use NormalizesPhone;
+
     public string $recipient = '';
 
     public string $body = 'Mensaje de prueba desde Clínica Dental Eugenia.';
@@ -125,7 +128,7 @@ class WhatsAppConnectionTest extends Component
             'provider' => 'cloud_api',
             'request' => [
                 'messaging_product' => 'whatsapp',
-                'to' => $this->normalizePhoneNumber($preview['recipient']),
+                'to' => static::normalizePhone($preview['recipient']),
                 'type' => 'text',
                 'text' => [
                     'preview_url' => false,
@@ -133,24 +136,6 @@ class WhatsAppConnectionTest extends Component
                 ],
             ],
         ];
-    }
-
-    private function normalizePhoneNumber(string $recipient): string
-    {
-        $cleanRecipient = preg_replace('/^whatsapp:/i', '', trim($recipient)) ?? trim($recipient);
-        $digits = preg_replace('/\D+/', '', $cleanRecipient) ?? '';
-
-        if ($digits === '') {
-            return '';
-        }
-
-        if (str_starts_with($cleanRecipient, '+')) {
-            return '+'.$digits;
-        }
-
-        $countryCode = preg_replace('/\D+/', '', (string) config('whatsapp.default_country_code', '+34')) ?? '34';
-
-        return '+'.$countryCode.$digits;
     }
 
     private function buildLogPreviewPayload(array $preview): array
@@ -162,17 +147,5 @@ class WhatsAppConnectionTest extends Component
                 'body' => $preview['body'],
             ],
         ];
-    }
-
-    private function normalizeWhatsAppAddress(string $address): string
-    {
-        return str_starts_with($address, 'whatsapp:') ? $address : 'whatsapp:'.ltrim($address);
-    }
-
-    private function normalizeWhatsAppRecipient(string $recipient): string
-    {
-        $normalized = $this->normalizePhoneNumber($recipient);
-
-        return $normalized !== '' ? 'whatsapp:'.$normalized : '';
     }
 }
