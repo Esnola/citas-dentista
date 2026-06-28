@@ -260,8 +260,8 @@
                 <div class="relative flex flex-col items-center justify-center gap-1">
                   @if(!$appointment->latestWhatsAppMessage?->provider_message_id)
                     @if(!$appointment->enviado)
-                      <div class="flex items-center jusitfy-center p-1 bg-amber-400/30 border border-amber-300 rounded-full">
-                        <x-iconos.reloj-agujas clase="size-4 text-amber-300"/>
+                      <div class="flex items-center jusitfy-center p-1 bg-amber-100/20 border border-amber-400/50 rounded-full">
+                        <x-iconos.reloj-agujas clase="size-4 text-white/80"/>
                       </div>
                       <h6 class="text-[10px] text-amber-400">En cola</h6>
                     @else
