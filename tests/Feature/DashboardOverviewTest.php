@@ -79,4 +79,85 @@ class DashboardOverviewTest extends TestCase
             ->assertSee('+34666777888')
             ->assertSee($appointmentAt->format('d/m/Y H:i'));
     }
+
+    public function test_date_buttons_render_with_correct_labels(): void
+    {
+        $user = User::factory()->create();
+        $this->actingAs($user);
+
+        Livewire::test(DashboardOverview::class)
+            ->assertSee('Mañana')
+            ->assertSee('Pasado mañana')
+            ->assertSee('En 3 días');
+    }
+
+    public function test_selecting_date_offset_updates_appointments(): void
+    {
+        $now = Carbon::parse('2026-06-29 10:00:00')->next(Carbon::MONDAY);
+        Carbon::setTestNow($now);
+        $user = User::factory()->create();
+
+        $client = Client::query()->create([
+            'nombre' => 'Ana',
+            'apellidos' => 'Pérez',
+            'telefono' => '+34600123123',
+        ]);
+
+        $twoDaysLater = $now->copy()->addDays(2)->setTime(14, 0);
+        Appointment::query()->create([
+            'client_id' => $client->id,
+            'fecha' => $twoDaysLater->toDateString(),
+            'hora' => $twoDaysLater->format('H:i:s'),
+            'enviado' => false,
+            'activo' => true,
+        ]);
+
+        $this->actingAs($user);
+
+        Livewire::test(DashboardOverview::class)
+            ->assertDontSee('Ana Pérez')
+            ->call('selectDate', 2)
+            ->assertSee('Ana Pérez');
+    }
+
+    public function test_sunday_skip_when_tomorrow_is_sunday(): void
+    {
+        $now = Carbon::parse('2026-06-27 10:00:00');
+        Carbon::setLocale('es');
+        Carbon::setTestNow($now);
+        $user = User::factory()->create();
+
+        $client = Client::query()->create([
+            'nombre' => 'Lucía',
+            'apellidos' => 'Martín',
+            'telefono' => '+34666777888',
+        ]);
+
+        $monday = $now->copy()->next(Carbon::MONDAY)->setTime(9, 0);
+        Appointment::query()->create([
+            'client_id' => $client->id,
+            'fecha' => $monday->toDateString(),
+            'hora' => $monday->format('H:i:s'),
+            'enviado' => false,
+            'activo' => true,
+        ]);
+
+        $this->actingAs($user);
+
+        Livewire::test(DashboardOverview::class)
+            ->assertSee('Lucía Martín')
+            ->assertSee('lunes');
+    }
+
+    public function test_sunday_warning_not_shown_on_regular_days(): void
+    {
+        $now = Carbon::parse('2026-06-29 10:00:00');
+        Carbon::setTestNow($now);
+        $user = User::factory()->create();
+
+        $this->actingAs($user);
+
+        Livewire::test(DashboardOverview::class)
+            ->assertDontSee('domingo');
+    }
 }
