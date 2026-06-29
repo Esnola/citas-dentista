@@ -32,9 +32,12 @@ class DispatchDueWhatsAppMessages extends Command
                     try {
                         $result = $sender->send($message);
 
+                        $providerStatus = (string) data_get($result, 'raw.status', '');
+                        $isFailed = in_array($providerStatus, ['failed', 'undelivered'], true);
+
                         $message->update([
-                            'status' => WhatsAppMessage::STATUS_SENT,
-                            'sent_at' => now(),
+                            'status' => $isFailed ? WhatsAppMessage::STATUS_FAILED : WhatsAppMessage::STATUS_SENT,
+                            'sent_at' => $isFailed ? null : now(),
                             'last_error' => null,
                             'provider_message_id' => $result['message_id'],
                             'provider_payload' => [
@@ -44,10 +47,12 @@ class DispatchDueWhatsAppMessages extends Command
                             ],
                         ]);
 
-                        $message->appointment?->update([
-                            'enviado' => true,
-                            'whatsapp_sent_at' => now(),
-                        ]);
+                        if (! $isFailed && $message->appointment) {
+                            $message->appointment->update([
+                                'enviado' => true,
+                                'whatsapp_sent_at' => now(),
+                            ]);
+                        }
 
                         $deliveryStatusSyncer->sync([$message->appointment_id]);
                     } catch (Throwable $throwable) {

@@ -228,18 +228,45 @@ class AppointmentDeliveryStatusSyncer
             $deliveredAt = $this->latestTimestamp($appointmentMessages->map(fn (WhatsAppMessage $message): ?Carbon => $message->deliveredAt()));
             $readAt = $this->latestTimestamp($appointmentMessages->map(fn (WhatsAppMessage $message): ?Carbon => $message->readAt()));
 
-            $appointment->update([
-                'enviado' => $appointment->enviado || $sentAt !== null,
-                'whatsapp_sent_at' => $this->latestTimestamp(collect([$appointment->whatsapp_sent_at, $sentAt])),
-                'entregado' => $appointment->entregado || $deliveredAt !== null,
-                'whatsapp_delivered_at' => $this->latestTimestamp(collect([$appointment->whatsapp_delivered_at, $deliveredAt])),
-                'whatsapp_read_at' => $this->latestTimestamp(collect([$appointment->whatsapp_read_at, $readAt])),
-            ]);
+            $newEnviado = $appointment->enviado || $sentAt !== null;
+            $newSentAt = $this->latestTimestamp(collect([$appointment->whatsapp_sent_at, $sentAt]));
+            $newEntregado = $appointment->entregado || $deliveredAt !== null;
+            $newDeliveredAt = $this->latestTimestamp(collect([$appointment->whatsapp_delivered_at, $deliveredAt]));
+            $newReadAt = $this->latestTimestamp(collect([$appointment->whatsapp_read_at, $readAt]));
 
-            $updated++;
+            $dirty = $newEnviado !== $appointment->enviado
+                || $this->timestampDiffers($appointment->whatsapp_sent_at, $newSentAt)
+                || $newEntregado !== $appointment->entregado
+                || $this->timestampDiffers($appointment->whatsapp_delivered_at, $newDeliveredAt)
+                || $this->timestampDiffers($appointment->whatsapp_read_at, $newReadAt);
+
+            if ($dirty) {
+                $appointment->update([
+                    'enviado' => $newEnviado,
+                    'whatsapp_sent_at' => $newSentAt,
+                    'entregado' => $newEntregado,
+                    'whatsapp_delivered_at' => $newDeliveredAt,
+                    'whatsapp_read_at' => $newReadAt,
+                ]);
+
+                $updated++;
+            }
         }
 
         return $updated;
+    }
+
+    private function timestampDiffers(?Carbon $current, ?Carbon $new): bool
+    {
+        if ($current === null && $new === null) {
+            return false;
+        }
+
+        if ($current === null || $new === null) {
+            return true;
+        }
+
+        return $current->ne($new);
     }
 
     private function messageWasDelivered(WhatsAppMessage $message): bool

@@ -33,6 +33,8 @@ class AppointmentList extends Component
 
     public bool $filter_entregado = false;
 
+    public bool $showAllHistory = false;
+
     public bool $sentOnly = false;
 
     public bool $showAppointmentNavigation = false;
@@ -67,7 +69,7 @@ class AppointmentList extends Component
     public function mount(): void
     {
         $this->showAppointmentNavigation = (request()->routeIs('appointments.index') || request()->routeIs('appointments.sent'))
-            && request()->query() === [];
+          && request()->query() === [];
 
         $clientId = request()->integer('client');
 
@@ -153,6 +155,18 @@ class AppointmentList extends Component
         $this->resetPage('appointmentsPage');
     }
 
+    public function updatedShowAllHistory(): void
+    {
+        if ($this->showAllHistory) {
+            $this->filter_enviado = false;
+            $this->filter_entregado = false;
+            $this->filter_activo = false;
+            $this->dateFilter = 'all';
+        }
+
+        $this->resetPage('appointmentsPage');
+    }
+
     public function updatedSortBy(): void
     {
         if (! in_array($this->sort_by, ['cliente', 'fecha'], true)) {
@@ -197,7 +211,6 @@ class AppointmentList extends Component
         $this->appointmentPendingDeletionId = null;
     }
 
-    /** @param array<int, int|string> $appointmentIds */
     public function toggleVisibleAppointments(array $appointmentIds): void
     {
         $appointmentIds = array_values(array_unique(array_map('intval', $appointmentIds)));
@@ -334,7 +347,7 @@ class AppointmentList extends Component
         $updated = $this->forceDeliveryStatusSync();
 
         if ($updated > 0) {
-            session()->flash('status', sprintf('Se actualizaron %d cita(s) .', $updated));
+            session()->flash('status', $updated === 1 ? 'Se ha actualizado 1 cita' : 'Se han actualizado '.$updated.' citas');
             $this->redirect(url()->previous());
 
             return;
@@ -360,11 +373,11 @@ class AppointmentList extends Component
             ->when($this->filter_nombre, fn ($query) => $query->whereHas('client', fn ($clientQuery) => $clientQuery->where('nombre', 'like', '%'.$this->filter_nombre.'%')))
             ->when($this->filter_apellidos, fn ($query) => $query->whereHas('client', fn ($clientQuery) => $clientQuery->where('apellidos', 'like', '%'.$this->filter_apellidos.'%')))
             ->when($this->sentOnly, fn ($query) => $query->where('appointments.enviado', true))
-            ->when($selectedClient && ! $this->sentOnly && $this->dateFilter === 'upcoming', fn (Builder $query) => $this->whereFutureAppointment($query, $now))
-            ->when($selectedClient && ! $this->sentOnly && $this->dateFilter === 'past', fn (Builder $query) => $this->wherePastAppointment($query, $now))
-            ->when(! $this->sentOnly && $this->filter_entregado, fn ($query) => $query->where('appointments.entregado', true))
-            ->when(! $this->sentOnly && $this->filter_enviado, fn ($query) => $query->where('appointments.enviado', true))
-            ->when(! $this->sentOnly && ! $this->filter_entregado && ! $this->filter_enviado && $this->filter_activo, function (Builder $query) use ($now): void {
+            ->when(! $this->showAllHistory && $selectedClient && ! $this->sentOnly && $this->dateFilter === 'upcoming', fn (Builder $query) => $this->whereFutureAppointment($query, $now))
+            ->when(! $this->showAllHistory && $selectedClient && ! $this->sentOnly && $this->dateFilter === 'past', fn (Builder $query) => $this->wherePastAppointment($query, $now))
+            ->when(! $this->showAllHistory && ! $this->sentOnly && $this->filter_entregado, fn ($query) => $query->where('appointments.entregado', true))
+            ->when(! $this->showAllHistory && ! $this->sentOnly && $this->filter_enviado, fn ($query) => $query->where('appointments.enviado', true))
+            ->when(! $this->showAllHistory && ! $this->sentOnly && ! $this->filter_entregado && ! $this->filter_enviado && $this->filter_activo, function (Builder $query) use ($now): void {
                 $query->where(function (Builder $nonPendingQuery) use ($now): void {
                     $this->wherePastAppointment($nonPendingQuery, $now);
                     $nonPendingQuery->orWhere(function (Builder $inactiveFutureQuery) use ($now): void {
@@ -376,7 +389,7 @@ class AppointmentList extends Component
                     });
                 });
             })
-            ->when(! $selectedClient && ! $this->sentOnly && ! $this->filter_entregado && ! $this->filter_enviado && ! $this->filter_activo, function (Builder $query) use ($now): void {
+            ->when(! $this->showAllHistory && ! $selectedClient && ! $this->sentOnly && ! $this->filter_entregado && ! $this->filter_enviado && ! $this->filter_activo, function (Builder $query) use ($now): void {
                 $query
                     ->where('appointments.enviado', false)
                     ->where('appointments.activo', true);
@@ -406,10 +419,10 @@ class AppointmentList extends Component
               )
           );
 
-        $showSentColumns = $appointments->getCollection()->contains(fn (Appointment $appointment): bool => $appointment->enviado);
-        $showDeliveredColumns = $appointments->getCollection()->contains(fn (Appointment $appointment): bool => $appointment->entregado);
-        $showReadColumn = $appointments->getCollection()->contains(fn (Appointment $appointment): bool => filled($appointment->whatsapp_read_at));
-        $showPendingColumn = $appointments->getCollection()->contains(fn (Appointment $appointment): bool => ! $appointment->enviado);
+        $showSentColumns = $this->showAllHistory || $appointments->getCollection()->contains(fn (Appointment $appointment): bool => $appointment->enviado);
+        $showDeliveredColumns = $this->showAllHistory || $appointments->getCollection()->contains(fn (Appointment $appointment): bool => $appointment->entregado || filled($appointment->latestWhatsAppMessage?->provider_message_id));
+        $showReadColumn = $this->showAllHistory || $appointments->getCollection()->contains(fn (Appointment $appointment): bool => filled($appointment->whatsapp_read_at));
+        $showPendingColumn = $this->showAllHistory || $appointments->getCollection()->contains(fn (Appointment $appointment): bool => ! $appointment->enviado);
         $showBulkActions = $selectedClient && ! $this->sentOnly;
         $visibleAppointmentIds = $appointments->getCollection()->pluck('id')->all();
         $allVisibleAppointmentsSelected = $visibleAppointmentIds !== []

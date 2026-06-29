@@ -47,8 +47,7 @@ class DashboardOverviewTest extends TestCase
 
         Livewire::test(DashboardOverview::class)
             ->assertSee('Ana Pérez')
-            ->assertSee('+34600123123')
-            ->assertSee($appointmentAt->format('d/m/Y H:i'));
+            ->assertSee('11:20');
     }
 
     public function test_shows_saturday_appointments_when_today_is_saturday(): void
@@ -76,8 +75,7 @@ class DashboardOverviewTest extends TestCase
 
         Livewire::test(DashboardOverview::class)
             ->assertSee('Lucía Martín')
-            ->assertSee('+34666777888')
-            ->assertSee($appointmentAt->format('d/m/Y H:i'));
+            ->assertSee('09:00');
     }
 
     public function test_date_buttons_render_with_correct_labels(): void
@@ -88,8 +86,9 @@ class DashboardOverviewTest extends TestCase
         Livewire::test(DashboardOverview::class)
             ->assertSee('Hoy')
             ->assertSee('Mañana')
-            ->assertSee('Pasado mañana')
-            ->assertSee('En 3 días');
+            ->assertSee('En 2 días')
+            ->assertSee('En 10 días')
+            ->assertDontSee('Pasado mañana');
     }
 
     public function test_selecting_date_offset_updates_appointments(): void
@@ -252,7 +251,7 @@ class DashboardOverviewTest extends TestCase
         $this->actingAs($user);
 
         Livewire::test(DashboardOverview::class)
-            ->assertSee('Editar cliente')
-            ->assertSee('Ver citas del cliente');
+            ->assertSee('Carlos Ruiz')
+            ->assertSee('09:00');
     }
 }

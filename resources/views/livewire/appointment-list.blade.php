@@ -54,19 +54,20 @@
     <div class="mt-4 flex flex-wrap items-center gap-4">
       @if ($selectedClient && ! $sentOnly)
         <flux:radio.group wire:model.live="dateFilter" variant="segmented" label="Citas"
-                          class="border border-white/10 rounded-2xl gap-1">
+                          class="border border-white/10 rounded-2xl gap-1"
+                          :disabled="$showAllHistory">
           <flux:radio value="upcoming"
-                      class="cursor-pointer bg-white/5 hover:bg-emerald-50/60 hover:text-white/60 transition-all duration-300 data-checked:bg-emerald-200/30! data-checked:text-emerald-200!">
+                      class="cursor-pointer bg-white/5 hover:bg-emerald-50/60 hover:text-white/60t transition-all duration-300 data-checked:bg-emerald-200/30! data-checked:text-emerald-200!">
             <x-iconos.proxima-cita/>
             Próximas
           </flux:radio>
           <flux:radio value="all"
-                      class="cursor-pointer bg-white/5 hover:bg-emerald-50/60 hover:text-white/60 transition-all duration-300 data-checked:bg-emerald-200/30! data-checked:text-emerald-200!">
+                      class="cursor-pointer bg-white/5 hover:bg-emerald-50/60 hover:text-white/60t transition-all duration-300 data-checked:bg-emerald-200/30! data-checked:text-emerald-200!">
             <x-iconos.todos/>
             Todas
           </flux:radio>
           <flux:radio value="past"
-                      class="cursor-pointer bg-white/5 hover:bg-emerald-50/60 hover:text-white/60 transition-all duration-300 data-checked:bg-emerald-200/30! data-checked:text-emerald-200!">
+                      class="cursor-pointer bg-white/5 hover:bg-emerald-50/60 hover:text-white/60t transition-all duration-300 data-checked:bg-emerald-200/30! data-checked:text-emerald-200!">
             <x-iconos.calendario-pasado/>
             Pasadas
           </flux:radio>
@@ -92,20 +93,20 @@
         </div>
       @endif
       @if($show_filters_nombre)
-      <flux:field>
-        <flux:label>Nombre</flux:label>
-        <x-formularios.input wire:model.live.debounce.300ms="filter_nombre" placeholder="Filtrar por nombre"/>
-      </flux:field>
+        <flux:field>
+          <flux:label>Nombre</flux:label>
+          <x-formularios.input wire:model.live.debounce.300ms="filter_nombre" placeholder="Filtrar por nombre"/>
+        </flux:field>
 
-      <flux:field>
-        <flux:label>Apellidos</flux:label>
-        <x-formularios.input wire:model.live.debounce.300ms="filter_apellidos"
-                             placeholder="Filtrar por apellidos"/>
-      </flux:field>
-@endif
+        <flux:field>
+          <flux:label>Apellidos</flux:label>
+          <x-formularios.input wire:model.live.debounce.300ms="filter_apellidos"
+                               placeholder="Filtrar por apellidos"/>
+        </flux:field>
+      @endif
       @unless ($sentOnly)
         <div class="flex flex-col items-center justify-center gap-2">
-          <flux:label class="text-[14px] font-bold">Notificaciones</flux:label>
+          <flux:label class="text-[14px] font-bold">Filtros</flux:label>
           <div class="flex items-center justify-center ml-6 gap-4">
             <flux:field class="flex flex-col">
               <flux:label>Enviadas</flux:label>
@@ -136,26 +137,26 @@
       <table class="min-w-full divide-y divide-white/10 text-left text-sm">
         <thead class="bg-slate-900/70 text-slate-300">
         <tr>
-            <x-tabla.th :condicion="$showBulkActions" />
-            <x-tabla.th-sort sortBy="cliente" :sortDirection="$sort_direction" :currentSort="$sort_by" />
-            <x-tabla.th-sort sortBy="fecha"   :sortDirection="$sort_direction" :currentSort="$sort_by" />
-            <th class="px-4 py-3 text-center">Hora Cita</th>
-            <x-tabla.th :condicion="$showSentColumns">
-              <x-iconos.whatsapp clase="size-4"/>
-              Enviado
-            </x-tabla.th>
-            <x-tabla.th :condicion="$showDeliveredColumns">
-              <x-iconos.whatsapp clase="size-4"/>
-              Entregado
-            </x-tabla.th>
-            <x-tabla.th :condicion="$showReadColumn">
-              <x-iconos.whatsapp clase="size-4"/>
-              Leído
-            </x-tabla.th>
-            <x-tabla.th :condicion="$showPendingColumn">
-              Pendiente
-            </x-tabla.th>
-          <th class="px-4 py-3 text-center">Acciones</th>
+          <x-tabla.th :condicion="$showBulkActions"/>
+          <x-tabla.th-sort sortBy="cliente" :sortDirection="$sort_direction" :currentSort="$sort_by"/>
+          <x-tabla.th-sort sortBy="fecha" :sortDirection="$sort_direction" :currentSort="$sort_by"/>
+          <th class="px-4 py-3 text-center">Hora Cita</th>
+          <x-tabla.th :condicion="$showSentColumns">
+            <x-iconos.whatsapp clase="size-4"/>
+            Enviado
+          </x-tabla.th>
+          <x-tabla.th :condicion="$showDeliveredColumns">
+            <x-iconos.whatsapp clase="size-4"/>
+            Entregado
+          </x-tabla.th>
+          <x-tabla.th :condicion="$showReadColumn">
+            <x-iconos.whatsapp clase="size-4"/>
+            Leído
+          </x-tabla.th>
+          <x-tabla.th :condicion="$showPendingColumn">
+            Pendiente
+          </x-tabla.th>
+          <th class="px-4 pr-16 text-right">Acciones</th>
         </tr>
         </thead>
         <tbody class="divide-y divide-white/10 bg-slate-950/40">
@@ -204,35 +205,51 @@
             </td>
             <td class="px-4 py-3 text-center">{{ucwords($appointment->fecha?->translatedFormat('l, d - F - Y'))}}</td>
             <td class="px-4 py-3 text-center text-xs">{{ $appointment->hora }}</td>
-              @if ($showSentColumns)
+            @if ($showSentColumns)
               <td class="px-4 py-3 text-center">
                 <div class="relative flex flex-col items-center justify-center gap-1">
                   @if(!$appointment->latestWhatsAppMessage?->provider_message_id)
-                    @if(!$appointment->enviado)
-                      <div class="flex items-center jusitfy-center p-1 bg-amber-100/20 border border-amber-400/50 rounded-full">
-                        <x-iconos.reloj-agujas clase="size-4 text-white/80"/>
-                      </div>
-                      <h6 class="text-[10px] text-amber-400">En cola</h6>
-                    @else
-                      <x-iconos.alert clase="text-red-400/50 size-6"/>
-                      <h6 class="text-[10px] text-red-500/60">Error de envío o se ha pasado de fecha</h6>
-                    @endif
-                  @else
-                    <span class="flex items-center justify-center
+                    @if(!$appointment->enviado )
+                      @if($canSendNow)
+                        <div class="flex flex-col items-center jusitfy-center text-amber-200/50 text-xs ">
+                          <x-iconos.whatsapp/>
+                          En cola
+                          @else
+                            <div class="flex flex-col items-center jusitfy-center text-red-500/70 text-xs ">
+                              <x-iconos.whatsapp/>
+                              Desactivado
+                              @endif
+                            </div>
+                            @else
+                              <x-iconos.alert clase="text-red-400/50 size-6"/>
+                              <h6 class="text-[10px] text-red-500/60">Error de envío o se ha pasado de fecha</h6>
+                            @endif
+                            @else
+                              <span class="flex items-center justify-center
                   {{ $appointment->enviado && $appointment->whatsapp_sent_at ? 'text-green-400' : 'text-slate-300/40' }}">
                     <span class="size-1 absolute top-1 left-1/2 rounded-full bg-red-500 {{ $appointment->whatsapp_sent_at ? 'hidden' : 'visible' }}"></span>
                     <x-iconos.doble-check/>
                   </span>
-                    <h6 class="text-[10px] text-slate-400">
-                      {{ $appointment->whatsapp_sent_at?->format('H:i d/m/Y') }}
-                    </h6>
-                  @endif
-                </div>
-            </td>
+                              <h6 class="text-[10px] text-slate-400">
+                                {{ $appointment->whatsapp_sent_at?->format('H:i d/m/Y') }}
+                              </h6>
+                            @endif
+                        </div>
+              </td>
             @endif
             @if ($showDeliveredColumns)
               <td class="px-4 py-3 text-center">
-                @if($appointment->latestWhatsAppMessage?->provider_message_id)
+                @php
+                  $latestMsg = $appointment->latestWhatsAppMessage;
+                  $deliveryFailed = $latestMsg?->status === 'failed'
+                    || in_array($latestMsg?->deliveryStatus(), ['failed', 'undelivered'], true);
+                @endphp
+                @if($deliveryFailed)
+                  <div class="relative flex flex-col items-center justify-center gap-1">
+                    <x-iconos.alert clase="text-red-400/50 size-6"/>
+                    <h6 class="text-[10px] text-red-500/60">No entregado</h6>
+                  </div>
+                @elseif($latestMsg?->provider_message_id)
                   <div class="relative flex flex-col items-center justify-center gap-1">
                   <span class="flex items-center justify-center
                   {{ $appointment->entregado && $appointment->whatsapp_delivered_at ? 'text-green-400' : 'text-slate-300/40' }}">
