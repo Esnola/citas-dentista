@@ -160,4 +160,60 @@ class DashboardOverviewTest extends TestCase
         Livewire::test(DashboardOverview::class)
             ->assertDontSee('domingo');
     }
+
+    public function test_client_name_links_to_appointments(): void
+    {
+        $now = Carbon::parse('2026-06-29 10:00:00')->next(Carbon::FRIDAY);
+        Carbon::setTestNow($now);
+        $user = User::factory()->create();
+
+        $client = Client::query()->create([
+            'nombre' => 'Ana',
+            'apellidos' => 'Pérez',
+            'telefono' => '+34600123123',
+        ]);
+
+        $appointmentAt = $now->copy()->addDay()->setTime(11, 20);
+        Appointment::query()->create([
+            'client_id' => $client->id,
+            'fecha' => $appointmentAt->toDateString(),
+            'hora' => $appointmentAt->format('H:i:s'),
+            'enviado' => false,
+            'activo' => true,
+        ]);
+
+        $this->actingAs($user);
+
+        Livewire::test(DashboardOverview::class)
+            ->assertSee(route('appointments.index', ['client' => $client->id]))
+            ->assertSee(route('clients.edit', $client->id));
+    }
+
+    public function test_edit_client_button_present(): void
+    {
+        $now = Carbon::parse('2026-06-29 10:00:00')->next(Carbon::FRIDAY);
+        Carbon::setTestNow($now);
+        $user = User::factory()->create();
+
+        $client = Client::query()->create([
+            'nombre' => 'Carlos',
+            'apellidos' => 'Ruiz',
+            'telefono' => '+34611222333',
+        ]);
+
+        $appointmentAt = $now->copy()->addDay()->setTime(9, 0);
+        Appointment::query()->create([
+            'client_id' => $client->id,
+            'fecha' => $appointmentAt->toDateString(),
+            'hora' => $appointmentAt->format('H:i:s'),
+            'enviado' => false,
+            'activo' => true,
+        ]);
+
+        $this->actingAs($user);
+
+        Livewire::test(DashboardOverview::class)
+            ->assertSee('Editar cliente')
+            ->assertSee('Ver citas del cliente');
+    }
 }
