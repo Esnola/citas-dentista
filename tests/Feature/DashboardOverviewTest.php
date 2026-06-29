@@ -161,6 +161,18 @@ class DashboardOverviewTest extends TestCase
             ->assertDontSee('domingo');
     }
 
+    public function test_sunday_warning_shown_when_offset_lands_on_sunday(): void
+    {
+        $now = Carbon::parse('2026-06-27 10:00:00');
+        Carbon::setTestNow($now);
+        $user = User::factory()->create();
+
+        $this->actingAs($user);
+
+        Livewire::test(DashboardOverview::class)
+            ->assertSee('domingo');
+    }
+
     public function test_client_name_links_to_appointments(): void
     {
         $now = Carbon::parse('2026-06-29 10:00:00')->next(Carbon::FRIDAY);

@@ -19,6 +19,7 @@ class DashboardOverview extends Component
 
     public function render(): View
     {
+        Carbon::setLocale('es');
         $targetDate = $this->targetDate();
 
         return view('livewire.dashboard-overview', [
@@ -40,7 +41,35 @@ class DashboardOverview extends Component
 
     private function targetDate(): Carbon
     {
-        return $this->computeDateSkippingSunday($this->selectedDateOffset);
+        return $this->resolvedDates()[$this->selectedDateOffset];
+    }
+
+    /**
+     * @return array<int, Carbon>
+     */
+    private function resolvedDates(): array
+    {
+        $now = now(config('app.timezone'));
+        $dates = [];
+
+        for ($offset = 1; $offset <= 3; $offset++) {
+            $date = $now->copy()->addDays($offset);
+
+            if ($date->isSunday()) {
+                $date->addDay();
+            }
+
+            if (isset($dates[$offset - 1]) && $date->toDateString() === $dates[$offset - 1]->toDateString()) {
+                $date->addDay();
+                if ($date->isSunday()) {
+                    $date->addDay();
+                }
+            }
+
+            $dates[$offset] = $date;
+        }
+
+        return $dates;
     }
 
     /**
@@ -48,6 +77,8 @@ class DashboardOverview extends Component
      */
     private function targetDates(): array
     {
+        $resolved = $this->resolvedDates();
+
         return collect([1, 2, 3])
             ->mapWithKeys(fn (int $offset) => [
                 $offset => [
@@ -57,22 +88,10 @@ class DashboardOverview extends Component
                         2 => 'Pasado mañana',
                         3 => 'En 3 días',
                     },
-                    'date' => $this->computeDateSkippingSunday($offset),
+                    'date' => $resolved[$offset],
                 ],
             ])
             ->all();
-    }
-
-    private function computeDateSkippingSunday(int $offset): Carbon
-    {
-        $now = now(config('app.timezone'));
-        $date = $now->copy()->addDays($offset);
-
-        if ($date->isSunday()) {
-            $date = $date->addDay();
-        }
-
-        return $date;
     }
 
     private function sundayWarning(): ?string
