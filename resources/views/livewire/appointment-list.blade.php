@@ -214,43 +214,45 @@
                         <div class="flex flex-col items-center jusitfy-center text-amber-200/50 text-xs ">
                           <x-iconos.whatsapp/>
                           En cola
-                          @else
-                            <div class="flex flex-col items-center jusitfy-center text-red-500/70 text-xs ">
-                              <x-iconos.whatsapp/>
-                              Desactivado
-                              @endif
-                            </div>
-                            @else
-                              <x-iconos.alert clase="text-red-400/50 size-6"/>
-                              <h6 class="text-[10px] text-red-500/60">Error de envío o se ha pasado de fecha</h6>
-                            @endif
-                            @else
-                              <span class="flex items-center justify-center
+                        </div>
+                      @else
+                        <div class="flex flex-col items-center jusitfy-center text-red-500/70 text-xs ">
+                          <x-iconos.whatsapp/>
+                          Desactivado
+                        </div>
+                      @endif
+                </div>
+                @else
+                  <x-iconos.alert clase="text-red-400/50 size-6"/>
+                  <h6 class="text-[10px] text-red-500/60">Error de envío o se ha pasado de fecha</h6>
+                @endif
+                @else
+                  <span class="flex items-center justify-center
                   {{ $appointment->enviado && $appointment->whatsapp_sent_at ? 'text-green-400' : 'text-slate-300/40' }}">
                     <span class="size-1 absolute top-1 left-1/2 rounded-full bg-red-500 {{ $appointment->whatsapp_sent_at ? 'hidden' : 'visible' }}"></span>
                     <x-iconos.doble-check/>
                   </span>
-                              <h6 class="text-[10px] text-slate-400">
-                                {{ $appointment->whatsapp_sent_at?->format('H:i d/m/Y') }}
-                              </h6>
-                            @endif
-                        </div>
-              </td>
-            @endif
-            @if ($showDeliveredColumns)
-              <td class="px-4 py-3 text-center">
-                @php
-                  $latestMsg = $appointment->latestWhatsAppMessage;
-                  $deliveryFailed = $latestMsg?->status === 'failed'
-                    || in_array($latestMsg?->deliveryStatus(), ['failed', 'undelivered'], true);
-                @endphp
-                @if($deliveryFailed)
-                  <div class="relative flex flex-col items-center justify-center gap-1">
-                    <x-iconos.alert clase="text-red-400/50 size-6"/>
-                    <h6 class="text-[10px] text-red-500/60">No entregado</h6>
-                  </div>
-                @elseif($latestMsg?->provider_message_id)
-                  <div class="relative flex flex-col items-center justify-center gap-1">
+                  <h6 class="text-[10px] text-slate-400">
+                    {{ $appointment->whatsapp_sent_at?->format('H:i d/m/Y') }}
+                  </h6>
+      @endif
+    </div>
+    </td>
+    @endif
+    @if ($showDeliveredColumns)
+      <td class="px-4 py-3 text-center">
+        @php
+          $latestMsg = $appointment->latestWhatsAppMessage;
+          $deliveryFailed = $latestMsg?->status === 'failed'
+            || in_array($latestMsg?->deliveryStatus(), ['failed', 'undelivered'], true);
+        @endphp
+        @if($deliveryFailed)
+          <div class="relative flex flex-col items-center justify-center gap-1">
+            <x-iconos.alert clase="text-red-400/50 size-6"/>
+            <h6 class="text-[10px] text-red-500/60">No entregado</h6>
+          </div>
+        @elseif($latestMsg?->provider_message_id)
+          <div class="relative flex flex-col items-center justify-center gap-1">
                   <span class="flex items-center justify-center
                   {{ $appointment->entregado && $appointment->whatsapp_delivered_at ? 'text-green-400' : 'text-slate-300/40' }}">
                     <span class="size-1 absolute top-1 left-1/2 rounded-full bg-red-500
@@ -258,126 +260,136 @@
                     </span>
                     <x-iconos.doble-check/>
                   </span>
-                    <h6 class="text-[10px] text-slate-400">
-                      {{ $appointment->whatsapp_delivered_at?->format('H:i d/m/Y') }}
-                    </h6>
-                  </div>
-                @endif
-              </td>
-            @endif
-            @if ($showReadColumn)
-              <td class="px-4 py-3 ">
-                @if($appointment->latestWhatsAppMessage?->provider_message_id)
-                  <div class="relative flex flex-col items-center justify-center gap-1">
-                    @if($appointment->entregado)
-                      <x-iconos.doble-check
-                              clase="size-6 {{ filled($appointment->whatsapp_read_at) ? 'text-green-400' : 'text-gray-400' }}"/>
-                      <h6 class="text-[10px] text-slate-400">
-                        {{ $appointment->whatsapp_read_at?->format('H:i d/m/Y') }}
-                      </h6>
-                    @else
-                      <x-iconos.alert clase="text-red-600/50 size-6"/>
-                @endif
-                @endif
-              </td>
-            @endif
-            @if ($showPendingColumn)
-              <td class="px-4 py-3 text-center" onclick="event.stopPropagation()">
-                @if ($canChange && ! $appointment->enviado)
-                  <x-formularios.toggle
-                          :estado="$appointment->activo ? 'Sí' : 'No'"
-                          :checked="$appointment->activo"
-                          wire:change="updateActiveStatus({{ $appointment->id }}, $event.target.checked)"/>
-                @endif
-              </td>
-            @endif
-            <td class="px-4 py-3 text-right" onclick="event.stopPropagation()">
-              <div class="flex justify-end items-center gap-2">
-                @if ($canSendNow)
-                  <x-botones.accion
-                          variant="add"
-                          size="sm"
-                          type="button"
-                          wire:click="sendNow({{ $appointment->id }})"
-                          wire:loading.attr="disabled"
-                          wire:target="sendNow({{ $appointment->id }})">
-                    Enviar ya
-                  </x-botones.accion>
-                @endif
-                @if ($canChange)
-                  <x-botones.accion
-                          variant="edit"
-                          size="icon"
-                          icono="edit"
-                          href="{{ $editUrl }}"
-                          aria-label="Editar cita"
-                          title="Editar cita"/>
-                @endif
-                <x-botones.accion
-                        variant="delete"
-                        size="icon"
-                        icono="delete"
-                        type="button"
-                        wire:click="confirmDelete({{ $appointment->id }})"
-                        aria-label="Eliminar cita"
-                        title="Eliminar cita"/>
-              </div>
-            </td>
-          </tr>
-        @empty
-          <tr>
-            <td class="px-4 py-6 text-slate-400"
-                colspan="{{ 4 + ($showBulkActions ? 1 : 0) + ($showSentColumns ? 1 : 0) + ($showDeliveredColumns ? 1 : 0) + ($showReadColumn ? 1 : 0) + ($showPendingColumn ? 1 : 0) }}">
-              {{ $sentOnly ? 'No hay citas enviadas para mostrar todavía.' : 'No hay citas para mostrar todavía.' }}
-            </td>
-          </tr>
-        @endforelse
-        </tbody>
+            <h6 class="text-[10px] text-slate-400">
+              {{ $appointment->whatsapp_delivered_at?->format('H:i d/m/Y') }}
+            </h6>
+          </div>
+        @endif
+      </td>
+    @endif
+    @if ($showReadColumn)
+      <td class="px-4 py-3 ">
+        @if($appointment->latestWhatsAppMessage?->provider_message_id)
+          <div class="relative flex flex-col items-center justify-center gap-1">
+            @if($appointment->entregado )
+              <x-iconos.doble-check
+                      clase="size-6 {{ filled($appointment->whatsapp_read_at) ? 'text-green-400' : 'text-gray-400' }}"/>
+              <h6 class="text-[10px] text-slate-400">
+                {{ $appointment->whatsapp_read_at?->format('H:i d/m/Y') }}
+              </h6>
+            @else
+              <x-iconos.alert clase="text-red-600/50 size-6"/>
+        @endif
+        @endif
+      </td>
+    @endif
+    @if ($showPendingColumn)
+      <td class="px-4 py-3 text-center" onclick="event.stopPropagation()">
+        @if ($canChange && ! $appointment->enviado)
+          <x-formularios.toggle
+                  :estado="$appointment->activo ? 'Sí' : 'No'"
+                  :checked="$appointment->activo"
+                  wire:change="updateActiveStatus({{ $appointment->id }}, $event.target.checked)"/>
+        @endif
+      </td>
+    @endif
+    <td class="px-4 py-3 text-right" onclick="event.stopPropagation()">
+      <div class="flex justify-end items-center gap-2">
+        @if ($canSendNow)
+          <x-botones.accion
+                  variant="add"
+                  size="sm"
+                  type="button"
+                  x-on:click="localStorage.setItem('autoSyncAfterSend', '1')"
+                  wire:click="sendNow({{ $appointment->id }})"
+                  wire:loading.attr="disabled"
+                  wire:target="sendNow({{ $appointment->id }})">
+            Enviar ya
+          </x-botones.accion>
+        @endif
+        @if ($canChange)
+          <x-botones.accion
+                  variant="edit"
+                  size="icon"
+                  icono="edit"
+                  href="{{ $editUrl }}"
+                  aria-label="Editar cita"
+                  title="Editar cita"/>
+        @endif
+        <x-botones.accion
+                variant="delete"
+                size="icon"
+                icono="delete"
+                type="button"
+                wire:click="confirmDelete({{ $appointment->id }})"
+                aria-label="Eliminar cita"
+                title="Eliminar cita"/>
+      </div>
+    </td>
+    </tr>
+    @empty
+      <tr>
+        <td class="px-4 py-6 text-slate-400"
+            colspan="{{ 4 + ($showBulkActions ? 1 : 0) + ($showSentColumns ? 1 : 0) + ($showDeliveredColumns ? 1 : 0) + ($showReadColumn ? 1 : 0) + ($showPendingColumn ? 1 : 0) }}">
+          {{ $sentOnly ? 'No hay citas enviadas para mostrar todavía.' : 'No hay citas para mostrar todavía.' }}
+        </td>
+      </tr>
+      @endforelse
+      </tbody>
       </table>
-    </div>
-
-    <div class="mt-4">
-      {{ $appointments->links('vendor.pagination.tailwind') }}
-    </div>
   </div>
 
-  @if ($appointmentPendingDeletion)
-    <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 px-4 py-6">
-      <div class="w-full max-w-md rounded-3xl border border-white/10 bg-slate-900 p-6 shadow-2xl">
-        <h3 class="text-lg font-semibold">Eliminar cita</h3>
-        <p class="mt-3 text-sm text-slate-300">
-          ¿Seguro que quieres eliminar la cita de
-          <span class="font-medium text-white">{{ $appointmentPendingDeletion->client?->full_name }}</span>
-          del {{ $appointmentPendingDeletion->fecha?->format('d/m/Y') }} a
-          las {{ $appointmentPendingDeletion->hora }}?
-        </p>
-        <p class="mt-2 text-sm text-slate-400">Esta acción no se puede deshacer.</p>
-
-        <div class="mt-6 flex flex-wrap justify-end gap-2">
-          <x-botones.accion type="button" wire:click="cancelDelete">Cancelar</x-botones.accion>
-          <x-botones.accion variant="delete" icono="delete" type="button" wire:click="deleteConfirmed">
-            Eliminar
-          </x-botones.accion>
-        </div>
-      </div>
-    </div>
-  @endif
-
-  <flux:modal wire:model.self="bulkDeleteConfirmationOpen" class="min-w-[22rem]">
-    <div class="space-y-6">
-      <div>
-        <flux:heading size="lg">¿Eliminar citas seleccionadas?</flux:heading>
-        <flux:text class="mt-2">
-          Se eliminarán {{ count($selectedAppointmentIds) }} cita(s). Esta acción no se puede deshacer.
-        </flux:text>
-      </div>
-      <div class="flex gap-2">
-        <flux:spacer/>
-        <flux:modal.close>
-          <flux:button variant="ghost">Cancelar</flux:button>
-        </flux:modal.close>
-        <flux:button variant="danger" wire:click="deleteSelected">Eliminar</flux:button>
-      </div>
-    </div>
-  </flux:modal>
+  <div class="mt-4">
+    {{ $appointments->links('vendor.pagination.tailwind') }}
+  </div>
 </div>
+
+@if ($appointmentPendingDeletion)
+  <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 px-4 py-6">
+    <div class="w-full max-w-md rounded-3xl border border-white/10 bg-slate-900 p-6 shadow-2xl">
+      <h3 class="text-lg font-semibold">Eliminar cita</h3>
+      <p class="mt-3 text-sm text-slate-300">
+        ¿Seguro que quieres eliminar la cita de
+        <span class="font-medium text-white">{{ $appointmentPendingDeletion->client?->full_name }}</span>
+        del {{ $appointmentPendingDeletion->fecha?->format('d/m/Y') }} a
+        las {{ $appointmentPendingDeletion->hora }}?
+      </p>
+      <p class="mt-2 text-sm text-slate-400">Esta acción no se puede deshacer.</p>
+
+      <div class="mt-6 flex flex-wrap justify-end gap-2">
+        <x-botones.accion type="button" wire:click="cancelDelete">Cancelar</x-botones.accion>
+        <x-botones.accion variant="delete" icono="delete" type="button" wire:click="deleteConfirmed">
+          Eliminar
+        </x-botones.accion>
+      </div>
+    </div>
+  </div>
+@endif
+
+<flux:modal wire:model.self="bulkDeleteConfirmationOpen" class="min-w-[22rem]">
+  <div class="space-y-6">
+    <div>
+      <flux:heading size="lg">¿Eliminar citas seleccionadas?</flux:heading>
+      <flux:text class="mt-2">
+        Se eliminarán {{ count($selectedAppointmentIds) }} cita(s). Esta acción no se puede deshacer.
+      </flux:text>
+    </div>
+    <div class="flex gap-2">
+      <flux:spacer/>
+      <flux:modal.close>
+        <flux:button variant="ghost">Cancelar</flux:button>
+      </flux:modal.close>
+      <flux:button variant="danger" wire:click="deleteSelected">Eliminar</flux:button>
+    </div>
+  </div>
+</flux:modal>
+</div>
+
+@script
+<script>
+  if (localStorage.getItem('autoSyncAfterSend') === '1') {
+    localStorage.removeItem('autoSyncAfterSend');
+    setTimeout(() => $wire.syncDeliveryStatuses(), 3000);
+  }
+</script>
+@endscript

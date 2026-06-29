@@ -12,6 +12,18 @@
       <p class="text-sm text-slate-400">Fallidos</p>
       <p class="mt-2 text-3xl font-semibold">{{ $failedCount }}</p>
     </div>
+    <div class="rounded-3xl border border-white/10 bg-white/5 p-6">
+      <p class="text-sm text-slate-400">Canceladas</p>
+      <p class="mt-2 text-3xl font-semibold">{{ $cancelados }}</p>
+    </div>
+    <div class="rounded-3xl border border-white/10 bg-white/5 p-6">
+      <p class="text-sm text-slate-400">Caducados</p>
+      <p class="mt-2 text-3xl font-semibold">{{ $caducados }}</p>
+    </div>
+    <div class="rounded-3xl border border-white/10 bg-white/5 p-6">
+      <p class="text-sm text-slate-400">Totales</p>
+      <p class="mt-2 text-3xl font-semibold">{{ $totales }}</p>
+    </div>
   </div>
 
   <div class="flex flex-wrap max-w-2xl items-center gap-2">
@@ -29,7 +41,7 @@
 
     <select
             wire:change="selectDate($event.target.value)"
-            class="rounded-full border border-white/10 bg-white/5  py-2 text-sm font-medium text-slate-300 transition-colors hover:bg-white/10 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            class="rounded-full border border-white/10 bg-white/5 px-4  py-2 text-sm font-medium text-slate-300 transition-colors hover:bg-white/10 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
     >
       <option value="">Num Días</option>
       @foreach ($futureDayOptions as $days)
