@@ -41,12 +41,34 @@
         <div class="mt-4 space-y-3">
             @forelse ($nextAppointments as $appointment)
                 <div class="flex flex-col gap-2 rounded-2xl border border-white/10 bg-slate-900/50 p-4 md:flex-row md:items-center md:justify-between">
-                    <div>
-                        <p class="font-medium">{{ $appointment->client?->full_name }}</p>
-                        <p class="text-sm text-slate-400">{{ $appointment->client?->telefono }}</p>
+                    <div class="flex items-center gap-3">
+                        <div>
+                            <a href="{{ route('appointments.index', ['client' => $appointment->client_id]) }}"
+                               class="font-medium text-emerald-300 hover:text-emerald-200 hover:underline">
+                                {{ $appointment->client?->full_name }}
+                            </a>
+                            <p class="text-sm text-slate-400">{{ $appointment->client?->telefono }}</p>
+                        </div>
                     </div>
-                    <div class="text-sm text-slate-300">
-                        {{ $appointment->scheduledFor()->format('d/m/Y H:i') }}
+                    <div class="flex items-center gap-2">
+                        <span class="text-sm text-slate-300">
+                            {{ $appointment->scheduledFor()->format('d/m/Y H:i') }}
+                        </span>
+                        <a href="{{ route('appointments.index', ['client' => $appointment->client_id]) }}"
+                           class="inline-flex items-center justify-center rounded-full border border-white/10 bg-white/5 p-2 text-slate-300 transition-colors hover:border-white/20 hover:bg-white/10 hover:text-white"
+                           title="Ver citas del cliente">
+                            <svg viewBox="0 0 14 14" class="size-3.5" fill="none" stroke="currentColor" stroke-width="1.5">
+                                <path d="M7 3c-3.489 0-6.514 2.032-8 5 1.486 2.968 4.511 5 8 5s6.514-2.032 8-5c-1.486-2.968-4.511-5-8-5z"/>
+                                <circle cx="7" cy="7" r="2"/>
+                            </svg>
+                        </a>
+                        <a href="{{ route('clients.edit', $appointment->client_id) }}"
+                           class="inline-flex items-center justify-center rounded-full border border-white/10 bg-white/5 p-2 text-slate-300 transition-colors hover:border-white/20 hover:bg-white/10 hover:text-white"
+                           title="Editar cliente">
+                            <svg viewBox="0 0 14 14" class="size-3.5" fill="none" stroke="currentColor" stroke-width="1.5">
+                                <path d="M8.5 2.5l3 3M1 13l1-4L10.5 0.5c0.8-0.8 2-0.8 2.8 0l0.2 0.2c0.8 0.8 0.8 2 0 2.8L5 12l-4 1z"/>
+                            </svg>
+                        </a>
                     </div>
                 </div>
             @empty
