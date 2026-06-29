@@ -10,7 +10,7 @@ use Livewire\Component;
 
 class DashboardOverview extends Component
 {
-    public int $selectedDateOffset = 1;
+    public int $selectedDateOffset = 0;
 
     public function selectDate(int $offset): void
     {
@@ -50,7 +50,7 @@ class DashboardOverview extends Component
     private function resolvedDates(): array
     {
         $now = now(config('app.timezone'));
-        $dates = [];
+        $dates = [0 => $now->copy()->startOfDay()];
 
         for ($offset = 1; $offset <= 3; $offset++) {
             $date = $now->copy()->addDays($offset);
@@ -79,11 +79,12 @@ class DashboardOverview extends Component
     {
         $resolved = $this->resolvedDates();
 
-        return collect([1, 2, 3])
+        return collect([0, 1, 2, 3])
             ->mapWithKeys(fn (int $offset) => [
                 $offset => [
                     'offset' => $offset,
                     'label' => match ($offset) {
+                        0 => 'Hoy',
                         1 => 'Mañana',
                         2 => 'Pasado mañana',
                         3 => 'En 3 días',
@@ -96,6 +97,10 @@ class DashboardOverview extends Component
 
     private function sundayWarning(): ?string
     {
+        if ($this->selectedDateOffset === 0) {
+            return null;
+        }
+
         $now = now(config('app.timezone'));
         $rawDate = $now->copy()->addDays($this->selectedDateOffset);
 

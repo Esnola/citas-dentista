@@ -22,11 +22,11 @@ class DashboardOverviewTest extends TestCase
         parent::tearDown();
     }
 
-    public function test_shows_tomorrow_appointments_on_regular_days(): void
+    public function test_shows_today_appointments_by_default(): void
     {
         $now = Carbon::parse('2026-06-22 10:00:00')->next(Carbon::FRIDAY);
         Carbon::setTestNow($now);
-        $appointmentAt = $now->copy()->addDay()->setTime(11, 20);
+        $appointmentAt = $now->copy()->setTime(11, 20);
 
         $user = User::factory()->create();
         $client = Client::query()->create([
@@ -51,11 +51,11 @@ class DashboardOverviewTest extends TestCase
             ->assertSee($appointmentAt->format('d/m/Y H:i'));
     }
 
-    public function test_shows_monday_appointments_when_today_is_saturday(): void
+    public function test_shows_saturday_appointments_when_today_is_saturday(): void
     {
         $now = Carbon::parse('2026-06-22 10:00:00')->next(Carbon::SATURDAY);
         Carbon::setTestNow($now);
-        $appointmentAt = $now->copy()->next(Carbon::MONDAY)->setTime(9, 0);
+        $appointmentAt = $now->copy()->setTime(9, 0);
 
         $user = User::factory()->create();
         $client = Client::query()->create([
@@ -86,6 +86,7 @@ class DashboardOverviewTest extends TestCase
         $this->actingAs($user);
 
         Livewire::test(DashboardOverview::class)
+            ->assertSee('Hoy')
             ->assertSee('Mañana')
             ->assertSee('Pasado mañana')
             ->assertSee('En 3 días');
@@ -103,6 +104,7 @@ class DashboardOverviewTest extends TestCase
             'telefono' => '+34600123123',
         ]);
 
+        // Appointment in 2 days (Wednesday)
         $twoDaysLater = $now->copy()->addDays(2)->setTime(14, 0);
         Appointment::query()->create([
             'client_id' => $client->id,
@@ -114,6 +116,7 @@ class DashboardOverviewTest extends TestCase
 
         $this->actingAs($user);
 
+        // Default is today (Monday) — appointment not shown
         Livewire::test(DashboardOverview::class)
             ->assertDontSee('Ana Pérez')
             ->call('selectDate', 2)
@@ -133,6 +136,17 @@ class DashboardOverviewTest extends TestCase
             'telefono' => '+34666777888',
         ]);
 
+        // Today is Saturday — create appointment for today (default view)
+        $saturday = $now->copy()->setTime(9, 0);
+        Appointment::query()->create([
+            'client_id' => $client->id,
+            'fecha' => $saturday->toDateString(),
+            'hora' => $saturday->format('H:i:s'),
+            'enviado' => false,
+            'activo' => true,
+        ]);
+
+        // Also create Monday appointment to verify skip works when selecting tomorrow
         $monday = $now->copy()->next(Carbon::MONDAY)->setTime(9, 0);
         Appointment::query()->create([
             'client_id' => $client->id,
@@ -144,8 +158,13 @@ class DashboardOverviewTest extends TestCase
 
         $this->actingAs($user);
 
+        // Default view shows today (Saturday)
         Livewire::test(DashboardOverview::class)
-            ->assertSee('Lucía Martín')
+            ->assertSee('Lucía Martín');
+
+        // Selecting tomorrow (offset 1) skips Sunday → shows Monday
+        Livewire::test(DashboardOverview::class)
+            ->call('selectDate', 1)
             ->assertSee('lunes');
     }
 
@@ -169,7 +188,13 @@ class DashboardOverviewTest extends TestCase
 
         $this->actingAs($user);
 
+        // Default is today (Saturday) — no warning
         Livewire::test(DashboardOverview::class)
+            ->assertDontSee('domingo');
+
+        // Selecting tomorrow (offset 1) lands on Sunday — warning shown
+        Livewire::test(DashboardOverview::class)
+            ->call('selectDate', 1)
             ->assertSee('domingo');
     }
 
@@ -185,7 +210,8 @@ class DashboardOverviewTest extends TestCase
             'telefono' => '+34600123123',
         ]);
 
-        $appointmentAt = $now->copy()->addDay()->setTime(11, 20);
+        // Create appointment for today (default view)
+        $appointmentAt = $now->copy()->setTime(11, 20);
         Appointment::query()->create([
             'client_id' => $client->id,
             'fecha' => $appointmentAt->toDateString(),
@@ -213,7 +239,8 @@ class DashboardOverviewTest extends TestCase
             'telefono' => '+34611222333',
         ]);
 
-        $appointmentAt = $now->copy()->addDay()->setTime(9, 0);
+        // Create appointment for today (default view)
+        $appointmentAt = $now->copy()->setTime(9, 0);
         Appointment::query()->create([
             'client_id' => $client->id,
             'fecha' => $appointmentAt->toDateString(),
