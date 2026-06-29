@@ -7,8 +7,14 @@
         {{ $clients->total() }} cliente{{ $clients->total() === 1 ? '' : 's' }}
       </div>
     </div>
-    <x-botones.accion variant="add" icono="plus" href="{{ route('clients.create') }}">Nuevo cliente
-    </x-botones.accion>
+
+    <x-botones.icono-buton
+            color="emerald"
+            icon="usuario-plus"
+            label="Nuevo Cliente"
+            texto="Nuevo Cliente"
+            onclick="window.location.href='{{ route('clients.create') }}'"
+            />
   </div>
 
   <div class="mt-4 grid gap-4 sm:grid-cols-3">

@@ -5,7 +5,15 @@
                 <h2 class="text-xl font-semibold">{{ $selectedClient ? 'Editar cliente' : 'Crear cliente' }}</h2>
                 <p class="mt-2 text-sm text-slate-300">Gestiona los datos básicos de la ficha del cliente.</p>
             </div>
-            <x-botones.accion variant="indigo" size="sm" icono="back" back href="{{ route('clients.list') }}">Volver al listado</x-botones.accion>
+
+
+          <x-botones.icono-buton
+                  color="indigo"
+                  icon="salir"
+                  especial="size-5"
+                  label="Volver al listado"
+                  texto="Volver al listado"
+                  onclick="history.back()" />
         </div>
 
         <form class="mt-6 grid grid-cols-3 gap-4" wire:submit="save">
@@ -28,10 +36,21 @@
             </flux:field>
 
             <div class="flex flex-wrap gap-2 mt-4">
-                <x-botones.accion variant="add" size="sm" icono="check" type="submit">
-                    {{ $selectedClient ? 'Guardar cambios' : 'Crear cliente' }}
-                </x-botones.accion>
-                <x-botones.accion variant="indigo" size="sm" back href="{{ route('clients.list') }}">Volver</x-botones.accion>
+              <x-botones.icono-buton
+                      icon="check"
+                      type="submit"
+                      especial="size-5"
+                      label="{{ $selectedClient ? 'Guardar cambios' : 'Crear cliente' }}"
+                      texto="{{ $selectedClient ? 'Guardar cambios' : 'Crear cliente' }}"
+              />
+
+              <x-botones.icono-buton
+                      color="indigo"
+                      icon="salir"
+                      especial="size-5"
+                      label="Volver"
+                      texto="Volver"
+                      onclick="history.back()" />
             </div>
         </form>
     </div>

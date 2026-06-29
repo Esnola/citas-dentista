@@ -17,7 +17,13 @@
             </div>
             <x-formularios.toggle name="remember" texto="Recuérdame" />
             <div class="flex items-center justify-between gap-4">
-                <x-botones.accion variant="add" icono="check" type="submit">Entrar</x-botones.accion>
+              <x-botones.icono-buton
+                      icon="conectar"
+                      type="submit"
+                      texto="Conectarse a la aplicación"
+                      especial="size-8"
+                      label="Conectarse a la aplicación"
+              />
             </div>
         </form>
     </div>

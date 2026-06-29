@@ -8,7 +8,13 @@
             Laravel 13, Livewire y Flux para gestionar contactos, programar envíos y automatizar la cola de mensajes.
         </p>
         <div class="mt-8 flex flex-wrap gap-3">
-            <x-botones.accion variant="add" icono="check" href="{{ route('login') }}">Entrar</x-botones.accion>
+          <x-botones.icono-buton
+                  icon="conectar"
+                  texto="Entrar"
+                  especial="size-8"
+                  label="Conectarse a la aplicación"
+                  onclick="window.location='{{  route('login') }}'"
+          />
         </div>
     </div>
 @endsection

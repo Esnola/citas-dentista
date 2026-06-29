@@ -15,7 +15,6 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Livewire\Component;
 use Livewire\WithPagination;
-use RuntimeException;
 
 class AppointmentList extends Component
 {
@@ -91,35 +90,62 @@ class AppointmentList extends Component
         $this->deliveryStatusesSyncedAt = Cache::get('appointment_delivery_statuses_synced_at');
     }
 
-    public function updatedFilterNombre(): void
+    public function updated(string $property): void
     {
-        $this->resetPage('appointmentsPage');
-    }
+        if (in_array($property, ['filter_nombre', 'filter_apellidos'], true)) {
+            $this->resetAppointmentsPage();
 
-    public function updatedFilterApellidos(): void
-    {
-        $this->resetPage('appointmentsPage');
-    }
-
-    public function updatedDateFilter(): void
-    {
-        if (! in_array($this->dateFilter, ['upcoming', 'all', 'past'], true)) {
-            $this->dateFilter = 'upcoming';
+            return;
         }
 
-        $this->resetPage('appointmentsPage');
-    }
+        if ($property === 'dateFilter') {
+            if (! in_array($this->dateFilter, ['upcoming', 'all', 'past'], true)) {
+                $this->dateFilter = 'upcoming';
+            }
 
-    public function updatedFilterEnviado(): void
-    {
-        $this->forceDeliveryStatusSync();
+            $this->resetAppointmentsPage();
 
-        if ($this->filter_enviado) {
-            $this->filter_activo = false;
-            $this->filter_entregado = false;
+            return;
         }
 
-        $this->resetPage('appointmentsPage');
+        if (in_array($property, ['filter_enviado', 'filter_activo', 'filter_entregado'], true)) {
+            $this->forceDeliveryStatusSync();
+            $this->syncExclusiveDeliveryFilters($property);
+            $this->resetAppointmentsPage();
+
+            return;
+        }
+
+        if ($property === 'showAllHistory') {
+            if ($this->showAllHistory) {
+                $this->filter_enviado = false;
+                $this->filter_entregado = false;
+                $this->filter_activo = false;
+                $this->dateFilter = 'all';
+            }
+
+            $this->resetAppointmentsPage();
+
+            return;
+        }
+
+        if ($property === 'sort_by') {
+            if (! in_array($this->sort_by, ['cliente', 'fecha'], true)) {
+                $this->sort_by = 'fecha';
+            }
+
+            $this->resetAppointmentsPage();
+
+            return;
+        }
+
+        if ($property === 'sort_direction') {
+            if (! in_array($this->sort_direction, ['asc', 'desc'], true)) {
+                $this->sort_direction = 'asc';
+            }
+
+            $this->resetAppointmentsPage();
+        }
     }
 
     private function forceDeliveryStatusSync(): int
@@ -129,60 +155,6 @@ class AppointmentList extends Component
         Cache::forever('appointment_delivery_statuses_synced_at', $this->deliveryStatusesSyncedAt);
 
         return $updated;
-    }
-
-    public function updatedFilterActivo(): void
-    {
-        $this->forceDeliveryStatusSync();
-
-        if ($this->filter_activo) {
-            $this->filter_enviado = false;
-            $this->filter_entregado = false;
-        }
-
-        $this->resetPage('appointmentsPage');
-    }
-
-    public function updatedFilterEntregado(): void
-    {
-        $this->forceDeliveryStatusSync();
-
-        if ($this->filter_entregado) {
-            $this->filter_enviado = false;
-            $this->filter_activo = false;
-        }
-
-        $this->resetPage('appointmentsPage');
-    }
-
-    public function updatedShowAllHistory(): void
-    {
-        if ($this->showAllHistory) {
-            $this->filter_enviado = false;
-            $this->filter_entregado = false;
-            $this->filter_activo = false;
-            $this->dateFilter = 'all';
-        }
-
-        $this->resetPage('appointmentsPage');
-    }
-
-    public function updatedSortBy(): void
-    {
-        if (! in_array($this->sort_by, ['cliente', 'fecha'], true)) {
-            $this->sort_by = 'fecha';
-        }
-
-        $this->resetPage('appointmentsPage');
-    }
-
-    public function updatedSortDirection(): void
-    {
-        if (! in_array($this->sort_direction, ['asc', 'desc'], true)) {
-            $this->sort_direction = 'asc';
-        }
-
-        $this->resetPage('appointmentsPage');
     }
 
     public function sortByColumn(string $column): void
@@ -197,8 +169,6 @@ class AppointmentList extends Component
             $this->sort_by = $column;
             $this->sort_direction = 'asc';
         }
-
-        $this->resetPage('appointmentsPage');
     }
 
     public function confirmDelete(int $appointmentId): void
@@ -360,64 +330,12 @@ class AppointmentList extends Component
 
     public function render()
     {
-        $selectedClient = $this->clientId
-          ? Client::query()->find($this->clientId)
-          : null;
+        $selectedClient = $this->selectedClient();
         $now = Carbon::now(config('app.timezone'));
-
-        $appointmentsQuery = Appointment::query()
-            ->select('appointments.*')
-            ->with(['client', 'latestWhatsAppMessage'])
-            ->leftJoin('clients', 'clients.id', '=', 'appointments.client_id')
-            ->when($selectedClient, fn ($query) => $query->where('appointments.client_id', $selectedClient->id))
-            ->when($this->filter_nombre, fn ($query) => $query->whereHas('client', fn ($clientQuery) => $clientQuery->where('nombre', 'like', '%'.$this->filter_nombre.'%')))
-            ->when($this->filter_apellidos, fn ($query) => $query->whereHas('client', fn ($clientQuery) => $clientQuery->where('apellidos', 'like', '%'.$this->filter_apellidos.'%')))
-            ->when($this->sentOnly, fn ($query) => $query->where('appointments.enviado', true))
-            ->when(! $this->showAllHistory && $selectedClient && ! $this->sentOnly && $this->dateFilter === 'upcoming', fn (Builder $query) => $this->whereFutureAppointment($query, $now))
-            ->when(! $this->showAllHistory && $selectedClient && ! $this->sentOnly && $this->dateFilter === 'past', fn (Builder $query) => $this->wherePastAppointment($query, $now))
-            ->when(! $this->showAllHistory && ! $this->sentOnly && $this->filter_entregado, fn ($query) => $query->where('appointments.entregado', true))
-            ->when(! $this->showAllHistory && ! $this->sentOnly && $this->filter_enviado, fn ($query) => $query->where('appointments.enviado', true))
-            ->when(! $this->showAllHistory && ! $this->sentOnly && ! $this->filter_entregado && ! $this->filter_enviado && $this->filter_activo, function (Builder $query) use ($now): void {
-                $query->where(function (Builder $nonPendingQuery) use ($now): void {
-                    $this->wherePastAppointment($nonPendingQuery, $now);
-                    $nonPendingQuery->orWhere(function (Builder $inactiveFutureQuery) use ($now): void {
-                        $inactiveFutureQuery
-                            ->where('appointments.enviado', false)
-                            ->where('appointments.activo', false);
-
-                        $this->whereFutureAppointment($inactiveFutureQuery, $now);
-                    });
-                });
-            })
-            ->when(! $this->showAllHistory && ! $selectedClient && ! $this->sentOnly && ! $this->filter_entregado && ! $this->filter_enviado && ! $this->filter_activo, function (Builder $query) use ($now): void {
-                $query
-                    ->where('appointments.enviado', false)
-                    ->where('appointments.activo', true);
-
-                $this->whereFutureAppointment($query, $now);
-            });
-
-        if ($this->sort_by === 'cliente') {
-            $appointmentsQuery
-                ->orderBy('clients.nombre', $this->sort_direction)
-                ->orderBy('clients.apellidos', $this->sort_direction)
-                ->orderBy('appointments.fecha', $this->sort_direction)
-                ->orderBy('appointments.hora', $this->sort_direction);
-        } else {
-            $appointmentsQuery
-                ->orderBy('appointments.fecha', $this->sort_direction)
-                ->orderBy('appointments.hora', $this->sort_direction);
-        }
+        $appointmentsQuery = $this->appointmentsQuery($selectedClient, $now);
 
         $appointmentsCount = (clone $appointmentsQuery)->count();
-
-        $appointments = $selectedClient || $this->sentOnly
-          ? $appointmentsQuery->paginate(15, ['appointments.*'], 'appointmentsPage')
-          : $this->paginateUniqueAppointments(
-              $this->sortUniqueAppointments(
-                  $this->buildUniqueAppointments($appointmentsQuery->get(), $now)
-              )
-          );
+        $appointments = $this->resolveAppointments($appointmentsQuery, $selectedClient, $now);
 
         $showSentColumns = $this->showAllHistory || $appointments->getCollection()->contains(fn (Appointment $appointment): bool => $appointment->enviado);
         $showDeliveredColumns = $this->showAllHistory || $appointments->getCollection()->contains(fn (Appointment $appointment): bool => $appointment->entregado || filled($appointment->latestWhatsAppMessage?->provider_message_id));
@@ -472,6 +390,93 @@ class AppointmentList extends Component
                         ->where('appointments.hora', '<=', $now->format('H:i:s'));
                 });
         });
+    }
+
+    private function resetAppointmentsPage(): void
+    {
+        $this->resetPage('appointmentsPage');
+    }
+
+    private function syncExclusiveDeliveryFilters(string $activeFilter): void
+    {
+        if ($activeFilter === 'filter_enviado' && $this->filter_enviado) {
+            $this->filter_activo = false;
+            $this->filter_entregado = false;
+        }
+
+        if ($activeFilter === 'filter_activo' && $this->filter_activo) {
+            $this->filter_enviado = false;
+            $this->filter_entregado = false;
+        }
+
+        if ($activeFilter === 'filter_entregado' && $this->filter_entregado) {
+            $this->filter_enviado = false;
+            $this->filter_activo = false;
+        }
+    }
+
+    private function selectedClient(): ?Client
+    {
+        return $this->clientId ? Client::query()->find($this->clientId) : null;
+    }
+
+    private function appointmentsQuery(?Client $selectedClient, Carbon $now): Builder
+    {
+        return Appointment::query()
+            ->select('appointments.*')
+            ->with(['client', 'latestWhatsAppMessage'])
+            ->leftJoin('clients', 'clients.id', '=', 'appointments.client_id')
+            ->when($selectedClient, fn (Builder $query) => $query->where('appointments.client_id', $selectedClient->id))
+            ->when($this->filter_nombre, fn (Builder $query) => $query->whereHas('client', fn ($clientQuery) => $clientQuery->where('nombre', 'like', '%'.$this->filter_nombre.'%')))
+            ->when($this->filter_apellidos, fn (Builder $query) => $query->whereHas('client', fn ($clientQuery) => $clientQuery->where('apellidos', 'like', '%'.$this->filter_apellidos.'%')))
+            ->when($this->sentOnly, fn (Builder $query) => $query->where('appointments.enviado', true))
+            ->when(! $this->showAllHistory && $selectedClient && ! $this->sentOnly && $this->dateFilter === 'upcoming', fn (Builder $query) => $this->whereFutureAppointment($query, $now))
+            ->when(! $this->showAllHistory && $selectedClient && ! $this->sentOnly && $this->dateFilter === 'past', fn (Builder $query) => $this->wherePastAppointment($query, $now))
+            ->when(! $this->showAllHistory && ! $this->sentOnly && $this->filter_entregado, fn (Builder $query) => $query->where('appointments.entregado', true))
+            ->when(! $this->showAllHistory && ! $this->sentOnly && $this->filter_enviado, fn (Builder $query) => $query->where('appointments.enviado', true))
+            ->when(! $this->showAllHistory && ! $this->sentOnly && ! $this->filter_entregado && ! $this->filter_enviado && $this->filter_activo, function (Builder $query) use ($now): void {
+                $query->where(function (Builder $nonPendingQuery) use ($now): void {
+                    $this->wherePastAppointment($nonPendingQuery, $now);
+                    $nonPendingQuery->orWhere(function (Builder $inactiveFutureQuery) use ($now): void {
+                        $inactiveFutureQuery
+                            ->where('appointments.enviado', false)
+                            ->where('appointments.activo', false);
+
+                        $this->whereFutureAppointment($inactiveFutureQuery, $now);
+                    });
+                });
+            })
+            ->when(! $this->showAllHistory && ! $selectedClient && ! $this->sentOnly && ! $this->filter_entregado && ! $this->filter_enviado && ! $this->filter_activo, function (Builder $query) use ($now): void {
+                $query
+                    ->where('appointments.enviado', false)
+                    ->where('appointments.activo', true);
+
+                $this->whereFutureAppointment($query, $now);
+            })
+            ->when($this->sort_by === 'cliente', function (Builder $query): void {
+                $query
+                    ->orderBy('clients.nombre', $this->sort_direction)
+                    ->orderBy('clients.apellidos', $this->sort_direction)
+                    ->orderBy('appointments.fecha', $this->sort_direction)
+                    ->orderBy('appointments.hora', $this->sort_direction);
+            }, function (Builder $query): void {
+                $query
+                    ->orderBy('appointments.fecha', $this->sort_direction)
+                    ->orderBy('appointments.hora', $this->sort_direction);
+            });
+    }
+
+    private function resolveAppointments(Builder $appointmentsQuery, ?Client $selectedClient, Carbon $now): LengthAwarePaginator
+    {
+        if ($selectedClient || $this->sentOnly) {
+            return $appointmentsQuery->paginate(15, ['appointments.*'], 'appointmentsPage');
+        }
+
+        return $this->paginateUniqueAppointments(
+            $this->sortUniqueAppointments(
+                $this->buildUniqueAppointments($appointmentsQuery->get(), $now)
+            )
+        );
     }
 
     /**
@@ -549,36 +554,17 @@ class AppointmentList extends Component
         return $appointments
             ->groupBy('client_id')
             ->map(function (Collection $clientAppointments) use ($now): Appointment {
-                $appointment = $this->closestAppointment($clientAppointments, $now);
+                $appointment = $clientAppointments
+                    ->sortBy(fn (Appointment $appointment): array => [
+                        abs($appointment->scheduledFor()->getTimestamp() - $now->getTimestamp()),
+                        $appointment->scheduledFor()->getTimestamp(),
+                    ])
+                    ->firstOrFail();
+
                 $appointment->setAttribute('appointments_count', $clientAppointments->count());
 
                 return $appointment;
             })
             ->values();
-    }
-
-    /**
-     * @param  Collection<int, Appointment>  $appointments
-     */
-    private function closestAppointment(Collection $appointments, Carbon $now): Appointment
-    {
-        $appointment = $appointments
-            ->sort(function (Appointment $left, Appointment $right) use ($now): int {
-                $leftDifference = abs($left->scheduledFor()->getTimestamp() - $now->getTimestamp());
-                $rightDifference = abs($right->scheduledFor()->getTimestamp() - $now->getTimestamp());
-
-                if ($leftDifference !== $rightDifference) {
-                    return $leftDifference <=> $rightDifference;
-                }
-
-                return $left->scheduledFor()->getTimestamp() <=> $right->scheduledFor()->getTimestamp();
-            })
-            ->first();
-
-        if (! $appointment instanceof Appointment) {
-            throw new RuntimeException('Unable to resolve the closest appointment for a client.');
-        }
-
-        return $appointment;
     }
 }

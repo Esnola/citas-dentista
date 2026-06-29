@@ -21,10 +21,14 @@
                     <x-formularios.input name="password_confirmation" type="password" required />
                 </div>
                 <div class="md:col-span-2">
-                    <x-botones.accion variant="add"  type="submit">
-                        <x-iconos.guardar clase="size-8 mr-2.5"/>
-                        Guardar contraseña
-                    </x-botones.accion>
+                  <x-botones.icono-buton
+                    type="submit"
+                    especial="size-8"
+                    label="Guardar la contraseña"
+                    texto="Guardar contraseña"
+                    icon="guardar"
+                    />
+
                 </div>
             </form>
         </div>

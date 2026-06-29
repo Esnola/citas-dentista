@@ -18,36 +18,60 @@
         </div>
       </div>
       <div class="flex flex-wrap items-center gap-6">
-        <x-botones.accion
-                variant="indigo"
-                type="button"
+        <x-botones.icono-buton
+                color="indigo"
+                icon="reload"
+                label="Actualizar Datos"
+                texto="Actualizar Datos"
+                x-on:click="localStorage.setItem('autoSyncAfterSend', '1')"
                 wire:click="syncDeliveryStatuses"
                 wire:loading.attr="disabled"
-                wire:target="syncDeliveryStatuses">
-          <x-iconos.reload clase="size-4 mr-2" wire:loading.class="animate-spin"/>
-          Actualizar Datos
-        </x-botones.accion>
+                wire:target="syncDeliveryStatuses"
+        />
+
         @if ($showAppointmentNavigation)
           <div class="contents" data-appointment-navigation="{{ $sentOnly ? 'all' : 'sent' }}">
             @if ($sentOnly)
-              <x-botones.accion href="{{ route('appointments.index') }}">
+       {{--       <x-botones.accion href="{{ route('appointments.index') }}">
                 <x-iconos.calendar clase="size-4"/>
                 Todas las citas
-              </x-botones.accion>
+              </x-botones.accion>--}}
+              <x-botones.icono-buton
+                      icon="calendar"
+                      label="Todas las citas"
+                      texto="Todas las citas"
+                      onclick="window.location.href='{{ route('appointments.index')}}'"
+              />
+
             @else
-              <x-botones.accion href="{{ route('appointments.sent') }}">
+          {{--    <x-botones.accion href="{{ route('appointments.sent') }}">
                 <x-iconos.calendario-filtro clase="size-4"/>
                 Citas enviadas
-              </x-botones.accion>
+              </x-botones.accion>--}}
+              <x-botones.icono-buton
+                      icon="calendario-filtro"
+                      label="Citas enviadas"
+                      texto="Citas enviadas"
+                      onclick="window.location.href='{{ route('appointments.sent')}}'"
+              />
             @endif
           </div>
         @endif
-        <x-botones.accion
+{{--        <x-botones.accion
                 variant="add"
                 href="{{ route('appointments.create', $selectedClient ? ['client' => $selectedClient->id] : []) }}">
           <x-iconos.nueva-cita clase="size-4 mr-2"/>
           Nueva cita
-        </x-botones.accion>
+        </x-botones.accion>--}}
+        <x-botones.icono-buton
+          color="emerald"
+          icon="nueva-cita"
+          label="Nueva cita"
+          texto="Nueva cita"
+          onclick="window.location.href='{{ route('appointments.create', $selectedClient ? ['client' => $selectedClient->id] : []) }}'"
+          />
+
+
       </div>
     </div>
 
@@ -177,8 +201,7 @@
 
               @if ($appointment->enviado && $appointment->latestWhatsAppMessage?->provider_message_id)
                 title="Message SID: {{ $appointment->latestWhatsAppMessage?->provider_message_id }}"
-                  @endif
-          >
+                  @endif >
             @if ($showBulkActions)
               <td class="px-4 py-3" onclick="event.stopPropagation()">
                 <flux:checkbox
@@ -221,69 +244,63 @@
                           Desactivado
                         </div>
                       @endif
-                </div>
                 @else
-                  <x-iconos.alert clase="text-red-400/50 size-6"/>
-                  <h6 class="text-[10px] text-red-500/60">Error de envío o se ha pasado de fecha</h6>
+                    <x-iconos.alert clase="text-red-400/50 size-6"/>
+                    <h6 class="text-[10px] text-red-500/60">Error de envío o se ha pasado de fecha</h6>
                 @endif
                 @else
-                  <span class="flex items-center justify-center
-                  {{ $appointment->enviado && $appointment->whatsapp_sent_at ? 'text-green-400' : 'text-slate-300/40' }}">
+                  <span class="flex items-center justify-center {{ $appointment->enviado && $appointment->whatsapp_sent_at ? 'text-green-400' : 'text-slate-300/40' }}">
                     <span class="size-1 absolute top-1 left-1/2 rounded-full bg-red-500 {{ $appointment->whatsapp_sent_at ? 'hidden' : 'visible' }}"></span>
                     <x-iconos.doble-check/>
                   </span>
                   <h6 class="text-[10px] text-slate-400">
                     {{ $appointment->whatsapp_sent_at?->format('H:i d/m/Y') }}
                   </h6>
-      @endif
-    </div>
-    </td>
-    @endif
-    @if ($showDeliveredColumns)
-      <td class="px-4 py-3 text-center">
-        @php
-          $latestMsg = $appointment->latestWhatsAppMessage;
-          $deliveryFailed = $latestMsg?->status === 'failed'
-            || in_array($latestMsg?->deliveryStatus(), ['failed', 'undelivered'], true);
-        @endphp
-        @if($deliveryFailed)
-          <div class="relative flex flex-col items-center justify-center gap-1">
-            <x-iconos.alert clase="text-red-400/50 size-6"/>
-            <h6 class="text-[10px] text-red-500/60">No entregado</h6>
-          </div>
-        @elseif($latestMsg?->provider_message_id)
-          <div class="relative flex flex-col items-center justify-center gap-1">
-                  <span class="flex items-center justify-center
-                  {{ $appointment->entregado && $appointment->whatsapp_delivered_at ? 'text-green-400' : 'text-slate-300/40' }}">
-                    <span class="size-1 absolute top-1 left-1/2 rounded-full bg-red-500
-                    {{ $appointment->whatsapp_delivered_at  ? 'hidden' : 'visible' }}">
+                  @endif
+                </div>
+                </td>
+                @endif
+            @if ($showDeliveredColumns)
+              <td class="px-4 py-3 text-center">
+                @if($appointment->esFallido)
+                  <div class="relative flex flex-col items-center justify-center gap-1">
+                    <x-iconos.alert clase="text-red-400/50 size-6"/>
+                    <h6 class="text-[10px] text-red-500/60">No entregado</h6>
+                  </div>
+                @elseif($appointment->latestWhatsAppMessage?->provider_message_id)
+                  <div class="relative flex flex-col items-center justify-center gap-1">
+                    <span class="flex items-center justify-center
+                    {{ $appointment->entregado && $appointment->whatsapp_delivered_at ? 'text-green-400' : 'text-slate-300/40' }}">
+                      <span class="size-1 absolute top-1 left-1/2 rounded-full bg-red-500
+                      {{ $appointment->whatsapp_delivered_at  ? 'hidden' : 'visible' }}">
+                      </span>
+                      <x-iconos.doble-check/>
                     </span>
-                    <x-iconos.doble-check/>
-                  </span>
-            <h6 class="text-[10px] text-slate-400">
-              {{ $appointment->whatsapp_delivered_at?->format('H:i d/m/Y') }}
-            </h6>
-          </div>
-        @endif
-      </td>
-    @endif
-    @if ($showReadColumn)
-      <td class="px-4 py-3 ">
-        @if($appointment->latestWhatsAppMessage?->provider_message_id)
-          <div class="relative flex flex-col items-center justify-center gap-1">
-            @if($appointment->entregado )
-              <x-iconos.doble-check
-                      clase="size-6 {{ filled($appointment->whatsapp_read_at) ? 'text-green-400' : 'text-gray-400' }}"/>
-              <h6 class="text-[10px] text-slate-400">
-                {{ $appointment->whatsapp_read_at?->format('H:i d/m/Y') }}
-              </h6>
-            @else
-              <x-iconos.alert clase="text-red-600/50 size-6"/>
-        @endif
-        @endif
-      </td>
-    @endif
-    @if ($showPendingColumn)
+                    <h6 class="text-[10px] text-slate-400">
+                      {{ $appointment->whatsapp_delivered_at?->format('H:i d/m/Y') }}
+                    </h6>
+                  </div>
+                @endif
+              </td>
+            @endif
+            @if ($showReadColumn)
+              <td class="px-4 py-3">
+                @if($appointment->latestWhatsAppMessage?->provider_message_id)
+                  <div class="relative flex flex-col items-center justify-center gap-1">
+                    @if($appointment->entregado)
+                      <x-iconos.doble-check
+                              clase="size-6 {{ filled($appointment->whatsapp_read_at) ? 'text-green-400' : 'text-gray-400' }}"/>
+                      <h6 class="text-[10px] text-slate-400">
+                        {{ $appointment->whatsapp_read_at?->format('H:i d/m/Y') }}
+                      </h6>
+                    @else
+                      <x-iconos.alert clase="text-red-600/50 size-6"/>
+                    @endif
+                  </div>
+                @endif
+              </td>
+            @endif
+            @if ($showPendingColumn)
       <td class="px-4 py-3 text-center" onclick="event.stopPropagation()">
         @if ($canChange && ! $appointment->enviado)
           <x-formularios.toggle
@@ -293,40 +310,36 @@
         @endif
       </td>
     @endif
-    <td class="px-4 py-3 text-right" onclick="event.stopPropagation()">
+            <td class="px-4 py-3 text-right" onclick="event.stopPropagation()">
       <div class="flex justify-end items-center gap-2">
         @if ($canSendNow)
-          <x-botones.accion
-                  variant="add"
-                  size="sm"
-                  type="button"
+          <x-botones.icono-buton
+                  color="emerald"
+                  icon="whatsapp"
+                  label="Enviar WhatsApp"
                   x-on:click="localStorage.setItem('autoSyncAfterSend', '1')"
                   wire:click="sendNow({{ $appointment->id }})"
                   wire:loading.attr="disabled"
-                  wire:target="sendNow({{ $appointment->id }})">
-            Enviar ya
-          </x-botones.accion>
+                  wire:target="sendNow({{ $appointment->id }})"
+          />
         @endif
         @if ($canChange)
-          <x-botones.accion
-                  variant="edit"
-                  size="icon"
-                  icono="edit"
-                  href="{{ $editUrl }}"
-                  aria-label="Editar cita"
-                  title="Editar cita"/>
+            <x-botones.icono-buton
+                    color="blue"
+                    icon="lapiz"
+                    label="Editar cita"
+                    onclick="window.location='{{ $editUrl }}'"
+            />
         @endif
-        <x-botones.accion
-                variant="delete"
-                size="icon"
-                icono="delete"
-                type="button"
-                wire:click="confirmDelete({{ $appointment->id }})"
-                aria-label="Eliminar cita"
-                title="Eliminar cita"/>
-      </div>
-    </td>
-    </tr>
+          <x-botones.icono-buton
+                  color="red"
+                  icon="papelera"
+                  label="Eliminar cita"
+                  wire:click="confirmDelete({{ $appointment->id }})"
+          />
+            </div>
+          </td>
+       </tr>
     @empty
       <tr>
         <td class="px-4 py-6 text-slate-400"
@@ -357,16 +370,26 @@
       <p class="mt-2 text-sm text-slate-400">Esta acción no se puede deshacer.</p>
 
       <div class="mt-6 flex flex-wrap justify-end gap-2">
-        <x-botones.accion type="button" wire:click="cancelDelete">Cancelar</x-botones.accion>
-        <x-botones.accion variant="delete" icono="delete" type="button" wire:click="deleteConfirmed">
-          Eliminar
-        </x-botones.accion>
+        <x-botones.icono-buton
+          color="amber"
+          label="Cancelar"
+          texto="Cancelar"
+          type="submit"
+          icon="volver"
+          wire:click="cancelDelete" />
+
+        <x-botones.icono-buton
+           color="red"
+           icon="papelera"
+           label="Eliminar cita"
+           texto="Eliminar cita"
+           wire:click="deleteConfirmed" />
       </div>
     </div>
   </div>
 @endif
 
-<flux:modal wire:model.self="bulkDeleteConfirmationOpen" class="min-w-[22rem]">
+<flux:modal wire:model.self="bulkDeleteConfirmationOpen" class="min-w-88">
   <div class="space-y-6">
     <div>
       <flux:heading size="lg">¿Eliminar citas seleccionadas?</flux:heading>
@@ -383,7 +406,6 @@
     </div>
   </div>
 </flux:modal>
-</div>
 
 @script
 <script>

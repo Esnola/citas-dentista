@@ -75,6 +75,14 @@ class Appointment extends Model
         return ! $this->enviado && $this->isFuture();
     }
 
+    public function getEsFallidoAttribute(): bool
+    {
+        $latestMsg = $this->latestWhatsAppMessage;
+
+        return $latestMsg?->status === WhatsAppMessage::STATUS_FAILED
+            || in_array($latestMsg?->deliveryStatus(), ['failed', 'undelivered'], true);
+    }
+
     public function hasConflict(): bool
     {
         return static::query()

@@ -109,7 +109,7 @@
             <table class="min-w-full divide-y divide-white/10 text-left text-sm">
                 <thead class="bg-slate-900/70 text-slate-300">
                     <tr>
-                        <th class="px-4 py-3">Nombre completo</th>
+                        <th class="px-4 py-3">Nombre completoddd</th>
                         <th class="px-4 py-3">Teléfono</th>
                         <th class="px-4 py-3">Alta</th>
                         <th class="px-4 py-3"></th>

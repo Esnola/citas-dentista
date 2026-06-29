@@ -36,14 +36,21 @@
                     <span class="text-red-400 text-xs">Con un solo admin no se puede cambiar.</span>
                     @endif
                   <div class="flex gap-4 justify-end mt-12">
-                    <x-botones.accion variant="add" size="sm" type="submit">
-                      <x-iconos.guardar clase="size-5" />
-                      Guardar
-                    </x-botones.accion>
-                    <x-botones.accion back href="{{ route('admin.users.create') }}">
-                      <x-iconos.salir clase="size-5" />
-                      Volver
-                    </x-botones.accion>
+
+                    <x-botones.icono-buton
+                            type="submit"
+                            icon="guardar"
+                            especial="size-5"
+                            label="Guardar Usuario"
+                            texto="Guardar" />
+
+                    <x-botones.icono-buton
+                            color="amber"
+                            icon="salir"
+                            especial="size-5"
+                            label="Guardar Usuario"
+                            texto="Volver"
+                            onclick="window.location.href='{{ route('admin.users.create') }}'" />
                   </div>
                 </div>
             </form>

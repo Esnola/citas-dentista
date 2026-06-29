@@ -78,20 +78,18 @@
             </div>
           </div>
           <div class="flex items-center gap-2">
-            <x-botones.accion
-                    variant="edit"
-                    size="icon"
-                    icono="eye"
-                    href="{{ route('appointments.index', ['client' => $appointment->client_id]) }}"
-                    aria-label="Ver las citas de {{ $appointment->client?->full_name }}"
-                    title="Ver las citas de {{ $appointment->client?->full_name }}"/>
-            <x-botones.accion
-                    variant="edit"
-                    size="icon"
-                    icono="edit"
-                    href="{{ route('appointments.index', ['client' => $appointment->client_id])}}"
-                    aria-label="Editar esta cita de {{ $appointment->client?->full_name }}"
-                    title="Editar esta cita de {{ $appointment->client?->full_name }}"/>
+            <x-botones.icono-buton
+              color="blue"
+              icon="ojo"
+              label="Ver las citas de {{ $appointment->client?->full_name }}"
+              onclick="window.location.href='{{ route('appointments.index', ['client' => $appointment->client_id]) }}'"
+              />
+            <x-botones.icono-buton
+                    color="blue"
+                    icon="lapiz"
+                    label="Editar esta cita de {{ $appointment->client?->full_name }}"
+                    onclick="window.location.href='{{ route('appointments.index', ['client' => $appointment->client_id])}}'"
+            />
           </div>
         </div>
       @empty

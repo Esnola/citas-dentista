@@ -1,10 +1,10 @@
 @extends('layouts.app')
 
 @section('content')
-    <div class="grid gap-6">
+    <div class="grid gap-6 max-w-4xl mx-auto">
         <div class="rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur">
             <h2 class="text-xl font-semibold">Crear usuario</h2>
-            <form class="mt-6 grid gap-4 sm:grid-cols-2 md:grid-cols-4" method="POST" action="{{ route('admin.users.store') }}">
+            <form class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4" method="POST" action="{{ route('admin.users.store') }}">
                 @csrf
                 <div>
                     <label class="mb-2 block text-sm text-slate-300">Nombre</label>
@@ -28,10 +28,16 @@
                 <div class="flex flex-col gap-8">
 
                   <flux:checkbox name="is_admin" label="Administrador" :checked="old('is_admin')" />
-                  <x-botones.accion variant="add" class="max-w-fit" size="sm" type="submit">
-                      <x-heroicon-o-user-plus class="w-4 h-4" />
-                      Crear usuario
-                    </x-botones.accion>
+                  <x-botones.icono-buton
+                    color="emerald"
+                    type="submit"
+                    icon="usuario-plus"
+                    label="Crear usuario"
+                    texto="Crear usuario"
+                    class="max-w-fit"
+                  />
+
+
                 </div>
             </form>
         </div>
@@ -64,20 +70,23 @@
                                 </td>
                                 <td class="px-4 py-3">
                                     <div class="flex items-center gap-3">
-                                        <x-botones.accion
-                                                ariant="edit"
-                                                size="sm"
-                                                href="{{ route('admin.users.edit', $user) }}">
-                                          <x-heroicon-o-pencil class="w-4 h-4" />
-                                          Editar
-                                        </x-botones.accion>
+                                      <x-botones.icono-buton
+                                              color="blue"
+                                              icon="lapiz"
+                                              label="Edita usuario"
+                                              onclick="window.location.href='{{ route('admin.users.edit', $user) }}'"
+                                      />
+
                                         @if (! $user->is_admin || $user->id === Auth::id())
                                             <form method="POST" action="{{ route('admin.users.destroy', $user) }}" onsubmit="return confirm('¿Eliminar este usuario?')">
                                                 @csrf
                                                 @method('DELETE')
-                                                <x-botones.accion variant="delete" size="sm" type="submit">
-                                                  <x-heroicon-o-trash class="w-4 h-4" />
-                                                  Eliminar</x-botones.accion>
+                                              <x-botones.icono-buton
+                                                      color="red"
+                                                      type="submit"
+                                                      icon="user-menos"
+                                                      label="Eliminar usuario"
+                                              />
                                             </form>
                                         @else
                                             <span class="text-slate-500">Protegido</span>
