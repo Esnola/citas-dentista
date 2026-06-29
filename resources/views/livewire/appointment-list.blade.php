@@ -91,6 +91,7 @@
           @endif
         </div>
       @endif
+      @if($show_filters_nombre)
       <flux:field>
         <flux:label>Nombre</flux:label>
         <x-formularios.input wire:model.live.debounce.300ms="filter_nombre" placeholder="Filtrar por nombre"/>
@@ -101,7 +102,7 @@
         <x-formularios.input wire:model.live.debounce.300ms="filter_apellidos"
                              placeholder="Filtrar por apellidos"/>
       </flux:field>
-
+@endif
       @unless ($sentOnly)
         <div class="flex flex-col items-center justify-center gap-2">
           <flux:label class="text-[14px] font-bold">Notificaciones</flux:label>
@@ -135,78 +136,25 @@
       <table class="min-w-full divide-y divide-white/10 text-left text-sm">
         <thead class="bg-slate-900/70 text-slate-300">
         <tr>
-          @if ($showBulkActions)
-            <th class="w-12 px-4 py-3">
-
-            </th>
-          @endif
-          <th class="px-4 py-3">
-            <button type="button"
-                    class="inline-flex cursor-pointer items-center gap-1 font-semibold text-slate-200 hover:text-white"
-                    wire:click="sortByColumn('cliente')" title="Ordenar por cliente"
-                    aria-label="Ordenar por cliente">
-              Cliente
-              <span class="text-xs text-slate-400">
-                @if ($sort_by === 'cliente')
-                  @if( $sort_direction === 'asc' )
-                    <x-iconos.deAZ/>
-                  @else
-                    <x-iconos.deZA/>
-                  @endif
-                @else
-                  <x-iconos.deAZ/>
-                @endif
-              </span>
-            </button>
-          </th>
-          <th class="px-4 py-3">
-            <button type="button"
-                    class="flex cursor-pointer items-center justify-center w-full gap-1 font-semibold text-slate-200 hover:text-white"
-                    wire:click="sortByColumn('fecha')"
-                    title="Ordenar por fecha"
-                    aria-label="Ordenar por fecha">
-              Fecha Cita
-              <span class="text-xs text-slate-400">
-                @if ($sort_by === 'fecha')
-                  @if( $sort_direction === 'asc' )
-                    <x-iconos.num-Asc/>
-                  @else
-                    <x-iconos.num-Desc/>
-                  @endif
-                @else
-                  <x-iconos.num-Asc/>
-                @endif
-              </span>
-            </button>
-          </th>
-          <th class="px-4 py-3 text-center">Hora Cita</th>
-          @if ($showSentColumns)
-            <th class="px-4 py-3 text-xs">
-              <div class="flex items-center justify-center gap-2">
-                <x-iconos.whatsapp clase="size-4"/>
-                Enviado
-              </div>
-            </th>
-          @endif
-          @if ($showDeliveredColumns)
-            <th class="px-4 py-3 text-xs">
-              <div class="flex items-center justify-center gap-2">
-                <x-iconos.whatsapp clase="size-4"/>
-                Entregado
-              </div>
-            </th>
-          @endif
-          @if ($showReadColumn)
-            <th class="px-4 py-3 text-xs">
-              <div class="flex items-center justify-center gap-2">
-                <x-iconos.whatsapp clase="size-4"/>
-                Leído
-              </div>
-            </th>
-          @endif
-          @if ($showPendingColumn)
-            <th class="px-4 py-3">Pendiente</th>
-          @endif
+            <x-tabla.th :condicion="$showBulkActions" />
+            <x-tabla.th-sort sortBy="cliente" :sortDirection="$sort_direction" :currentSort="$sort_by" />
+            <x-tabla.th-sort sortBy="fecha"   :sortDirection="$sort_direction" :currentSort="$sort_by" />
+            <th class="px-4 py-3 text-center">Hora Cita</th>
+            <x-tabla.th :condicion="$showSentColumns">
+              <x-iconos.whatsapp clase="size-4"/>
+              Enviado
+            </x-tabla.th>
+            <x-tabla.th :condicion="$showDeliveredColumns">
+              <x-iconos.whatsapp clase="size-4"/>
+              Entregado
+            </x-tabla.th>
+            <x-tabla.th :condicion="$showReadColumn">
+              <x-iconos.whatsapp clase="size-4"/>
+              Leído
+            </x-tabla.th>
+            <x-tabla.th :condicion="$showPendingColumn">
+              Pendiente
+            </x-tabla.th>
           <th class="px-4 py-3 text-center">Acciones</th>
         </tr>
         </thead>
@@ -252,11 +200,12 @@
                 @endif
               </a>
               <p class="text-xs text-slate-400">{{ $appointment->client?->telefono }}</p>
+              {{$appointment->id}}
             </td>
             <td class="px-4 py-3 text-center">{{ucwords($appointment->fecha?->translatedFormat('l, d - F - Y'))}}</td>
             <td class="px-4 py-3 text-center text-xs">{{ $appointment->hora }}</td>
-            <td class="px-4 py-3 text-center">
               @if ($showSentColumns)
+              <td class="px-4 py-3 text-center">
                 <div class="relative flex flex-col items-center justify-center gap-1">
                   @if(!$appointment->latestWhatsAppMessage?->provider_message_id)
                     @if(!$appointment->enviado)
@@ -302,7 +251,6 @@
             @if ($showReadColumn)
               <td class="px-4 py-3 ">
                 @if($appointment->latestWhatsAppMessage?->provider_message_id)
-
                   <div class="relative flex flex-col items-center justify-center gap-1">
                     @if($appointment->entregado)
                       <x-iconos.doble-check
@@ -317,7 +265,7 @@
               </td>
             @endif
             @if ($showPendingColumn)
-              <td class="px-4 py-3" onclick="event.stopPropagation()">
+              <td class="px-4 py-3 text-center" onclick="event.stopPropagation()">
                 @if ($canChange && ! $appointment->enviado)
                   <x-formularios.toggle
                           :estado="$appointment->activo ? 'Sí' : 'No'"
@@ -327,7 +275,7 @@
               </td>
             @endif
             <td class="px-4 py-3 text-right" onclick="event.stopPropagation()">
-              <div class="flex justify-center items-center gap-2">
+              <div class="flex justify-end items-center gap-2">
                 @if ($canSendNow)
                   <x-botones.accion
                           variant="add"

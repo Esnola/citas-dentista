@@ -25,6 +25,8 @@ class AppointmentList extends Component
 
     public string $filter_apellidos = '';
 
+    public bool $show_filters_nombre = true;
+
     public bool $filter_enviado = false;
 
     public bool $filter_activo = false;
@@ -71,6 +73,10 @@ class AppointmentList extends Component
 
         if ($clientId > 0 && Client::query()->whereKey($clientId)->exists()) {
             $this->clientId = $clientId;
+        }
+
+        if (request()->query('client')) {
+            $this->show_filters_nombre = false;
         }
 
         if (request()->routeIs('appointments.sent')) {

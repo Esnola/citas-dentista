@@ -61,9 +61,9 @@ class AppointmentSeeder extends Seeder
                     'client_id' => $client->id,
                     'fecha' => Carbon::parse($date)->startOfDay()->toDateString(),
                     'hora' => $time,
-                    'enviado' => $dateIndex % 3 === 0,
+                    'enviado' => 0,
                     'entregado' => false,
-                    'activo' => $dateIndex % 4 !== 0,
+                    'activo' => $dateIndex % 11 !== 0,
                 ]);
             }
         }
