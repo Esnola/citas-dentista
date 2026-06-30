@@ -7,11 +7,6 @@
       </p>
     </div>
 
-    <div class="flex flex-wrap gap-2 items-center rounded-3xl font-bold border border-green-400 bg-green-400/10 px-4 py-3 text-xs uppercase tracking-[0.25em] text-green-400">
-      <x-iconos.cita/>
-      Citas activas
-    </div>
-
   </div>
 
   @if ($status)

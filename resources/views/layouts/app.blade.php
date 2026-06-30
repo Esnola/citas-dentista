@@ -161,8 +161,6 @@
           >
             <x-navegacion.aside-link route="admin.users.create" route-is="admin.users.*"
                                      color="orange" text="Usuarios" icono="usuarios" class="sidebar-link"/>
-            <x-navegacion.aside-link route="admin.security.edit" route-is="admin.security.*"
-                                     color="rose" text="Seguridad" icono="seguridad" class="sidebar-link"/>
             <x-navegacion.aside-link route="admin.tools" route-is="admin.tools" color="violet"
                                      icono="excel" text="Import / Export" class="sidebar-link"/>
             <x-navegacion.aside-link route="settings.index" route-is="settings.*" color="cyan"
