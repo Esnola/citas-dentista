@@ -7,7 +7,7 @@
           <h2 class="text-xl font-semibold">
             {{ $sentOnly ? 'Citas enviadas' : ($selectedClient ?  $selectedClient->full_name : 'Citas registradas') }}
           </h2>
-          <h3 class="rounded-2xl border border-white/10 bg-slate-900/60 px-4 py-3 text-sm text-slate-300">
+          <h3 class="rounded-2xl border border-gree-300/70 shadow-xs shadow-green-300 bg-slate-900/60 px-4 py-3 text-sm text-slate-300">
             {{ $appointmentsCount }} cita{{ $appointmentsCount > 1 ? 's' : '' }}
           </h3>
         </div>
@@ -17,7 +17,7 @@
           @endif
         </div>
       </div>
-      <div class="flex flex-wrap items-center gap-6">
+      <div class="flex flex-wrap items-center gap-2">
         <x-botones.icono-buton
                 color="indigo"
                 icon="reload"
@@ -32,44 +32,26 @@
         @if ($showAppointmentNavigation)
           <div class="contents" data-appointment-navigation="{{ $sentOnly ? 'all' : 'sent' }}">
             @if ($sentOnly)
-       {{--       <x-botones.accion href="{{ route('appointments.index') }}">
-                <x-iconos.calendar clase="size-4"/>
-                Todas las citas
-              </x-botones.accion>--}}
               <x-botones.icono-buton
                       icon="calendar"
                       label="Todas las citas"
                       texto="Todas las citas"
-                      onclick="window.location.href='{{ route('appointments.index')}}'"
-              />
-
+                      onclick="window.location.href='{{ route('appointments.index')}}'"/>
             @else
-          {{--    <x-botones.accion href="{{ route('appointments.sent') }}">
-                <x-iconos.calendario-filtro clase="size-4"/>
-                Citas enviadas
-              </x-botones.accion>--}}
               <x-botones.icono-buton
                       icon="calendario-filtro"
                       label="Citas enviadas"
                       texto="Citas enviadas"
-                      onclick="window.location.href='{{ route('appointments.sent')}}'"
-              />
+                      onclick="window.location.href='{{ route('appointments.sent')}}'"/>
             @endif
           </div>
         @endif
-{{--        <x-botones.accion
-                variant="add"
-                href="{{ route('appointments.create', $selectedClient ? ['client' => $selectedClient->id] : []) }}">
-          <x-iconos.nueva-cita clase="size-4 mr-2"/>
-          Nueva cita
-        </x-botones.accion>--}}
         <x-botones.icono-buton
-          color="emerald"
-          icon="nueva-cita"
-          label="Nueva cita"
-          texto="Nueva cita"
-          onclick="window.location.href='{{ route('appointments.create', $selectedClient ? ['client' => $selectedClient->id] : []) }}'"
-          />
+                color="emerald"
+                icon="nueva-cita"
+                label="Nueva cita"
+                texto="Nueva cita"
+                onclick="window.location.href='{{ route('appointments.create', $selectedClient ? ['client' => $selectedClient->id] : []) }}'"/>
 
 
       </div>
@@ -99,33 +81,35 @@
       @endif
 
       @if ($showBulkActions && count($selectedAppointmentIds))
-          <flux:dropdown>
-            <flux:button icon="list-bullet" icon:trailing="chevron-down" variant="primary"
-                         class="bg-emerald-600! text-white! hover:bg-emerald-500!"
-                         :disabled="$selectedAppointmentIds === []">
-              {{ count($selectedAppointmentIds) }} {{ count($selectedAppointmentIds) === 1 ? 'cita seleccionada' : 'citas seleccionadas' }}
-            </flux:button>
-            <flux:menu class="min-w-60 border! border-white/10! bg-slate-900! p-2! shadow-2xl! shadow-slate-950/60!">
-              <flux:menu.item icon="check-circle" wire:click="updateSelectedActiveStatus(true)"
-                              class="cursor-pointer text-emerald-200! transition-colors hover:bg-emerald-500/15! hover:text-emerald-100!">
-                Activar seleccionadas
-              </flux:menu.item>
-              <flux:menu.item icon="pause-circle" wire:click="updateSelectedActiveStatus(false)"
-                              class="cursor-pointer text-amber-200! transition-colors hover:bg-amber-500/15! hover:text-amber-100!">
-                Desactivar seleccionadas
-              </flux:menu.item>
-              <flux:menu.separator class="my-2! bg-white/10!" />
-              <flux:menu.item icon="trash" wire:click="confirmBulkDelete"
-                              class="cursor-pointer text-red-300! transition-colors hover:bg-red-500/15! hover:text-red-200!">
-                Eliminar seleccionadas
-              </flux:menu.item>
-            </flux:menu>
-          </flux:dropdown>
+        <flux:dropdown>
+          <flux:button icon="list-bullet" icon:trailing="chevron-down" variant="primary"
+                       class="bg-emerald-600! text-white! hover:bg-emerald-500!"
+                       :disabled="$selectedAppointmentIds === []">
+            {{ count($selectedAppointmentIds) }} {{ count($selectedAppointmentIds) === 1 ? 'cita seleccionada' : 'citas seleccionadas' }}
+          </flux:button>
+          <flux:menu class="min-w-60 border! border-white/10! bg-slate-900! p-2! shadow-2xl! shadow-slate-950/60!">
+            <flux:menu.item icon="check-circle" wire:click="updateSelectedActiveStatus(true)"
+                            class="cursor-pointer text-emerald-200! transition-colors hover:bg-emerald-500/15! hover:text-emerald-100!">
+              Activar seleccionadas
+            </flux:menu.item>
+            <flux:menu.item icon="pause-circle" wire:click="updateSelectedActiveStatus(false)"
+                            class="cursor-pointer text-amber-200! transition-colors hover:bg-amber-500/15! hover:text-amber-100!">
+              Desactivar seleccionadas
+            </flux:menu.item>
+            <flux:menu.separator class="my-2! bg-white/10!"/>
+            <flux:menu.item icon="trash" wire:click="confirmBulkDelete"
+                            class="cursor-pointer text-red-300! transition-colors hover:bg-red-500/15! hover:text-red-200!">
+              Eliminar seleccionadas
+            </flux:menu.item>
+          </flux:menu>
+        </flux:dropdown>
       @endif
       @if($show_filters_nombre)
         <flux:field>
           <flux:label>Nombre</flux:label>
-          <x-formularios.input wire:model.live.debounce.300ms="filter_nombre" placeholder="Filtrar por nombre"/>
+          <x-formularios.input wire:model.live.debounce.300ms="filter_nombre" placeholder="Filtrar por nombre"
+                               id="filter-nombre"
+                               onkeydown="if(event.key==='Tab'){const a=document.querySelector('table tbody tr a');if(a){event.preventDefault();a.focus();}}"/>
         </flux:field>
 
         <flux:field>
@@ -140,23 +124,17 @@
           <div class="flex items-center justify-center ml-6 gap-4">
             <flux:field class="flex flex-col">
               <flux:label>Enviadas</flux:label>
-              <x-formularios.toggle
-                      wire:model.live="filter_enviado" :disabled="$filter_activo || $filter_entregado"
-                      :locked="$filter_activo || $filter_entregado"/>
+              <x-formularios.toggle wire:model.live="filter_enviado"/>
             </flux:field>
 
             <flux:field class="flex flex-col">
               <flux:label>Entregadas</flux:label>
-              <x-formularios.toggle
-                      wire:model.live="filter_entregado" :disabled="$filter_enviado || $filter_activo"
-                      :locked="$filter_enviado || $filter_activo"/>
+              <x-formularios.toggle wire:model.live="filter_entregado"/>
             </flux:field>
 
             <flux:field class="flex flex-col">
               <flux:label>Supendidas</flux:label>
-              <x-formularios.toggle
-                      wire:model.live="filter_activo" :disabled="$filter_enviado || $filter_entregado"
-                      :locked="$filter_enviado || $filter_entregado"/>
+              <x-formularios.toggle wire:model.live="filter_activo"/>
             </flux:field>
           </div>
         </div>
@@ -169,11 +147,11 @@
         <tr>
           <x-tabla.th :condicion="$showBulkActions">
             <input type="checkbox"
-                    wire:key="select-all-appointments-{{ $dateFilter }}-{{ (int) $filter_enviado }}-{{ (int) $filter_activo }}-{{ (int) $filter_entregado }}"
-                    class="size-4 cursor-pointer rounded border-white/20 bg-slate-950/50 text-emerald-500 accent-emerald-500 focus:ring-2 focus:ring-emerald-400/40 focus:ring-offset-0"
-                    @checked($allVisibleAppointmentsSelected)
-                    wire:change="toggleVisibleAppointments(@js($visibleAppointmentIds))"
-                    aria-label="{{ $allVisibleAppointmentsSelected ? 'Deseleccionar todas las citas visibles' : 'Seleccionar todas las citas visibles' }}"
+                   wire:key="select-all-appointments-{{ $dateFilter }}-{{ (int) $filter_enviado }}-{{ (int) $filter_activo }}-{{ (int) $filter_entregado }}"
+                   class="size-4 cursor-pointer rounded border-white/20 bg-slate-950/50 text-emerald-500 accent-emerald-500 focus:ring-2 focus:ring-emerald-400/40 focus:ring-offset-0"
+                   @checked($allVisibleAppointmentsSelected)
+                   wire:change="toggleVisibleAppointments(@js($visibleAppointmentIds))"
+                   aria-label="{{ $allVisibleAppointmentsSelected ? 'Deseleccionar todas las citas visibles' : 'Seleccionar todas las citas visibles' }}"
             >
           </x-tabla.th>
           <x-tabla.th-sort sortBy="cliente" :sortDirection="$sort_direction" :currentSort="$sort_by"/>
@@ -210,8 +188,8 @@
           <tr wire:key="appointment-{{ $appointment->id }}"
               role="link" tabindex="0"
               onclick="window.location='{{ $rowUrl }}'"
-              onkeydown="if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); window.location='{{ $rowUrl }}'; }"
-              class="cursor-pointer transition-colors hover:bg-white/5 {{ $canChange ? '' : 'bg-slate-900/50 text-slate-400' }}"
+              onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();window.location='{{ $rowUrl }}';}else if(event.key==='ArrowDown'){event.preventDefault();this.nextElementSibling?.focus();}else if(event.key==='ArrowUp'){event.preventDefault();this.previousElementSibling?.focus();}"
+              class="cursor-pointer transition-colors hover:bg-white/5 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-400/60 focus-visible:bg-white/5 {{ $canChange ? '' : 'bg-slate-900/50 text-slate-400' }}"
 
               @if ($appointment->enviado && $appointment->latestWhatsAppMessage?->provider_message_id)
                 title="Message SID: {{ $appointment->latestWhatsAppMessage?->provider_message_id }}"
@@ -219,15 +197,15 @@
             @if ($showBulkActions)
               <td class="px-4 py-3 text-center" onclick="event.stopPropagation()">
                 <input type="checkbox"
-                        class="size-4 cursor-pointer rounded border-white/20 bg-slate-950/50 text-emerald-500 accent-emerald-500 focus:ring-2 focus:ring-emerald-400/40 focus:ring-offset-0"
-                        wire:model.live="selectedAppointmentIds"
-                        value="{{ $appointment->id }}"
-                        aria-label="Seleccionar cita de {{ $appointment->client?->full_name }}"
+                       class="size-4 cursor-pointer rounded border-white/20 bg-slate-950/50 text-emerald-500 accent-emerald-500 focus:ring-2 focus:ring-emerald-400/40 focus:ring-offset-0"
+                       wire:model.live="selectedAppointmentIds"
+                       value="{{ $appointment->id }}"
+                       aria-label="Seleccionar cita de {{ $appointment->client?->full_name }}"
                 >
               </td>
             @endif
             <td class="px-4 py-3">
-              <a href="{{ $rowUrl }}"
+              <a href="{{ $rowUrl }}" tabindex="-1"
                  class="inline-flex items-center gap-2 font-medium {{ $canChange ? 'text-emerald-300 hover:text-emerald-200' : 'text-slate-400 hover:text-slate-300' }}">
                 <span>{{ $appointment->client?->nombre }} {{ $appointment->client?->apellidos }}</span>
                 @if (! $sentOnly && ($appointment->appointments_count ?? 1) > 1)
@@ -248,7 +226,12 @@
                 <div class="relative flex flex-col items-center justify-center gap-1">
                   @if(!$appointment->latestWhatsAppMessage?->provider_message_id)
                     @if(!$appointment->enviado )
-                      @if($canSendNow)
+                      @if(!$appointment->isFuture())
+                        <div class="flex flex-col items-center justify-center text-red-500/70 text-xs ">
+                          <x-iconos.alert clase="text-red-400/50 size-6"/>
+                          Vencido
+                        </div>
+                      @elseif($canSendNow)
                         <div class="flex flex-col items-center jusitfy-center text-amber-200/50 text-xs ">
                           <x-iconos.whatsapp/>
                           En cola
@@ -259,22 +242,22 @@
                           Desactivado
                         </div>
                       @endif
-                @else
-                    <x-iconos.alert clase="text-red-400/50 size-6"/>
-                    <h6 class="text-[10px] text-red-500/60">Error de envío o se ha pasado de fecha</h6>
-                @endif
-                @else
-                  <span class="flex items-center justify-center {{ $appointment->enviado && $appointment->whatsapp_sent_at ? 'text-green-400' : 'text-slate-300/40' }}">
+                    @else
+                      <x-iconos.alert clase="text-red-400/50 size-6"/>
+                      <h6 class="text-[10px] text-red-500/60">Error de envío o se ha pasado de fecha</h6>
+                    @endif
+                  @else
+                    <span class="flex items-center justify-center {{ $appointment->enviado && $appointment->whatsapp_sent_at ? 'text-green-400' : 'text-slate-300/40' }}">
                     <span class="size-1 absolute top-1 left-1/2 rounded-full bg-red-500 {{ $appointment->whatsapp_sent_at ? 'hidden' : 'visible' }}"></span>
                     <x-iconos.doble-check/>
                   </span>
-                  <h6 class="text-[10px] text-slate-400">
-                    {{ $appointment->whatsapp_sent_at?->format('H:i d/m/Y') }}
-                  </h6>
+                    <h6 class="text-[10px] text-slate-400">
+                      {{ $appointment->whatsapp_sent_at?->format('H:i d/m/Y') }}
+                    </h6>
                   @endif
                 </div>
-                </td>
-                @endif
+              </td>
+            @endif
             @if ($showDeliveredColumns)
               <td class="px-4 py-3 text-center">
                 @if($appointment->esFallido)
@@ -316,105 +299,105 @@
               </td>
             @endif
             @if ($showPendingColumn)
-      <td class="px-4 py-3 text-center" onclick="event.stopPropagation()">
-        @if ($canChange && ! $appointment->enviado)
-          <x-formularios.toggle
-                  :estado="$appointment->activo ? 'Sí' : 'No'"
-                  :checked="$appointment->activo"
-                  wire:change="updateActiveStatus({{ $appointment->id }}, $event.target.checked)"/>
-        @endif
-      </td>
-    @endif
+              <td class="px-4 py-3 text-center" onclick="event.stopPropagation()">
+                @if ($canChange && ! $appointment->enviado)
+                  <x-formularios.toggle
+                          :estado="$appointment->activo ? 'Sí' : 'No'"
+                          :checked="$appointment->activo"
+                          wire:change="updateActiveStatus({{ $appointment->id }}, $event.target.checked)"/>
+                @endif
+              </td>
+            @endif
             <td class="px-4 py-3 text-right" onclick="event.stopPropagation()">
-      <div class="flex justify-end items-center gap-2">
-        @if ($canSendNow)
-          <x-botones.icono-buton
-                  color="emerald"
-                  icon="whatsapp"
-                  label="Enviar WhatsApp"
-                  x-on:click="localStorage.setItem('autoSyncAfterSend', '1')"
-                  wire:click="sendNow({{ $appointment->id }})"
-                  wire:loading.attr="disabled"
-                  wire:target="sendNow({{ $appointment->id }})"
-          />
-        @endif
-        @if ($canChange)
-            <x-botones.icono-buton
-                    color="blue"
-                    icon="lapiz"
-                    label="Editar cita"
-                    onclick="window.location='{{ $editUrl }}'"
-            />
-        @endif
-          <x-botones.icono-buton
-                  color="red"
-                  icon="papelera"
-                  label="Eliminar cita"
-                  wire:click="confirmDelete({{ $appointment->id }})"
-          />
-            </div>
-          </td>
-       </tr>
-    @empty
-      <tr>
-        <td class="px-4 py-6 text-slate-400"
-            colspan="{{ 4 + ($showBulkActions ? 1 : 0) + ($showSentColumns ? 1 : 0) + ($showDeliveredColumns ? 1 : 0) + ($showReadColumn ? 1 : 0) + ($showPendingColumn ? 1 : 0) }}">
-          {{ $sentOnly ? 'No hay citas enviadas para mostrar todavía.' : 'No hay citas para mostrar todavía.' }}
-        </td>
-      </tr>
-      @endforelse
-      </tbody>
+              <div class="flex justify-end items-center gap-2">
+                @if ($canSendNow)
+                  <x-botones.icono-buton
+                          color="emerald"
+                          icon="whatsapp"
+                          label="Enviar WhatsApp"
+                          x-on:click="localStorage.setItem('autoSyncAfterSend', '1')"
+                          wire:click="sendNow({{ $appointment->id }})"
+                          wire:loading.attr="disabled"
+                          wire:target="sendNow({{ $appointment->id }})"
+                  />
+                @endif
+                @if ($canChange)
+                  <x-botones.icono-buton
+                          color="blue"
+                          icon="lapiz"
+                          label="Editar cita"
+                          onclick="window.location='{{ $editUrl }}'"
+                  />
+                @endif
+                <x-botones.icono-buton
+                        color="red"
+                        icon="papelera"
+                        label="Eliminar cita"
+                        wire:click="confirmDelete({{ $appointment->id }})"
+                />
+              </div>
+            </td>
+          </tr>
+        @empty
+          <tr>
+            <td class="px-4 py-6 text-slate-400"
+                colspan="{{ 4 + ($showBulkActions ? 1 : 0) + ($showSentColumns ? 1 : 0) + ($showDeliveredColumns ? 1 : 0) + ($showReadColumn ? 1 : 0) + ($showPendingColumn ? 1 : 0) }}">
+              {{ $sentOnly ? 'No hay citas enviadas para mostrar todavía.' : 'No hay citas para mostrar todavía.' }}
+            </td>
+          </tr>
+        @endforelse
+        </tbody>
       </table>
+    </div>
+
+    <div class="mt-4">
+      {{ $appointments->links('vendor.pagination.tailwind') }}
+    </div>
   </div>
 
-  <div class="mt-4">
-    {{ $appointments->links('vendor.pagination.tailwind') }}
-  </div>
-</div>
+  @if ($appointmentPendingDeletion)
+    <x-modales.confirmacion x-data="{ modalOpen: true }" x-trap.noscroll="modalOpen"
+                            x-on:keydown.escape.window="$wire.cancelDelete()" titulo="Eliminar cita">
+      <p class="mt-3 text-sm text-slate-300">
+        ¿Seguro que quieres eliminar la cita de
+        <span class="font-medium text-white">{{ $appointmentPendingDeletion->client?->full_name }}</span>
+        del {{ $appointmentPendingDeletion->fecha?->format('d/m/Y') }} a
+        las {{ $appointmentPendingDeletion->hora }}?
+      </p>
+      <p class="mt-2 text-sm text-slate-400">Esta acción no se puede deshacer.</p>
 
-@if ($appointmentPendingDeletion)
-  <x-modales.confirmacion x-data="{ modalOpen: true }" x-trap.noscroll="modalOpen"
-                           x-on:keydown.escape.window="$wire.cancelDelete()" titulo="Eliminar cita">
-    <p class="mt-3 text-sm text-slate-300">
-      ¿Seguro que quieres eliminar la cita de
-      <span class="font-medium text-white">{{ $appointmentPendingDeletion->client?->full_name }}</span>
-      del {{ $appointmentPendingDeletion->fecha?->format('d/m/Y') }} a
-      las {{ $appointmentPendingDeletion->hora }}?
-    </p>
-    <p class="mt-2 text-sm text-slate-400">Esta acción no se puede deshacer.</p>
+      <x-slot:actions>
+        <x-botones.icono-buton color="amber" label="Cancelar" texto="Cancelar" icon="volver"
+                               wire:click="cancelDelete"/>
+        <x-botones.icono-buton color="red" icon="papelera" label="Eliminar cita" texto="Eliminar cita"
+                               wire:click="deleteConfirmed"/>
+      </x-slot:actions>
+    </x-modales.confirmacion>
+  @endif
 
-    <x-slot:actions>
-      <x-botones.icono-buton color="amber" label="Cancelar" texto="Cancelar" icon="volver"
-                               wire:click="cancelDelete" />
-      <x-botones.icono-buton color="red" icon="papelera" label="Eliminar cita" texto="Eliminar cita"
-                               wire:click="deleteConfirmed" />
-    </x-slot:actions>
-  </x-modales.confirmacion>
-@endif
+  @if ($bulkDeleteConfirmationOpen)
+    <x-modales.confirmacion x-data="{ modalOpen: true }" x-trap.noscroll="modalOpen"
+                            x-on:keydown.escape.window="$wire.$set('bulkDeleteConfirmationOpen', false)"
+                            titulo="Eliminar citas seleccionadas">
+      <p class="mt-3 text-sm text-slate-300">
+        Se eliminarán <span class="font-medium text-white">{{ count($selectedAppointmentIds) }} cita(s)</span>.
+      </p>
+      <p class="mt-2 text-sm text-slate-400">Esta acción no se puede deshacer.</p>
 
-@if ($bulkDeleteConfirmationOpen)
-  <x-modales.confirmacion x-data="{ modalOpen: true }" x-trap.noscroll="modalOpen"
-                           x-on:keydown.escape.window="$wire.$set('bulkDeleteConfirmationOpen', false)"
-                           titulo="Eliminar citas seleccionadas">
-    <p class="mt-3 text-sm text-slate-300">
-      Se eliminarán <span class="font-medium text-white">{{ count($selectedAppointmentIds) }} cita(s)</span>.
-    </p>
-    <p class="mt-2 text-sm text-slate-400">Esta acción no se puede deshacer.</p>
+      <x-slot:actions>
+        <x-botones.icono-buton color="amber" icon="volver" label="Cancelar" texto="Cancelar"
+                               wire:click="$set('bulkDeleteConfirmationOpen', false)"/>
+        <x-botones.icono-buton color="red" icon="papelera" label="Eliminar citas" texto="Eliminar citas"
+                               wire:click="deleteSelected"/>
+      </x-slot:actions>
+    </x-modales.confirmacion>
+  @endif
 
-    <x-slot:actions>
-      <x-botones.icono-buton color="amber" icon="volver" label="Cancelar" texto="Cancelar"
-                               wire:click="$set('bulkDeleteConfirmationOpen', false)" />
-      <x-botones.icono-buton color="red" icon="papelera" label="Eliminar citas" texto="Eliminar citas"
-                               wire:click="deleteSelected" />
-    </x-slot:actions>
-  </x-modales.confirmacion>
-@endif
-
-@script
-<script>
-  if (localStorage.getItem('autoSyncAfterSend') === '1') {
-    localStorage.removeItem('autoSyncAfterSend');
-    setTimeout(() => $wire.syncDeliveryStatuses(), 3000);
-  }
-</script>
+  @script
+  <script>
+      if (localStorage.getItem('autoSyncAfterSend') === '1') {
+          localStorage.removeItem('autoSyncAfterSend');
+          setTimeout(() => $wire.syncDeliveryStatuses(), 3000);
+      }
+  </script>
 @endscript

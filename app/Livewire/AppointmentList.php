@@ -88,6 +88,10 @@ class AppointmentList extends Component
         }
 
         $this->deliveryStatusesSyncedAt = Cache::get('appointment_delivery_statuses_synced_at');
+
+        if (! app()->environment('testing')) {
+            $this->forceDeliveryStatusSync();
+        }
     }
 
     public function updated(string $property): void
@@ -477,7 +481,7 @@ class AppointmentList extends Component
             ->when($this->filter_apellidos, fn (Builder $query) => $query->whereHas('client', fn ($clientQuery) => $clientQuery->where('apellidos', 'like', '%'.$this->filter_apellidos.'%')))
             ->when($this->sentOnly, fn (Builder $query) => $query->where('appointments.enviado', true))
             ->when(! $this->showAllHistory && $selectedClient && ! $this->sentOnly && $this->dateFilter === 'upcoming', fn (Builder $query) => $this->whereFutureAppointment($query, $now))
-            ->when(! $this->showAllHistory && $selectedClient && ! $this->sentOnly && $this->dateFilter === 'past', fn (Builder $query) => $this->wherePastAppointment($query, $now))
+            ->when(! $this->showAllHistory && ! $this->sentOnly && $this->dateFilter === 'past', fn (Builder $query) => $this->wherePastAppointment($query, $now))
             ->when(! $this->showAllHistory && ! $this->sentOnly && $this->filter_entregado, fn (Builder $query) => $query->where('appointments.entregado', true))
             ->when(! $this->showAllHistory && ! $this->sentOnly && $this->filter_enviado, fn (Builder $query) => $query->where('appointments.enviado', true))
             ->when(! $this->showAllHistory && ! $this->sentOnly && ! $this->filter_entregado && ! $this->filter_enviado && $this->filter_activo, function (Builder $query) use ($now): void {
