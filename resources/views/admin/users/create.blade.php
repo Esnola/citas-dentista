@@ -69,7 +69,7 @@
                                     @endif
                                 </td>
                                 <td class="px-4 py-3">
-                                    <div class="flex items-center gap-3">
+                                    <div class="flex items-center gap-3" x-data="{ confirmDelete: false }">
                                       <x-botones.icono-buton
                                               color="blue"
                                               icon="lapiz"
@@ -77,19 +77,37 @@
                                               onclick="window.location.href='{{ route('admin.users.edit', $user) }}'"
                                       />
 
-                                        @if (! $user->is_admin || $user->id === Auth::id())
-                                            <form method="POST" action="{{ route('admin.users.destroy', $user) }}" onsubmit="return confirm('¿Eliminar este usuario?')">
-                                                @csrf
-                                                @method('DELETE')
-                                              <x-botones.icono-buton
-                                                      color="red"
-                                                      type="submit"
-                                                      icon="user-menos"
-                                                      label="Eliminar usuario"
-                                              />
-                                            </form>
-                                        @else
+                                        @if ($user->is_admin && $adminCount === 1)
                                             <span class="text-slate-500">Protegido</span>
+                                        @elseif ($user->id === Auth::id())
+                                            <span class="text-slate-500">Tu cuenta</span>
+                                        @else
+                                            <x-botones.icono-buton color="red" icon="user-menos" label="Eliminar usuario"
+                                                                     x-on:click="confirmDelete = true" />
+
+                                            <x-modales.confirmacion x-show="confirmDelete" x-cloak
+                                                                     x-trap.noscroll="confirmDelete"
+                                                                     x-on:keydown.escape.window="confirmDelete = false"
+                                                                     titulo="Eliminar usuario">
+                                                <p class="mt-3 text-sm text-slate-300">
+                                                    ¿Seguro que quieres eliminar a
+                                                    <span class="font-medium text-white">{{ $user->name }}</span>
+                                                    ({{ $user->email }})?
+                                                </p>
+                                                <p class="mt-2 text-sm text-slate-400">Esta acción no se puede deshacer.</p>
+
+                                                <x-slot:actions>
+                                                    <form class="flex flex-wrap justify-end gap-2" method="POST"
+                                                          action="{{ route('admin.users.destroy', $user) }}">
+                                                        @csrf
+                                                        @method('DELETE')
+                                                        <x-botones.icono-buton color="amber" icon="volver" label="Cancelar"
+                                                                                 texto="Cancelar" x-on:click="confirmDelete = false" />
+                                                        <x-botones.icono-buton color="red" icon="user-menos" label="Eliminar usuario"
+                                                                                 texto="Eliminar usuario" type="submit" />
+                                                    </form>
+                                                </x-slot:actions>
+                                            </x-modales.confirmacion>
                                         @endif
                                     </div>
                                 </td>

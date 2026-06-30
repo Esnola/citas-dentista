@@ -890,6 +890,13 @@ class AppointmentManagerTest extends TestCase
             'enviado' => false,
             'activo' => true,
         ]);
+        $pastAppointment = Appointment::query()->create([
+            'client_id' => $client->id,
+            'fecha' => '2026-06-22',
+            'hora' => '08:00',
+            'enviado' => false,
+            'activo' => true,
+        ]);
         $otherAppointment = Appointment::query()->create([
             'client_id' => $otherClient->id,
             'fecha' => '2026-06-26',
@@ -900,19 +907,85 @@ class AppointmentManagerTest extends TestCase
 
         Livewire::withQueryParams(['client' => $client->id])
             ->test(AppointmentList::class)
-            ->assertSee('Acciones masivas')
+            ->assertSee('Seleccionar todas las citas visibles')
             ->call('toggleVisibleAppointments', [$firstAppointment->id, $secondAppointment->id])
+            ->assertSee('Deseleccionar todas las citas visibles')
+            ->assertSee('2 citas seleccionadas')
             ->assertSet('selectedAppointmentIds', [$firstAppointment->id, $secondAppointment->id])
-            ->call('toggleVisibleAppointments', [$firstAppointment->id, $secondAppointment->id])
+            ->call('confirmBulkDelete')
+            ->assertSet('bulkDeleteConfirmationOpen', true)
+            ->set('dateFilter', 'all')
             ->assertSet('selectedAppointmentIds', [])
+            ->assertSet('bulkDeleteConfirmationOpen', false)
+            ->assertSeeHtml('wire:key="select-all-appointments-all-0-0-0"')
+            ->set('dateFilter', 'upcoming')
+            ->set('selectedAppointmentIds', [$firstAppointment->id, $secondAppointment->id])
+            ->call('confirmBulkDelete')
+            ->set('filter_activo', true)
+            ->assertSet('selectedAppointmentIds', [])
+            ->assertSet('bulkDeleteConfirmationOpen', false)
+            ->assertSeeHtml('wire:key="select-all-appointments-upcoming-0-1-0"')
+            ->set('filter_activo', false)
             ->set('selectedAppointmentIds', [$firstAppointment->id, $secondAppointment->id, $otherAppointment->id])
             ->call('confirmBulkDelete')
             ->assertSet('bulkDeleteConfirmationOpen', true)
-            ->call('deleteSelected');
+            ->assertSee('Eliminar citas seleccionadas')
+            ->assertSee('Esta acción no se puede deshacer.')
+            ->assertSeeHtml('x-trap.noscroll="modalOpen"')
+            ->call('deleteSelected')
+            ->assertRedirect(route('appointments.index'));
 
-        $this->assertModelMissing($firstAppointment);
-        $this->assertModelMissing($secondAppointment);
+        $this->assertSoftDeleted($firstAppointment);
+        $this->assertSoftDeleted($secondAppointment);
+        $this->assertModelExists($pastAppointment);
         $this->assertModelExists($otherAppointment);
+        $this->assertSame('No hay citas para el cliente Ana Pérez', session('status'));
+
+        Carbon::setTestNow();
+    }
+
+    public function test_client_appointment_list_can_activate_and_deactivate_selected_appointments_in_bulk(): void
+    {
+        Carbon::setTestNow('2026-06-23 09:00:00');
+
+        $client = Client::query()->create([
+            'nombre' => 'Ana',
+            'apellidos' => 'Pérez',
+            'telefono' => '+34600111222',
+        ]);
+        $otherClient = Client::query()->create([
+            'nombre' => 'Luis',
+            'apellidos' => 'Gómez',
+            'telefono' => '+34699111222',
+        ]);
+        $appointments = collect([
+            Appointment::query()->create(['client_id' => $client->id, 'fecha' => '2026-06-24', 'hora' => '09:00', 'enviado' => false, 'activo' => true]),
+            Appointment::query()->create(['client_id' => $client->id, 'fecha' => '2026-06-25', 'hora' => '10:00', 'enviado' => false, 'activo' => true]),
+        ]);
+        $otherAppointment = Appointment::query()->create([
+            'client_id' => $otherClient->id,
+            'fecha' => '2026-06-26',
+            'hora' => '11:00',
+            'enviado' => false,
+            'activo' => true,
+        ]);
+
+        $component = Livewire::withQueryParams(['client' => $client->id])
+            ->test(AppointmentList::class)
+            ->set('selectedAppointmentIds', [...$appointments->pluck('id'), $otherAppointment->id])
+            ->assertSee('Activar seleccionadas')
+            ->assertSee('Desactivar seleccionadas')
+            ->call('updateSelectedActiveStatus', false)
+            ->assertSet('selectedAppointmentIds', []);
+
+        $appointments->each(fn (Appointment $appointment) => $this->assertFalse($appointment->fresh()->activo));
+        $this->assertTrue($otherAppointment->fresh()->activo);
+
+        $component
+            ->set('selectedAppointmentIds', $appointments->pluck('id')->all())
+            ->call('updateSelectedActiveStatus', true);
+
+        $appointments->each(fn (Appointment $appointment) => $this->assertTrue($appointment->fresh()->activo));
 
         Carbon::setTestNow();
     }
@@ -1234,12 +1307,10 @@ class AppointmentManagerTest extends TestCase
             ->call('confirmDelete', $appointment->id)
             ->assertSee('Eliminar cita')
             ->assertSee('Esta acción no se puede deshacer.')
-            ->call('deleteConfirmed')
-            ->assertSee('Cita eliminada correctamente.');
+            ->assertSeeHtml('x-trap.noscroll="modalOpen"')
+            ->call('deleteConfirmed');
 
-        $this->assertDatabaseMissing('appointments', [
-            'id' => $appointment->id,
-        ]);
+        $this->assertSoftDeleted($appointment);
     }
 
     public function test_appointment_list_page_is_separate_from_appointment_form(): void

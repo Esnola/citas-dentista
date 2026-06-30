@@ -21,6 +21,8 @@ class ClientList extends Component
 
     public string $sort_direction = 'asc';
 
+    public ?int $clientPendingDeletionId = null;
+
     public function updatedFilterNombre(): void
     {
         $this->resetPage();
@@ -43,9 +45,24 @@ class ClientList extends Component
         $this->resetPage();
     }
 
-    public function delete(int $clientId): void
+    public function confirmDelete(int $clientId): void
     {
-        Client::query()->whereKey($clientId)->delete();
+        $this->clientPendingDeletionId = $clientId;
+    }
+
+    public function cancelDelete(): void
+    {
+        $this->clientPendingDeletionId = null;
+    }
+
+    public function deleteConfirmed(): void
+    {
+        if (! $this->clientPendingDeletionId) {
+            return;
+        }
+
+        Client::query()->find($this->clientPendingDeletionId)?->delete();
+        $this->clientPendingDeletionId = null;
 
         session()->flash('status', 'Cliente eliminado correctamente.');
 
@@ -77,6 +94,9 @@ class ClientList extends Component
 
         return view('livewire.client-list', [
             'clients' => $clients,
+            'clientPendingDeletion' => $this->clientPendingDeletionId
+                ? Client::query()->find($this->clientPendingDeletionId)
+                : null,
             'hasClientSearch' => $this->hasClientSearch,
             'showAllClients' => $this->showAllClients,
         ]);

@@ -1,8 +1,4 @@
-@php use App\Models\User; @endphp
 @extends('layouts.app')
-@php
-  $desactivado = count( App\Models\User::query()->where('is_admin', true)->get()) <= 1 && $user->id === 1;
-@endphp
 @section('content')
     <div class="grid gap-6">
         <div class="rounded-3xl lg:max-w-2xl border border-white/10 bg-white/5 p-6 backdrop-blur">
@@ -30,11 +26,14 @@
                     <x-formularios.input name="password_confirmation" type="password" />
                 </div>
                 <div class="flex flex-col gap-4 pt-2">
-                  <flux:checkbox value="is_admin" name="is_admin" label="Administrador"
-                  :disabled="$desactivado" :checked="old('is_admin',$user->is_admin)" />
-                  @if ($desactivado)
-                    <span class="text-red-400 text-xs">Con un solo admin no se puede cambiar.</span>
-                    @endif
+                  @if ($adminRoleLocked)
+                    <input type="hidden" name="is_admin" value="1">
+                  @endif
+                  <flux:checkbox value="1" name="is_admin" label="Administrador"
+                  :disabled="$adminRoleLocked" :checked="old('is_admin',$user->is_admin)" />
+                  @if ($adminRoleLocked)
+                    <span class="text-red-400 text-xs">No puedes auto-desvincularte co.</span>
+                  @endif
                   <div class="flex gap-4 justify-end mt-12">
 
                     <x-botones.icono-buton

@@ -160,5 +160,3 @@ document.addEventListener('keydown', (event) => {
 });
 
 window.addEventListener('resize', closeTimePicker);
-
-const accordionSynchronizers = [];

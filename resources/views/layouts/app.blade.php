@@ -4,6 +4,11 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="csrf-token" content="{{ csrf_token() }}">
+  <script>
+    try {
+      document.documentElement.classList.toggle('sidebar-collapsed', localStorage.getItem('sidebar-collapsed') === 'true');
+    } catch {}
+  </script>
   <title>{{ config('app.name', 'Laravel') }}</title>
   <link rel="preconnect" href="https://fonts.bunny.net">
   <link href="https://fonts.bunny.net/css?family=inter:400,500,600,700&display=swap" rel="stylesheet"/>
@@ -22,6 +27,17 @@
   <style>
       [x-cloak] {
           display: none !important;
+      }
+
+      .sidebar-shell {
+          width: 18rem;
+          background-color: rgb(15 23 42 / 0.7);
+      }
+
+      html.sidebar-collapsed .sidebar-shell,
+      .sidebar-shell[data-collapsed="true"] {
+          width: 5rem;
+          background-color: rgb(2 6 23 / 0.85);
       }
 
       aside[data-collapsed="true"] .sidebar-text {
@@ -79,16 +95,15 @@
         class="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(16,185,129,0.18),transparent_35%),linear-gradient(180deg,#020617,#0f172a)]"></div>
 <div class="relative mx-auto flex min-h-screen min-w-6/8">
   <aside
-          x-data="{ collapsed: localStorage.getItem('sidebar-collapsed') === 'true' }"
+          x-data="{
+              collapsed: localStorage.getItem('sidebar-collapsed') === 'true',
+              adminExpanded: ['true', 'open'].includes(localStorage.getItem('accordion:admin-accordion-panel') ?? 'true'),
+          }"
           x-init="$el.dataset.collapsed = collapsed"
-          x-cloak
           :data-collapsed="collapsed"
-          :class="[
-        collapsed ? 'w-20 bg-slate-950/85' : 'w-72 bg-slate-900/70',
-        'sticky top-0 hidden h-screen shrink-0 border-r border-white/10 px-4 py-5 shadow-[18px_0_60px_rgba(15,23,42,0.32)] backdrop-blur-xl transition-all duration-300 xl:block',
-    ]"
+          class="sidebar-shell sticky top-0 hidden h-screen shrink-0 border-r border-white/10 px-4 py-5 shadow-[18px_0_60px_rgba(15,23,42,0.32)] backdrop-blur-xl transition-all duration-300 xl:block"
   >
-    <nav class="flex flex-col h-full justify-between text-sm">
+    <nav x-cloak class="flex h-full flex-col justify-between text-sm">
 
 
       <div class="grid gap-12 items-center jusitfy-center">
@@ -106,7 +121,7 @@
         </div>
 
         <x-botones.sidebar-toggle
-                x-on:click="collapsed = !collapsed; localStorage.setItem('sidebar-collapsed', collapsed)"
+                x-on:click="collapsed = !collapsed; localStorage.setItem('sidebar-collapsed', collapsed); document.documentElement.classList.toggle('sidebar-collapsed', collapsed)"
         />
         <div class="grid gap-2">
 
@@ -124,22 +139,25 @@
       @if (auth()->check() && auth()->user()->is_admin)
         <div class="mb-12 grid gap-2">
           <div
-                  data-control-acordeon
                   role="button"
                   tabindex="0"
-                  aria-expanded="true"
+                  x-on:click="adminExpanded = !adminExpanded; localStorage.setItem('accordion:admin-accordion-panel', adminExpanded)"
+                  x-on:keydown.enter.prevent="$el.click()"
+                  x-on:keydown.space.prevent="$el.click()"
+                  x-bind:aria-expanded="adminExpanded"
                   aria-controls="admin-accordion-panel"
                   class="sidebar-admin-header flex items-center gap-3 rounded-t-md border-b border-white/10 bg-white/10 px-4 py-2 text-xs font-bold uppercase tracking-[0.25em] text-slate-500 transition-colors duration-200 hover:bg-white/15 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/40"
           >
             <x-iconos.admin-user/>
             <span class="sidebar-text">Administración</span>
-            <x-iconos.up data-control-acordeon-icon
+            <x-iconos.up x-bind:class="adminExpanded && 'rotate-180'"
                          clase="sidebar-text ml-auto size-6 transition-transform duration-300 ease-in-out"/>
           </div>
           <div
                   id="admin-accordion-panel"
-                  data-acordeon
-                  class="mt-2 mb-4 grid gap-2 overflow-hidden transition-[max-height,opacity,margin-top] duration-300 ease-in-out"
+                  x-show="adminExpanded"
+                  x-transition.opacity.duration.300ms
+                  class="mt-2 mb-4 grid gap-2 overflow-hidden"
           >
             <x-navegacion.aside-link route="admin.users.create" route-is="admin.users.*"
                                      color="orange" text="Usuarios" icono="usuarios" class="sidebar-link"/>

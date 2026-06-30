@@ -91,6 +91,32 @@ class ClientManagerTest extends TestCase
             ]);
     }
 
+    public function test_client_deletion_uses_a_confirmation_modal(): void
+    {
+        $client = Client::query()->create([
+            'nombre' => 'Ana',
+            'apellidos' => 'Pérez',
+            'telefono' => '600123123',
+        ]);
+
+        Livewire::test(ClientList::class)
+            ->set('filter_nombre', 'Ana')
+            ->call('confirmDelete', $client->id)
+            ->assertSee('Eliminar cliente')
+            ->assertSee('Ana Pérez')
+            ->assertSeeHtml('aria-label="Cancelar"')
+            ->assertSeeHtml('aria-label="Eliminar cliente"')
+            ->assertSee('Esta acción no se puede deshacer.')
+            ->call('cancelDelete')
+            ->assertSet('clientPendingDeletionId', null)
+            ->call('confirmDelete', $client->id)
+            ->assertSet('clientPendingDeletionId', $client->id)
+            ->call('deleteConfirmed')
+            ->assertSet('clientPendingDeletionId', null);
+
+        $this->assertSoftDeleted($client);
+    }
+
     public function test_clients_screen_can_edit_selected_client(): void
     {
         Carbon::setTestNow('2026-06-22 10:00:00');

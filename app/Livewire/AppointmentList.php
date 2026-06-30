@@ -103,12 +103,16 @@ class AppointmentList extends Component
                 $this->dateFilter = 'upcoming';
             }
 
+            $this->selectedAppointmentIds = [];
+            $this->bulkDeleteConfirmationOpen = false;
             $this->resetAppointmentsPage();
 
             return;
         }
 
         if (in_array($property, ['filter_enviado', 'filter_activo', 'filter_entregado'], true)) {
+            $this->selectedAppointmentIds = [];
+            $this->bulkDeleteConfirmationOpen = false;
             $this->forceDeliveryStatusSync();
             $this->syncExclusiveDeliveryFilters($property);
             $this->resetAppointmentsPage();
@@ -210,9 +214,38 @@ class AppointmentList extends Component
         $this->selectedAppointmentIds = [];
         $this->bulkDeleteConfirmationOpen = false;
 
-        session()->flash('status', sprintf('%d cita(s) eliminada(s) correctamente.', $deleted));
+        $this->redirectAfterAction(sprintf('%d cita(s) eliminada(s) correctamente.', $deleted));
+    }
 
-        $this->redirect(route('appointments.index', ['client' => $this->clientId]));
+    public function updateSelectedActiveStatus(bool $activo): void
+    {
+        if (! $this->clientId || $this->selectedAppointmentIds === []) {
+            return;
+        }
+
+        $appointmentIds = Appointment::query()
+            ->where('client_id', $this->clientId)
+            ->whereKey(array_map('intval', $this->selectedAppointmentIds))
+            ->pending()
+            ->upcoming()
+            ->pluck('id');
+
+        Appointment::query()->whereKey($appointmentIds)->update(['activo' => $activo]);
+
+        if (! $activo) {
+            WhatsAppMessage::query()
+                ->whereIn('appointment_id', $appointmentIds)
+                ->where('status', WhatsAppMessage::STATUS_PENDING)
+                ->delete();
+        }
+
+        $this->selectedAppointmentIds = [];
+
+        $this->redirectAfterAction(sprintf(
+            '%d cita(s) %s correctamente.',
+            $appointmentIds->count(),
+            $activo ? 'activada(s)' : 'desactivada(s)'
+        ));
     }
 
     public function deleteConfirmed(): void
@@ -224,9 +257,7 @@ class AppointmentList extends Component
         Appointment::query()->whereKey($this->appointmentPendingDeletionId)->delete();
         $this->appointmentPendingDeletionId = null;
 
-        session()->flash('status', 'Cita eliminada correctamente.');
-
-        $this->redirect(url()->previous());
+        $this->redirectAfterAction('Cita eliminada correctamente.');
     }
 
     public function updateActiveStatus(int $appointmentId, bool|string $activo): void
@@ -418,6 +449,21 @@ class AppointmentList extends Component
     private function selectedClient(): ?Client
     {
         return $this->clientId ? Client::query()->find($this->clientId) : null;
+    }
+
+    private function redirectAfterAction(string $status): void
+    {
+        $client = $this->selectedClient();
+
+        if ($client && ! $this->appointmentsQuery($client, Carbon::now(config('app.timezone')))->exists()) {
+            session()->flash('status', 'No hay citas para el cliente '.$client->full_name);
+            $this->redirect(route('appointments.index'));
+
+            return;
+        }
+
+        session()->flash('status', $status);
+        $this->redirect($client ? route('appointments.index', ['client' => $client->id]) : url()->previous());
     }
 
     private function appointmentsQuery(?Client $selectedClient, Carbon $now): Builder

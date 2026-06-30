@@ -99,22 +99,28 @@
       @endif
 
       @if ($showBulkActions && count($selectedAppointmentIds))
-        <div class="mt-4 flex flex-wrap items-center gap-3">
           <flux:dropdown>
-            <flux:button icon:trailing="chevron-down"
+            <flux:button icon="list-bullet" icon:trailing="chevron-down" variant="primary"
+                         class="bg-emerald-600! text-white! hover:bg-emerald-500!"
                          :disabled="$selectedAppointmentIds === []">
-              Acciones masivas
+              {{ count($selectedAppointmentIds) }} {{ count($selectedAppointmentIds) === 1 ? 'cita seleccionada' : 'citas seleccionadas' }}
             </flux:button>
-            <flux:menu>
-              <flux:menu.item variant="danger" icon="trash" wire:click="confirmBulkDelete">
+            <flux:menu class="min-w-60 border! border-white/10! bg-slate-900! p-2! shadow-2xl! shadow-slate-950/60!">
+              <flux:menu.item icon="check-circle" wire:click="updateSelectedActiveStatus(true)"
+                              class="cursor-pointer text-emerald-200! transition-colors hover:bg-emerald-500/15! hover:text-emerald-100!">
+                Activar seleccionadas
+              </flux:menu.item>
+              <flux:menu.item icon="pause-circle" wire:click="updateSelectedActiveStatus(false)"
+                              class="cursor-pointer text-amber-200! transition-colors hover:bg-amber-500/15! hover:text-amber-100!">
+                Desactivar seleccionadas
+              </flux:menu.item>
+              <flux:menu.separator class="my-2! bg-white/10!" />
+              <flux:menu.item icon="trash" wire:click="confirmBulkDelete"
+                              class="cursor-pointer text-red-300! transition-colors hover:bg-red-500/15! hover:text-red-200!">
                 Eliminar seleccionadas
               </flux:menu.item>
             </flux:menu>
           </flux:dropdown>
-          @if ($selectedAppointmentIds !== [])
-            <flux:text>{{ count($selectedAppointmentIds) }} seleccionada(s)</flux:text>
-          @endif
-        </div>
       @endif
       @if($show_filters_nombre)
         <flux:field>
@@ -161,7 +167,15 @@
       <table class="min-w-full divide-y divide-white/10 text-left text-sm">
         <thead class="bg-slate-900/70 text-slate-300">
         <tr>
-          <x-tabla.th :condicion="$showBulkActions"/>
+          <x-tabla.th :condicion="$showBulkActions">
+            <input type="checkbox"
+                    wire:key="select-all-appointments-{{ $dateFilter }}-{{ (int) $filter_enviado }}-{{ (int) $filter_activo }}-{{ (int) $filter_entregado }}"
+                    class="size-4 cursor-pointer rounded border-white/20 bg-slate-950/50 text-emerald-500 accent-emerald-500 focus:ring-2 focus:ring-emerald-400/40 focus:ring-offset-0"
+                    @checked($allVisibleAppointmentsSelected)
+                    wire:change="toggleVisibleAppointments(@js($visibleAppointmentIds))"
+                    aria-label="{{ $allVisibleAppointmentsSelected ? 'Deseleccionar todas las citas visibles' : 'Seleccionar todas las citas visibles' }}"
+            >
+          </x-tabla.th>
           <x-tabla.th-sort sortBy="cliente" :sortDirection="$sort_direction" :currentSort="$sort_by"/>
           <x-tabla.th-sort sortBy="fecha" :sortDirection="$sort_direction" :currentSort="$sort_by"/>
           <th class="px-4 py-3 text-center">Hora Cita</th>
@@ -203,12 +217,13 @@
                 title="Message SID: {{ $appointment->latestWhatsAppMessage?->provider_message_id }}"
                   @endif >
             @if ($showBulkActions)
-              <td class="px-4 py-3" onclick="event.stopPropagation()">
-                <flux:checkbox
+              <td class="px-4 py-3 text-center" onclick="event.stopPropagation()">
+                <input type="checkbox"
+                        class="size-4 cursor-pointer rounded border-white/20 bg-slate-950/50 text-emerald-500 accent-emerald-500 focus:ring-2 focus:ring-emerald-400/40 focus:ring-offset-0"
                         wire:model.live="selectedAppointmentIds"
                         value="{{ $appointment->id }}"
                         aria-label="Seleccionar cita de {{ $appointment->client?->full_name }}"
-                />
+                >
               </td>
             @endif
             <td class="px-4 py-3">
@@ -358,54 +373,42 @@
 </div>
 
 @if ($appointmentPendingDeletion)
-  <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 px-4 py-6">
-    <div class="w-full max-w-md rounded-3xl border border-white/10 bg-slate-900 p-6 shadow-2xl">
-      <h3 class="text-lg font-semibold">Eliminar cita</h3>
-      <p class="mt-3 text-sm text-slate-300">
-        ¿Seguro que quieres eliminar la cita de
-        <span class="font-medium text-white">{{ $appointmentPendingDeletion->client?->full_name }}</span>
-        del {{ $appointmentPendingDeletion->fecha?->format('d/m/Y') }} a
-        las {{ $appointmentPendingDeletion->hora }}?
-      </p>
-      <p class="mt-2 text-sm text-slate-400">Esta acción no se puede deshacer.</p>
+  <x-modales.confirmacion x-data="{ modalOpen: true }" x-trap.noscroll="modalOpen"
+                           x-on:keydown.escape.window="$wire.cancelDelete()" titulo="Eliminar cita">
+    <p class="mt-3 text-sm text-slate-300">
+      ¿Seguro que quieres eliminar la cita de
+      <span class="font-medium text-white">{{ $appointmentPendingDeletion->client?->full_name }}</span>
+      del {{ $appointmentPendingDeletion->fecha?->format('d/m/Y') }} a
+      las {{ $appointmentPendingDeletion->hora }}?
+    </p>
+    <p class="mt-2 text-sm text-slate-400">Esta acción no se puede deshacer.</p>
 
-      <div class="mt-6 flex flex-wrap justify-end gap-2">
-        <x-botones.icono-buton
-          color="amber"
-          label="Cancelar"
-          texto="Cancelar"
-          type="submit"
-          icon="volver"
-          wire:click="cancelDelete" />
-
-        <x-botones.icono-buton
-           color="red"
-           icon="papelera"
-           label="Eliminar cita"
-           texto="Eliminar cita"
-           wire:click="deleteConfirmed" />
-      </div>
-    </div>
-  </div>
+    <x-slot:actions>
+      <x-botones.icono-buton color="amber" label="Cancelar" texto="Cancelar" icon="volver"
+                               wire:click="cancelDelete" />
+      <x-botones.icono-buton color="red" icon="papelera" label="Eliminar cita" texto="Eliminar cita"
+                               wire:click="deleteConfirmed" />
+    </x-slot:actions>
+  </x-modales.confirmacion>
 @endif
 
-<flux:modal wire:model.self="bulkDeleteConfirmationOpen" class="min-w-88">
-  <div class="space-y-6">
-    <div>
-      <flux:heading size="lg">¿Eliminar citas seleccionadas?</flux:heading>
-      <flux:text class="mt-2">
-        Se eliminarán {{ count($selectedAppointmentIds) }} cita(s). Esta acción no se puede deshacer.
-      </flux:text>
-    </div>
-    <div class="flex gap-2">
-      <flux:spacer/>
-      <flux:modal.close>
-        <flux:button variant="ghost">Cancelar</flux:button>
-      </flux:modal.close>
-      <flux:button variant="danger" wire:click="deleteSelected">Eliminar</flux:button>
-    </div>
-  </div>
-</flux:modal>
+@if ($bulkDeleteConfirmationOpen)
+  <x-modales.confirmacion x-data="{ modalOpen: true }" x-trap.noscroll="modalOpen"
+                           x-on:keydown.escape.window="$wire.$set('bulkDeleteConfirmationOpen', false)"
+                           titulo="Eliminar citas seleccionadas">
+    <p class="mt-3 text-sm text-slate-300">
+      Se eliminarán <span class="font-medium text-white">{{ count($selectedAppointmentIds) }} cita(s)</span>.
+    </p>
+    <p class="mt-2 text-sm text-slate-400">Esta acción no se puede deshacer.</p>
+
+    <x-slot:actions>
+      <x-botones.icono-buton color="amber" icon="volver" label="Cancelar" texto="Cancelar"
+                               wire:click="$set('bulkDeleteConfirmationOpen', false)" />
+      <x-botones.icono-buton color="red" icon="papelera" label="Eliminar citas" texto="Eliminar citas"
+                               wire:click="deleteSelected" />
+    </x-slot:actions>
+  </x-modales.confirmacion>
+@endif
 
 @script
 <script>

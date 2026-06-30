@@ -79,14 +79,8 @@
                       href="{{ route('clients.edit', $client) }}"
                       tooltip="Editar cliente"
               />
-              <x-botones.accion
-                      variant="delete"
-                      size="sm"
-                      icono="delete"
-                      type="button"
-                      onclick="if (! confirm('¿Eliminar este cliente?')) return; $wire.delete({{ $client->id }})"
-                      tooltip="Eliminar cliente"
-              />
+              <x-botones.icono-buton color="red" icon="papelera" label="Eliminar cliente"
+                                      wire:click="confirmDelete({{ $client->id }})" />
             </div>
           </td>
         </tr>
@@ -109,5 +103,23 @@
     <div class="mt-4">
       {{ $clients->links('vendor.pagination.tailwind') }}
     </div>
+  @endif
+
+  @if ($clientPendingDeletion)
+    <x-modales.confirmacion x-data="{ modalOpen: true }" x-trap.noscroll="modalOpen"
+                             x-on:keydown.escape.window="$wire.cancelDelete()" titulo="Eliminar cliente">
+      <p class="mt-3 text-sm text-slate-300">
+        ¿Seguro que quieres eliminar a
+        <span class="font-medium text-white">{{ $clientPendingDeletion->nombre }} {{ $clientPendingDeletion->apellidos }}</span>?
+      </p>
+      <p class="mt-2 text-sm text-slate-400">Esta acción no se puede deshacer.</p>
+
+      <x-slot:actions>
+        <x-botones.icono-buton color="amber" icon="volver" label="Cancelar" texto="Cancelar"
+                                 wire:click="cancelDelete" />
+        <x-botones.icono-buton color="red" icon="papelera" label="Eliminar cliente" texto="Eliminar cliente"
+                                 wire:click="deleteConfirmed" />
+      </x-slot:actions>
+    </x-modales.confirmacion>
   @endif
 </div>
