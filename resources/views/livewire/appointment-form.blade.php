@@ -9,9 +9,14 @@
                     Escribe al menos un carácter en cualquier campo para ver coincidencias.
                 </p>
             </div>
-            <x-botones.accion variant="edit" back href="{{ route('appointments.index') }}" class="mr-12">
-                <x-iconos.salir />
-                Volver al listado</x-botones.accion>
+          <x-botones.icono-buton
+                  back
+            color="amber"
+            icono="volver"
+            label="Volver al listado"
+            texto="Volver al listado"
+            onclick="window.location.href='{{ route('appointments.index')}}'"
+            />
         </div>
         <div class="flex mt-6 items-start gap-4">
             <div class="mb-6">
@@ -127,34 +132,43 @@
                     </div>
                     <div class="flex flex-wrap gap-6">
                         @if ($showReturnAfterImmediateSend)
-                            <x-botones.accion variant="indigo" icono="back" back href="{{ $returnUrl }}">Volver</x-botones.accion>
+                          <x-botones.icono-buton
+                            back
+                            icono="volver"
+                            label="Volver"
+                            texto="Volver"
+                            onclick="window.location.href='{{ $returnUrl }}'"
+                            />
                         @else
                             @if ($selectedAppointment)
-                                <x-botones.accion
-                                    variant="indigo"
-                                    type="button"
-                                    wire:click="sendNow"
-                                    wire:loading.attr="disabled"
-                                    :disabled="! $canSendAppointmentNow"
-                                >
-                                    <x-iconos.whatsapp clase="size-8 mr-2.5" />
-                                   Ahora
-                                </x-botones.accion>
+                          <x-botones.icono-buton
+                                  color="indigo"
+                                  type="button"
+                                  icon="whatsapp"
+                                  label="Ahora"
+                                  texto="Ahora"
+                                  wire:click="sendNow"
+                                  wire:loading.attr="disabled"
+                                  :disabled="! $canSendAppointmentNow"
+                          />
                             @endif
-                            <x-botones.accion
-                                variant="add"
-                                type="submit"
-                                :disabled="! $selectedClient || ! $canChangeAppointment">
-                                @if($selectedAppointment)
-                                    <x-iconos.guardar clase="size-8 mr-2.5"/>
-                                    Guardar
-                                @else
-                                    Crear
-                                @endif
-                            </x-botones.accion>
-                            <x-botones.accion back href="{{ route('appointments.index') }}">
-                                <x-iconos.salir clase="size-8"/>
-                                Volver</x-botones.accion>
+                                  <x-botones.icono-buton
+                                     color="sky"
+                                     type="submit"
+                                     icon="disquete"
+                                     label="{{$selectedAppointment ? 'Guardar' : "Crear"}}"
+                                     texto="{{$selectedAppointment ? 'Guardar' : "Crear"}}"
+                                          />
+                              <x-botones.icono-buton
+                                      back
+                                      color="sky"
+                                      icon="volver"
+                                      especial="size-6"
+                                      label="Volver"
+                                      texto="Volver"
+                                      onclick="window.location.href='{{ $returnUrl }}'"
+                              />
+
                         @endif
                     </div>
                 </form>

@@ -37,15 +37,17 @@
       @if ($selectedClient)
         <p class="mt-2 font-medium">{{ $selectedClient->nombre }} {{ $selectedClient->apellidos }}</p>
         <p class="mt-1 text-sm text-slate-300">{{ $selectedClient->telefono }}</p>
-        <p class="mt-1 text-sm text-slate-300">Alta: {{ $selectedClient->created_at?->format('d/m/Y H:i') }}</p>
-        {{-- <x-botones.accion type="button" class="mt-3" wire:click="clearSelection">Limpiar selección</x-botones.accion>--}}
+        <p class="mt-1 text-sm text-slate-300 mb-8">Alta: {{ $selectedClient->created_at?->format('d/m/Y H:i') }}</p>
+
         <x-botones.icono-buton
                 type="button"
-                wire:click="clearSelection"
-                class="mt-3!"
+                color="red"
+                clase="mt-12"
+                especial="size-6"
                 texto="Limpiar selección"
                 label="Limpiar selección"
-                icon="limpiar"
+                icon="escoba"
+                wire:click="clearSelection"
         />
       @else
         <p class="mt-2 text-sm text-slate-300">No hay ningún cliente seleccionado todavía.</p>
@@ -84,22 +86,10 @@
         </flux:field>
 
         <div class="flex flex-wrap gap-3">
-          {{--          <x-botones.accion variant="add" icono="check" type="submit" :disabled="! $selectedClient">Programar mensaje
-                  </x-botones.accion>
-                <x-botones.accion
-                          variant="edit"
-                          icono="check"
-                          type="button"
-                          wire:click="sendNow"
-                          wire:loading.attr="disabled"
-                          wire:target="sendNow"
-                          :disabled="! $selectedClient"
-                  >
-                    Enviar ahora
-                  </x-botones.accion>--}}
+
           <x-botones.icono-buton
                   color="emerald"
-                  icono="check"
+                  icon="check"
                   label="Programar mensaje"
                   texto="Programar mensaje"
                   type="submit"
@@ -107,7 +97,7 @@
           />
           <x-botones.icono-buton
                   color="sky"
-                  icono="check"
+                  icon="check"
                   label="Enviar ahora"
                   texto="Enviar ahora"
                   type="button"

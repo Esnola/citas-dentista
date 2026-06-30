@@ -5,13 +5,15 @@
       <div>
         <h2 class="text-xl font-semibold">{{ $editingTemplateId ? 'Editar plantilla' : 'Nueva plantilla' }}</h2>
       </div>
-      <x-botones.accion
-              variant="add"
+
+      <x-botones.icono-buton
+              color="blue"
               type="button"
-              wire:click="create">
-        <x-iconos.nuevo/>
-        Nuevo
-      </x-botones.accion>
+              icon="nuevo"
+              label="Nuevo Template"
+              texto="Nuevo"
+              wire:click="create"
+        />
     </div>
 
     <form class="mt-6 grid gap-4" wire:submit="save">

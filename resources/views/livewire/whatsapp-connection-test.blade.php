@@ -12,15 +12,12 @@
   </div>
 
   @if ($status)
-    <div class="mt-4 rounded-2xl border px-4 py-3 text-sm
-            @if ($statusType === 'success')
-                border-emerald-400/30 bg-emerald-500/10 text-emerald-200
-            @elseif ($statusType === 'error')
-                border-rose-400/30 bg-rose-500/10 text-rose-200
-            @else
-                border-white/10 bg-slate-900/60 text-slate-200
-            @endif
-        ">
+    <div @class([
+        'mt-4 rounded-2xl border px-4 py-3 text-sm',
+        'border-emerald-400/30 bg-emerald-500/10 text-emerald-200' => $statusType === 'success',
+        'border-rose-400/30 bg-rose-500/10 text-rose-200' => $statusType === 'error',
+        'border-white/10 bg-slate-900/60 text-slate-200' => ! in_array($statusType, ['success', 'error'], true),
+    ])>
       {{ $status }}
     </div>
   @endif
@@ -98,7 +95,7 @@
           </x-botones.accion>--}}
       <x-botones.icono-buton
               type="submit"
-              icono="enviar"
+              icon="enviar"
               label="Enviar prueba"
               texto="Enviar prueba"
               especial="size-6"

@@ -57,30 +57,31 @@
           <td class="px-4 py-3">{{ $client->telefono }}</td>
           <td class="px-4 py-3 text-right">
             <div class="flex justify-center  gap-4">
-              <x-botones.accion
-                      variant="warning"
-                      size="sm"
-                      href="{{ route('appointments.index', ['client' => $client->id]) }}"
-              >
-                <x-iconos.ojo clase="size-5"/>
-              </x-botones.accion>
-              <x-botones.accion
-                      variant="add"
-                      size="sm"
-                      icono="plus"
-                      href="{{ route('appointments.create', ['client' => $client->id]) }}"
-              >
-              </x-botones.accion>
 
-              <x-botones.accion
-                      variant="edit"
-                      size="sm"
-                      icono="edit"
-                      href="{{ route('clients.edit', $client) }}"
-                      tooltip="Editar cliente"
+              <x-botones.icono-buton
+                      color="amber"
+                      icon="ojo"
+                      label="Ver Usuario"
+                      onclick="window.location.href='{{ route('client.index', ['client' => $client->id]) }}'"
               />
-              <x-botones.icono-buton color="red" icon="papelera" label="Eliminar cliente"
-                                      wire:click="confirmDelete({{ $client->id }})" />
+              <x-botones.icono-buton
+                      color="sky"
+                      icon="cita"
+                      label="Crear cita"
+                      wire:click.href="{{ route('appointments.create', ['client' => $client->id])}}"
+              />
+              <x-botones.icono-buton
+                      color="sky"
+                      icon="lapiz"
+                      label="Editar cliente"
+                      wire:click.href="{{ route('clients.edit', $client) }}"
+              />
+              <x-botones.icono-buton
+                      color="red"
+                      icon="papelera"
+                      label="Eliminar cliente"
+                      wire:click="confirmDelete({{ $client->id }})"
+              />
             </div>
           </td>
         </tr>

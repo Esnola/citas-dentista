@@ -58,11 +58,6 @@
     </div>
 
     <div>
-      <x-botones.accion variant="add" size="sm" icono="check" type="submit">
-        <x-iconos.disquete/>
-        Guardar
-      </x-botones.accion>
-
       <x-botones.icono-buton
               icon="disquete"
               type="submit"

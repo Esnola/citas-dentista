@@ -25,8 +25,23 @@
                 </flux:field>
             </div>
             <div class="lg:col-span-5 flex flex-wrap gap-3">
-                <x-botones.accion icono="eye" type="button" wire:click="preview">Previsualizar</x-botones.accion>
-                <x-botones.accion variant="add" icono="check" type="submit">Importar</x-botones.accion>
+          {{--      <x-botones.accion icono="eye" type="button" wire:click="preview">Previsualizar</x-botones.accion>
+                <x-botones.accion variant="add" icono="check" type="submit">Importar</x-botones.accion>--}}
+
+              <x-botones.icono-buton
+                color="amber"
+                icono="ojo"
+                type="button"
+                wire:click="preview"
+                label="Previsualizar"
+                texto="Previsualizar"
+                />
+              <x-botones.icono-buton
+                type="submit"
+                icono="check"
+                label="Importar"
+                texto="Importar"
+              />
             </div>
         </form>
     </div>
