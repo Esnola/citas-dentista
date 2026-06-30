@@ -58,17 +58,17 @@ Route::middleware('auth')->group(function () {
         $results['file_readable'] = is_readable($filePath);
         $results['file_size'] = file_exists($filePath) ? filesize($filePath) : 0;
 
-        // Try to check Finder state via reflection
+        // Simulate Livewire resolution exactly
         try {
             $finder = app('livewire.finder');
-            $ref = new ReflectionClass($finder);
-            $classLocationsProp = $ref->getProperty('classLocations');
-            $classLocationsProp->setAccessible(true);
-            $results['classLocations'] = $classLocationsProp->getValue($finder);
+            $class = $finder->resolveClassComponentClassName('whatsapp-connection-test');
+            $results['finder_resolved_class'] = $class;
 
-            $viewLocationsProp = $ref->getProperty('viewLocations');
-            $viewLocationsProp->setAccessible(true);
-            $results['viewLocations'] = $viewLocationsProp->getValue($finder);
+            if ($class) {
+                $results['class_exists_resolved'] = class_exists($class);
+                $results['is_subclass'] = is_subclass_of($class, \Livewire\Component::class);
+                $results['component_class'] = \Livewire\Component::class;
+            }
         } catch (\Throwable $e) {
             $results['finder_error'] = $e->getMessage();
         }
