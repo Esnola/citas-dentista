@@ -21,5 +21,7 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Livewire::component('whatsapp-connection-test', \App\Livewire\WhatsAppConnectionTest::class);
+        Livewire::component('whatsapp-template-manager', \App\Livewire\WhatsAppTemplateManager::class);
+        Livewire::component('appointment-reminder-settings', \App\Livewire\AppointmentReminderSettings::class);
     }
 }
