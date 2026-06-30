@@ -51,7 +51,8 @@
                 icon="nueva-cita"
                 label="Nueva cita"
                 texto="Nueva cita"
-                onclick="window.location.href='{{ route('appointments.create', $selectedClient ? ['client' => $selectedClient->id] : []) }}'"/>
+                onclick="window.location.href='{{ route('appointments.create', $selectedClient ? ['client' => $selectedClient->id] : []) }}'"
+                />
 
 
       </div>
