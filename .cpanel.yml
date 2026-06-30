@@ -14,6 +14,9 @@ deployment:
     - /bin/cp artisan $DEPLOYPATH/artisan
     - /bin/cp composer.json $DEPLOYPATH/composer.json
     - /bin/cp .env $DEPLOYPATH/.env
+    - cd $DEPLOYPATH && rm -rf bootstrap/cache/*
+    - cd $DEPLOYPATH && rm -rf storage/framework/views/*
+    - cd $DEPLOYPATH && composer dump-autoload
     - cd $DEPLOYPATH && php artisan config:cache
     - cd $DEPLOYPATH && php artisan route:cache
     - cd $DEPLOYPATH && php artisan view:cache
