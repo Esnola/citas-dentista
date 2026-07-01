@@ -1,5 +1,5 @@
 @extends('layouts.app')
 
 @section('content')
-    <livewire:excel-importer />
+    <livewire:client-csv-importer />
 @endsection

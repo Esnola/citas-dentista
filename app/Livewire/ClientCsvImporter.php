@@ -2,16 +2,13 @@
 
 namespace App\Livewire;
 
-use App\Imports\WhatsAppMessagesImport;
-use App\Models\WhatsAppMessage;
-use App\Models\WhatsAppTemplate;
-use Illuminate\Support\Facades\Auth;
+use App\Imports\ClientsImport;
 use Livewire\Component;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use Livewire\WithFileUploads;
 use Maatwebsite\Excel\Facades\Excel;
 
-class ExcelImporter extends Component
+class ClientCsvImporter extends Component
 {
     use WithFileUploads;
 
@@ -21,37 +18,30 @@ class ExcelImporter extends Component
 
     public string $statusType = 'neutral';
 
-    public string $template_key = '';
-
-    public string $filter_nombre = '';
-
-    public string $filter_apellidos = '';
-
-    public string $filter_telefono = '';
-
     public array $previewRows = [];
 
     public bool $previewLoaded = false;
-
-    public function mount(): void
-    {
-        $this->template_key = WhatsAppTemplate::defaultKey();
-    }
 
     public function preview(): void
     {
         try {
             $this->validate([
                 'file' => ['required', 'file', 'extensions:csv,txt', 'mimetypes:text/plain,text/csv,application/csv,application/vnd.ms-excel,text/comma-separated-values', 'max:10240'],
-                'template_key' => ['required', 'in:'.implode(',', array_column(WhatsAppMessage::templateOptions(), 'key'))],
             ]);
 
             $delimiter = $this->detectCsvDelimiter();
-            $import = new WhatsAppMessagesImport(Auth::user(), $this->template_key, false, $delimiter);
+            $import = new ClientsImport(false, $delimiter);
             Excel::import($import, $this->file);
 
             $this->previewRows = $import->previewRows();
             $this->previewLoaded = true;
+
+            if ($import->processedRows() === 0) {
+                $this->setStatus('El CSV se leyó, pero no contenía filas válidas para previsualizar.', 'error');
+
+                return;
+            }
+
             $this->setStatus('Previsualización generada correctamente.');
         } catch (\Throwable $throwable) {
             $this->setStatus('No se pudo generar la previsualización: '.$throwable->getMessage(), 'error');
@@ -63,47 +53,48 @@ class ExcelImporter extends Component
         try {
             $this->validate([
                 'file' => ['required', 'file', 'extensions:csv,txt', 'mimetypes:text/plain,text/csv,application/csv,application/vnd.ms-excel,text/comma-separated-values', 'max:10240'],
-                'template_key' => ['required', 'in:'.implode(',', array_column(WhatsAppMessage::templateOptions(), 'key'))],
             ]);
 
             $delimiter = $this->detectCsvDelimiter();
-            Excel::import(
-                new WhatsAppMessagesImport(Auth::user(), $this->template_key, true, $delimiter),
-                $this->file
-            );
+            $import = new ClientsImport(true, $delimiter);
+            Excel::import($import, $this->file);
+
+            if ($import->processedRows() === 0) {
+                $this->setStatus('El CSV se leyó, pero no contenía filas válidas para importar.', 'error');
+
+                return;
+            }
+
+            if ($import->createdRows() === 0 && $import->restoredRows() === 0) {
+                $this->reset('file');
+                $this->setStatus('No se encontraron clientes nuevos para importar.', 'neutral');
+
+                return;
+            }
 
             $this->reset('file');
-            $this->setStatus('Archivo importado correctamente.');
+
+            $message = [];
+
+            if ($import->createdRows() > 0) {
+                $message[] = 'Se importaron '.$import->createdRows().' cliente(s) nuevo(s) correctamente.';
+            }
+
+            if ($import->restoredRows() > 0) {
+                $message[] = 'Se restauraron '.$import->restoredRows().' cliente(s) eliminado(s).';
+            }
+
+            $this->setStatus(implode(' ', $message));
         } catch (\Throwable $throwable) {
             $this->setStatus('No se pudo importar el CSV: '.$throwable->getMessage(), 'error');
         }
     }
 
-    public function getFilteredPreviewRowsProperty(): array
-    {
-        return collect($this->previewRows)
-            ->filter(fn (array $row) => $this->matchesFilter($row, 'nombre', $this->filter_nombre))
-            ->filter(fn (array $row) => $this->matchesFilter($row, 'apellidos', $this->filter_apellidos))
-            ->filter(fn (array $row) => $this->matchesFilter($row, 'telefono', $this->filter_telefono))
-            ->values()
-            ->all();
-    }
-
     public function render()
     {
-        return view('livewire.excel-importer', [
-            'templateOptions' => WhatsAppMessage::templateOptions(),
-            'filteredPreviewRows' => $this->filteredPreviewRows,
+        return view('livewire.client-csv-importer', [
+            'previewRows' => $this->previewRows,
         ]);
-    }
-
-    private function matchesFilter(array $row, string $key, string $filter): bool
-    {
-        if ($filter === '') {
-            return true;
-        }
-
-        return str_contains(mb_strtolower((string) ($row[$key] ?? '')), mb_strtolower($filter));
     }
 
     private function setStatus(string $message, string $type = 'success'): void

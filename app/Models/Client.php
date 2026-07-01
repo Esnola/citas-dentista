@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Str;
 
 class Client extends Model
 {
@@ -51,14 +52,42 @@ class Client extends Model
 
     public static function upsertFromImport(array $data): self
     {
-        $phone = static::normalizePhone((string) ($data['telefono'] ?? ''));
+        $rawPhone = trim((string) ($data['telefono'] ?? ''));
+        $payload = [
+            'nombre' => trim((string) ($data['nombre'] ?? '')),
+            'apellidos' => trim((string) ($data['apellidos'] ?? '')),
+            'telefono' => $rawPhone,
+        ];
 
-        return static::query()->updateOrCreate(
-            ['telefono' => $phone !== '' ? $phone : (string) ($data['telefono'] ?? '')],
-            [
-                'nombre' => (string) ($data['nombre'] ?? ''),
-                'apellidos' => (string) ($data['apellidos'] ?? ''),
-            ]
-        );
+        $lookupPhone = static::normalizePhone($rawPhone);
+
+        $client = static::withTrashed()
+            ->get()
+            ->first(fn (self $candidate): bool => static::matchesImportIdentity($candidate, $payload, $lookupPhone));
+
+        if ($client) {
+            if ($client->trashed()) {
+                $client->restore();
+            }
+
+            return $client;
+        }
+
+        return static::query()->create($payload);
+    }
+
+    private static function matchesImportIdentity(self $client, array $payload, string $lookupPhone): bool
+    {
+        return static::normalizeImportValue($client->nombre) === static::normalizeImportValue($payload['nombre'])
+            && static::normalizeImportValue($client->apellidos) === static::normalizeImportValue($payload['apellidos'])
+            && static::normalizePhone((string) $client->telefono) === $lookupPhone;
+    }
+
+    private static function normalizeImportValue(string $value): string
+    {
+        $value = Str::ascii(trim($value));
+        $value = preg_replace('/\s+/', ' ', $value) ?? $value;
+
+        return mb_strtolower($value);
     }
 }

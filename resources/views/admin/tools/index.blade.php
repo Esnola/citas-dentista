@@ -8,7 +8,7 @@
             <div class="mt-6 grid gap-6 sm:grid-cols-2">
                 <div class="rounded-2xl border border-white/10 bg-slate-950/40 p-6">
                     <h3 class="text-lg font-medium text-violet-300">Importar</h3>
-                    <p class="mt-2 text-sm text-slate-400">Importar clientes y citas desde un archivo CSV.</p>
+                    <p class="mt-2 text-sm text-slate-400">Importar clientes desde un archivo CSV.</p>
                     <div class="mt-4">
                         <a href="{{ route('imports.index') }}"
                            class="inline-flex items-center gap-2 rounded-xl bg-violet-600/20 px-4 py-2 text-sm font-medium text-violet-300 transition-colors hover:bg-violet-600/30">
