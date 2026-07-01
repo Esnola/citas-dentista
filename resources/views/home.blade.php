@@ -13,8 +13,8 @@
           </p>
 
           <h1 class="text-5xl font-bold leading-tight tracking-tight text-white md:text-6xl">
-            Gestiona tus
-            <span class="bg-gradient-to-r from-emerald-400 to-indigo-400 bg-clip-text text-transparent">citas dentales</span>
+            Gestiona
+            <span class="bg-gradient-to-r from-emerald-400 to-indigo-400 bg-clip-text text-transparent">las citas de tus clientes</span>
             con facilidad
           </h1>
 
@@ -41,10 +41,6 @@
     <div class="relative hidden md:block">
       <div class="absolute -inset-4 rounded-3xl bg-gradient-to-br from-emerald-500/10 to-indigo-500/10 blur-2xl"></div>
       <div class="relative space-y-6">
-        <div class="flex items-center justify-center gap-3 rounded-2xl border border-white/10 bg-slate-900/40 p-6 backdrop-blur-xl">
-          <img src="/logo.png" alt="Logo" class="h-14 w-14 rounded-2xl border border-emerald-500/20 shadow-xl shadow-emerald-500/20">
-          <span class="text-2xl font-bold tracking-tight text-white">{{ config('app.name') }}</span>
-        </div>
         <div class="rounded-2xl border border-white/10 bg-slate-900/60 p-6 backdrop-blur-xl">
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-3">
