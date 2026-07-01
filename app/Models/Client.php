@@ -53,17 +53,22 @@ class Client extends Model
     public static function upsertFromImport(array $data): self
     {
         $rawPhone = trim((string) ($data['telefono'] ?? ''));
+        $rawName = trim(implode(' ', array_filter([
+            (string) ($data['nombre'] ?? ''),
+            (string) ($data['apellidos'] ?? ''),
+        ])));
+        $normalizedPhone = static::normalizePhone($rawPhone);
         $payload = [
             'nombre' => trim((string) ($data['nombre'] ?? '')),
             'apellidos' => trim((string) ($data['apellidos'] ?? '')),
-            'telefono' => $rawPhone,
+            'telefono' => $normalizedPhone,
         ];
 
-        $lookupPhone = static::normalizePhone($rawPhone);
+        $lookupName = static::normalizeImportValue($rawName);
 
         $client = static::withTrashed()
             ->get()
-            ->first(fn (self $candidate): bool => static::matchesImportIdentity($candidate, $payload, $lookupPhone));
+            ->first(fn (self $candidate): bool => static::matchesImportIdentity($candidate, $normalizedPhone, $lookupName));
 
         if ($client) {
             if ($client->trashed()) {
@@ -76,10 +81,9 @@ class Client extends Model
         return static::query()->create($payload);
     }
 
-    private static function matchesImportIdentity(self $client, array $payload, string $lookupPhone): bool
+    private static function matchesImportIdentity(self $client, string $lookupPhone, string $lookupName): bool
     {
-        return static::normalizeImportValue($client->nombre) === static::normalizeImportValue($payload['nombre'])
-            && static::normalizeImportValue($client->apellidos) === static::normalizeImportValue($payload['apellidos'])
+        return static::normalizeImportValue(trim($client->nombre.' '.$client->apellidos)) === $lookupName
             && static::normalizePhone((string) $client->telefono) === $lookupPhone;
     }
 

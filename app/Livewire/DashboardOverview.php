@@ -42,11 +42,10 @@ class DashboardOverview extends Component
             'failedCount' => WhatsAppMessage::where('status', WhatsAppMessage::STATUS_FAILED)->count(),
             'nextAppointments' => Appointment::query()
                 ->with('client')
-                ->where('activo', true)
                 ->whereDate('fecha', $targetDate->toDateString())
                 ->orderBy('hora')
-                ->limit(5)
-                ->get(),
+                ->get()
+                ->groupBy(fn (Appointment $appointment) => $appointment->hora),
             'targetDates' => $this->targetDates(),
             'selectedDate' => $targetDate,
             'sundayWarning' => $this->sundayWarning(),
@@ -125,5 +124,40 @@ class DashboardOverview extends Component
     public function futureDayOptions(): array
     {
         return range(2, 10);
+    }
+
+    /**
+     * @return array<int, array{label: string, classes: string}>
+     */
+    public function appointmentIncidences(Appointment $appointment): array
+    {
+        $incidences = [];
+
+        if (! $appointment->activo) {
+            $incidences[] = [
+                'label' => 'Desactivada',
+                'classes' => 'border-red-500/20 bg-red-500/10 text-red-300',
+            ];
+        }
+
+        if (! $appointment->enviado) {
+            $incidences[] = [
+                'label' => 'Sin enviar',
+                'classes' => 'border-amber-500/20 bg-amber-500/10 text-amber-300',
+            ];
+        } elseif (! $appointment->entregado) {
+            $incidences[] = [
+                'label' => 'No entregada',
+                'classes' => 'border-orange-500/20 bg-orange-500/10 text-orange-300',
+            ];
+        } elseif ($appointment->whatsapp_read_at) {
+            $incidences[] = [
+                'label' => 'Leída',
+              'icono'=>true,
+                'classes' => 'border-green-500/20 bg-green-500/10 text-green-300',
+            ];
+        }
+
+        return $incidences;
     }
 }

@@ -217,8 +217,10 @@
                   </span>
                 @endif
               </a>
-              <p class="text-xs text-slate-400">{{ $appointment->client?->telefono }}</p>
-              {{$appointment->id}}
+              <div class="text-xs text-slate-400 flex items-center gap-1">
+          <x-iconos.telefono-mesa/>
+        {{ Str::replaceStart('+34', '', $appointment->client?->telefono ?? '') }}
+              </div>
             </td>
             <td class="px-4 py-3 text-center">{{ucwords($appointment->fecha?->translatedFormat('l, d - F - Y'))}}</td>
             <td class="px-4 py-3 text-center text-xs">{{ $appointment->hora }}</td>

@@ -65,26 +65,13 @@ class ClientCsvImporter extends Component
                 return;
             }
 
-            if ($import->createdRows() === 0 && $import->restoredRows() === 0) {
-                $this->reset('file');
-                $this->setStatus('No se encontraron clientes nuevos para importar.', 'neutral');
-
-                return;
-            }
-
             $this->reset('file');
-
-            $message = [];
-
-            if ($import->createdRows() > 0) {
-                $message[] = 'Se importaron '.$import->createdRows().' cliente(s) nuevo(s) correctamente.';
-            }
-
-            if ($import->restoredRows() > 0) {
-                $message[] = 'Se restauraron '.$import->restoredRows().' cliente(s) eliminado(s).';
-            }
-
-            $this->setStatus(implode(' ', $message));
+            $this->setStatus(sprintf(
+                'Importación completada: %d nuevo(s), %d omitido(s), %d restaurado(s).',
+                $import->createdRows(),
+                $import->skippedRows(),
+                $import->restoredRows(),
+            ));
         } catch (\Throwable $throwable) {
             $this->setStatus('No se pudo importar el CSV: '.$throwable->getMessage(), 'error');
         }

@@ -150,14 +150,33 @@ class ClientManagerTest extends TestCase
             ->set('nombre', 'Marta')
             ->set('apellidos', 'Soler')
             ->set('telefono', '600111222')
-            ->call('save')
-            ->assertSee('Cliente creado correctamente.');
+            ->call('save');
 
+        $this->assertSame(1, Client::query()->count());
         $this->assertDatabaseHas('clients', [
             'nombre' => 'Marta',
             'apellidos' => 'Soler',
             'telefono' => '+34600111222',
         ]);
+    }
+
+    public function test_clients_screen_does_not_duplicate_an_existing_client_with_a_normalized_phone(): void
+    {
+        $existing = Client::query()->create([
+            'nombre' => 'Marta',
+            'apellidos' => 'Soler',
+            'telefono' => '600111222',
+        ]);
+
+        Livewire::test(ClientForm::class)
+            ->set('nombre', 'Marta')
+            ->set('apellidos', 'Soler')
+            ->set('telefono', '600111222')
+            ->call('save')
+            ->assertSet('selectedClientId', $existing->id);
+
+        $this->assertSame(1, Client::query()->count());
+        $this->assertSame($existing->id, Client::query()->firstOrFail()->id);
     }
 
     public function test_clients_page_can_open_selected_client_from_query_string(): void

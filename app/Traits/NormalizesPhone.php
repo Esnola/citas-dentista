@@ -19,6 +19,10 @@ trait NormalizesPhone
 
         $countryCode = preg_replace('/\D+/', '', (string) config('whatsapp.default_country_code', '+34')) ?? '34';
 
+        if (str_starts_with($digits, $countryCode)) {
+            return '+'.$digits;
+        }
+
         return '+'.$countryCode.$digits;
     }
 

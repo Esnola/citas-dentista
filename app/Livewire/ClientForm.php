@@ -64,12 +64,10 @@ class ClientForm extends Component
             session()->flash('status', 'Cliente actualizado correctamente.');
             $this->redirect(url()->previous());
         } else {
-            $client = Client::query()->updateOrCreate(
-                ['telefono' => $payload['telefono']],
-                $payload
-            );
+            $client = Client::upsertFromImport($payload);
+
             $this->selectedClientId = $client->id;
-            session()->flash('status', $client->wasRecentlyCreated ? 'Cliente creado correctamente.' : 'Cliente actualizado correctamente.');
+            session()->flash('status', $client->wasRecentlyCreated ? 'Cliente creado correctamente.' : 'Cliente ya existente; no se ha duplicado.');
             $this->redirect(url()->previous());
         }
     }

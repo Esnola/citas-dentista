@@ -5,6 +5,7 @@
     'texto'=>null,
     'type'=>'button',
     'especial'=> 'size-4',
+    'especial2'=> null,
 ])
 
 @php
@@ -15,6 +16,9 @@
       'red'     => 'border-red-400/25 bg-red-400/10 text-red-200 hover:bg-red-400/15 hover:text-red-100',
       'amber'   => 'border-amber-400/25 bg-amber-400/10 text-amber-200 hover:bg-amber-400/15 hover:text-amber-100',
       'indigo'   => 'border-indigo-400/25 bg-indigo-400/10 text-indigo-200 hover:bg-indigo-400/15 hover:text-indigo-100',
+      'yellow'    => 'border-yellow-400/25 bg-yellow-400/10 text-yellow-200 hover:bg-yellow-400/15 hover:text-yellow-100',
+      'violet'   => 'border-violet-400/25 bg-violet-400/10 text-violet-200 hover:bg-violet-400/15 hover:text-violet-100',
+      'olive'   => 'border-olive-400/25 bg-olive-400/10 text-olive-200 hover:bg-olive-400/15 hover:text-olive-100',
       'gray'    => 'border-white/15 bg-white/5 text-white/60 hover:bg-white/10 hover:text-white',
   ];
 @endphp
@@ -34,6 +38,8 @@
   @if($texto)
     <x-dynamic-component :component="'iconos.'.$icon" :clase="$especial"/>
     {{ $texto }}
+  @elseif($especial2)
+    <x-dynamic-component :component="'iconos.'.$icon" :clase="$especial2"/>
   @else
     <x-dynamic-component :component="'iconos.'.$icon"/>
   @endif

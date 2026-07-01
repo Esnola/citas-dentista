@@ -254,4 +254,35 @@ class DashboardOverviewTest extends TestCase
             ->assertSee('Carlos Ruiz')
             ->assertSee('09:00');
     }
+
+    public function test_shows_inactive_appointments_with_incidence_badges(): void
+    {
+        $now = Carbon::parse('2026-06-29 10:00:00')->next(Carbon::FRIDAY);
+        Carbon::setTestNow($now);
+        $appointmentAt = $now->copy()->setTime(13, 45);
+
+        $user = User::factory()->create();
+        $client = Client::query()->create([
+            'nombre' => 'Marta',
+            'apellidos' => 'López',
+            'telefono' => '+34600111222',
+        ]);
+
+        Appointment::query()->create([
+            'client_id' => $client->id,
+            'fecha' => $appointmentAt->toDateString(),
+            'hora' => $appointmentAt->format('H:i:s'),
+            'enviado' => false,
+            'entregado' => false,
+            'activo' => false,
+        ]);
+
+        $this->actingAs($user);
+
+        Livewire::test(DashboardOverview::class)
+            ->assertSee('Marta López')
+            ->assertSee('13:45')
+            ->assertSee('Desactivada')
+            ->assertSee('Sin enviar');
+    }
 }

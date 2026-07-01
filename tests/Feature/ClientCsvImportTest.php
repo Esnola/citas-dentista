@@ -28,7 +28,7 @@ CSV;
         Livewire::test(ClientCsvImporter::class)
             ->set('file', UploadedFile::fake()->createWithContent('clientes.csv', $csv))
             ->call('import')
-            ->assertSet('status', 'Se importaron 2 cliente(s) nuevo(s) correctamente.');
+            ->assertSet('status', 'Importación completada: 2 nuevo(s), 0 omitido(s), 0 restaurado(s).');
 
         $this->assertSame(2, Client::query()->count());
         $this->assertSame(
@@ -36,7 +36,7 @@ CSV;
             Client::query()->orderBy('nombre')->pluck('nombre')->all()
         );
         $this->assertSame(
-            ['600123123'],
+            ['+34600123123'],
             Client::query()->pluck('telefono')->unique()->values()->all()
         );
     }
@@ -55,7 +55,7 @@ CSV;
         Livewire::test(ClientCsvImporter::class)
             ->set('file', UploadedFile::fake()->createWithContent('clientes.csv', $csv))
             ->call('import')
-            ->assertSet('status', 'Se importaron 1 cliente(s) nuevo(s) correctamente.');
+            ->assertSet('status', 'Importación completada: 1 nuevo(s), 1 omitido(s), 0 restaurado(s).');
 
         $this->assertSame(1, Client::query()->count());
 
@@ -63,7 +63,55 @@ CSV;
 
         $this->assertSame('Ana', $client->nombre);
         $this->assertSame('Pérez', $client->apellidos);
-        $this->assertSame('600123123', $client->telefono);
+        $this->assertSame('+34600123123', $client->telefono);
+    }
+
+    public function test_admin_can_import_same_csv_twice_without_creating_duplicates(): void
+    {
+        $admin = User::factory()->create();
+        $csv = <<<'CSV'
+nombre;apellidos;telefono
+Ana;Pérez;600123123
+CSV;
+
+        $this->actingAs($admin);
+
+        Livewire::test(ClientCsvImporter::class)
+            ->set('file', UploadedFile::fake()->createWithContent('clientes.csv', $csv))
+            ->call('import')
+            ->assertSet('status', 'Importación completada: 1 nuevo(s), 0 omitido(s), 0 restaurado(s).');
+
+        Livewire::test(ClientCsvImporter::class)
+            ->set('file', UploadedFile::fake()->createWithContent('clientes.csv', $csv))
+            ->call('import')
+            ->assertSet('status', 'Importación completada: 0 nuevo(s), 1 omitido(s), 0 restaurado(s).');
+
+        $this->assertSame(1, Client::query()->count());
+    }
+
+    public function test_admin_can_import_same_person_with_different_name_split_without_creating_duplicate(): void
+    {
+        $admin = User::factory()->create();
+
+        Client::query()->create([
+            'nombre' => 'Juan Carlos',
+            'apellidos' => 'Pérez',
+            'telefono' => '+34600123123',
+        ]);
+
+        $csv = <<<'CSV'
+nombre;apellidos;telefono
+Juan;Carlos Pérez;600123123
+CSV;
+
+        $this->actingAs($admin);
+
+        Livewire::test(ClientCsvImporter::class)
+            ->set('file', UploadedFile::fake()->createWithContent('clientes.csv', $csv))
+            ->call('import')
+            ->assertSet('status', 'Importación completada: 0 nuevo(s), 1 omitido(s), 0 restaurado(s).');
+
+        $this->assertSame(1, Client::query()->count());
     }
 
     public function test_admin_can_import_without_overwriting_existing_client(): void
@@ -86,7 +134,7 @@ CSV;
         Livewire::test(ClientCsvImporter::class)
             ->set('file', UploadedFile::fake()->createWithContent('clientes.csv', $csv))
             ->call('import')
-            ->assertSet('status', 'No se encontraron clientes nuevos para importar.');
+            ->assertSet('status', 'Importación completada: 0 nuevo(s), 1 omitido(s), 0 restaurado(s).');
 
         $this->assertSame(1, Client::query()->count());
 
@@ -119,7 +167,7 @@ CSV;
         Livewire::test(ClientCsvImporter::class)
             ->set('file', UploadedFile::fake()->createWithContent('clientes.csv', $csv))
             ->call('import')
-            ->assertSet('status', 'Se restauraron 1 cliente(s) eliminado(s).');
+            ->assertSet('status', 'Importación completada: 0 nuevo(s), 0 omitido(s), 1 restaurado(s).');
 
         $this->assertSame(1, Client::withTrashed()->count());
         $this->assertSame(1, Client::query()->count());
