@@ -119,7 +119,7 @@ class DashboardOverview extends Component
 
         $resolvedDate = $this->targetDate();
 
-        return 'La fecha seleccionada es domingo, mostrando las citas del '.ucfirst($resolvedDate->translatedFormat('l d'));
+        return 'La fecha seleccionada es domingo, mostrando las citas del '.$resolvedDate->translatedFormat('l d');
     }
 
     public function futureDayOptions(): array
