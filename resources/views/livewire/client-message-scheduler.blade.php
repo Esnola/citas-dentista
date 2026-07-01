@@ -141,17 +141,14 @@
             <td class="px-4 py-3">{{ $client->telefono }}</td>
             <td class="px-4 py-3">{{ $client->created_at?->format('d/m/Y H:i') }}</td>
             <td class="px-4 py-3 text-right">
-{{--              <x-botones.accion variant="edit" size="sm" type="button" wire:click="selectClient({{ $client->id }})">
-                Usar
-              </x-botones.accion>--}}
               <x-botones.icono-buton
                       color="sky"
                       type="button"
-                      icon="volver"
+                      icon="usuarios"
                       especial="size-6"
                       label="Usar"
                       texto="Usar"
-                      onclick="window.location.href='{{ $returnUrl }}'"
+                      wire:click="selectClient({{ $client->id }})"
               />
             </td>
           </tr>

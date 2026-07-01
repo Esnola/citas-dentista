@@ -89,10 +89,6 @@
     </div>
 
     <div class="flex flex-wrap gap-3">
-      {{--    <x-botones.accion variant="add" type="submit">
-            <x-iconos.enviar clase="size-8 mr-2 "/>
-            Enviar prueba
-          </x-botones.accion>--}}
       <x-botones.icono-buton
               type="submit"
               icon="enviar"
@@ -100,10 +96,17 @@
               texto="Enviar prueba"
               especial="size-6"
       />
-      <x-botones.accion type="button" wire:click="sendSavedRecipient">
-        <x-iconos.guardar clase="size-8 mr-2 "/>
-        Enviar al guardado
-      </x-botones.accion>
+
+      <x-botones.icono-buton
+              type="button"
+              color="amber"
+              icon="whatsapp"
+              especial="size-6"
+              label="Enviar Prueba"
+              texto="Enviar prueba"
+              wire:click="sendSavedRecipient"
+      />
+
     </div>
   </form>
 

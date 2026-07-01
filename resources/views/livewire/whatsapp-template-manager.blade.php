@@ -104,16 +104,36 @@
             <td class="px-4 py-3">{{ $template->sort_order }}</td>
             <td class="px-4 py-3 text-right">
               <div class="flex justify-end gap-2">
-                <x-botones.accion variant="edit" size="sm" icono="edit" type="button"
-                                  wire:click="edit({{ $template->id }})">Editar
-                </x-botones.accion>
-                <x-botones.accion variant="warning" size="sm" type="button"
-                                  wire:click="setDefault({{ $template->id }})">Default
-                </x-botones.accion>
-                <x-botones.accion variant="delete" size="sm" icono="delete" type="button"
-                                  wire:click="delete({{ $template->id }})"
-                                  onclick="return confirm('¿Eliminar esta plantilla?')">Eliminar
-                </x-botones.accion>
+                <x-botones.icono-buton
+                        color="sky"
+                        icon="lapiz"
+                        especial="size-4"
+                        class="text-xs! gap-2!"
+                        label="Editar"
+                        texto="Editar"
+                        wire:click="edit({{ $template->id }})"
+                />
+                <x-botones.icono-buton
+                        color="amber"
+                        icon="check"
+                        especial="size-4"
+                        class="text-xs! gap-2!"
+                        label="Default"
+                        texto="Default"
+                        wire:click="setDefault({{ $template->id }})"
+                />
+
+                <x-botones.icono-buton
+                        color="red"
+                        icon="papelera"
+                        especial="size-4"
+                        class="text-xs! gap-2!"
+                        label="Eliminar"
+                        texto="Eliminar"
+                        wire:click="confirmDelete({{ $template->id }})"
+                />
+
+
               </div>
             </td>
           </tr>
@@ -122,4 +142,22 @@
       </table>
     </div>
   </div>
+
+  @if ($templatePendingDeletion)
+    <x-modales.confirmacion x-data="{ modalOpen: true }" x-cloak x-trap.noscroll="modalOpen"
+                            x-on:keydown.escape.window="$wire.cancelDelete()" titulo="Eliminar plantilla">
+      <p class="mt-3 text-sm text-slate-300">
+        ¿Seguro que quieres eliminar la plantilla
+        <span class="font-medium text-white">{{ $templatePendingDeletion->label }}</span>?
+      </p>
+      <p class="mt-2 text-sm text-slate-400">Esta acción no se puede deshacer.</p>
+
+      <x-slot:actions>
+        <x-botones.icono-buton color="amber" icon="volver" label="Cancelar" texto="Cancelar"
+                                 wire:click="cancelDelete" />
+        <x-botones.icono-buton color="red" icon="papelera" label="Eliminar plantilla" texto="Eliminar plantilla"
+                                 wire:click="deleteConfirmed" />
+      </x-slot:actions>
+    </x-modales.confirmacion>
+  @endif
 </div>

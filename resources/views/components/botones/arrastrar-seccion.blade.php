@@ -8,10 +8,10 @@
         'type' => 'button',
         'draggable' => 'true',
         'class' => 'settings-drag-handle',
-        'title' => $titulo,
+        'title' => $titulo
     ]) }}
     x-on:dragstart="startDrag(@js($seccion), $event)"
     x-on:dragend="stopDrag"
 >
-    ⠿
+  <x-iconos.arrastrar />
 </button>

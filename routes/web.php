@@ -43,5 +43,7 @@ Route::middleware('auth')->group(function () {
         Route::view('/admin/tools', 'admin.tools.index')->name('admin.tools');
         Route::get('/admin/export/appointments', [ExportController::class, 'appointments'])->name('admin.export.appointments');
         Route::get('/admin/export/clients', [ExportController::class, 'clients'])->name('admin.export.clients');
+        Route::get('/admin/export/users', [ExportController::class, 'users'])->name('admin.export.users');
+        Route::get('/admin/export/database', [ExportController::class, 'database'])->name('admin.export.database');
     });
 });

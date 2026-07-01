@@ -57,24 +57,23 @@
           <td class="px-4 py-3">{{ $client->telefono }}</td>
           <td class="px-4 py-3 text-right">
             <div class="flex justify-center  gap-4">
-
               <x-botones.icono-buton
                       color="amber"
                       icon="ojo"
-                      label="Ver Usuario"
-                      onclick="window.location.href='{{ route('client.index', ['client' => $client->id]) }}'"
+                      label="Ver Cliente"
+                      onclick="window.location ='{{ route('appointments.index', ['client' => $client->id]) }}'"
               />
               <x-botones.icono-buton
                       color="sky"
                       icon="cita"
                       label="Crear cita"
-                      wire:click.href="{{ route('appointments.create', ['client' => $client->id])}}"
+                      onclick="window.location ='{{ route('appointments.create', ['client' => $client->id]) }}'"
               />
               <x-botones.icono-buton
                       color="sky"
                       icon="lapiz"
                       label="Editar cliente"
-                      wire:click.href="{{ route('clients.edit', $client) }}"
+                      onclick="window.location ='{{ route('clients.edit', $client) }}'"
               />
               <x-botones.icono-buton
                       color="red"

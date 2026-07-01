@@ -23,7 +23,7 @@ class WhatsAppMessage extends Model
 
     public const SOURCE_MANUAL = 'manual';
 
-    public const SOURCE_EXCEL = 'excel';
+    public const SOURCE_CSV = 'csv';
 
     public const SOURCE_APPOINTMENT = 'appointment';
 

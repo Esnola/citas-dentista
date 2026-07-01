@@ -53,6 +53,30 @@ class WhatsAppImportHeadersTest extends TestCase
         Carbon::setTestNow();
     }
 
+    public function test_import_accepts_european_date_format_in_csv(): void
+    {
+        Carbon::setTestNow('2026-06-22 10:00:00');
+
+        $admin = User::factory()->create();
+
+        $import = new WhatsAppMessagesImport($admin, 'short_reminder');
+        $import->collection(new Collection([
+            [
+                'NOMBRE' => 'Ana',
+                'APELLIDOS' => 'Pérez',
+                'TELÉFONO' => '600123123',
+                'FECHA' => '30/06/2026',
+                'HORA' => '15:30',
+            ],
+        ]));
+
+        $message = WhatsAppMessage::query()->firstOrFail();
+
+        $this->assertSame('2026-06-30 15:30:00', $message->scheduled_for->toDateTimeString());
+
+        Carbon::setTestNow();
+    }
+
     public function test_import_updates_existing_client_instead_of_creating_duplicates(): void
     {
         Carbon::setTestNow('2026-06-20 09:00:00');

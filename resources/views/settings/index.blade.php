@@ -20,11 +20,10 @@
     $sandboxActive = $twilioFrom === 'whatsapp:+14155238886';
   @endphp
 
-  <div
-          x-data="settingsBoard()"
+  <div x-data="settingsBoard()"
           x-init="init()"
-          class="grid gap-4"
-  >
+          class="grid gap-4" >
+
     <div class="rounded-3xl border border-white/10 bg-white/5 p-8 backdrop-blur">
       <div class="flex flex-wrap items-start justify-between gap-4">
         <div>
@@ -47,11 +46,7 @@
       </div>
     </div>
 
-    <div
-            x-ref="board"
-            class="grid gap-4"
-            aria-label="Secciones de ajustes"
-    >
+    <div x-ref="board"  class="grid gap-4" aria-label="Secciones de ajustes" >
       <section
               data-settings-section="overview"
               data-default-open="true"
@@ -187,8 +182,8 @@
               x-bind:class="sectionStateClasses('status')"
               x-on:dragenter.prevent="setDropTarget('status', $event)"
               x-on:dragover.prevent
-              x-on:drop.prevent="drop('status', $event)"
-      >
+              x-on:drop.prevent="drop('status', $event)" >
+
         <div x-show="showDropHint('status', 'before')" x-cloak
              class="mb-4 h-1 rounded-full bg-emerald-400/80 shadow-[0_0_24px_rgba(52,211,153,0.45)]"></div>
         <div class="flex items-center justify-between gap-4">

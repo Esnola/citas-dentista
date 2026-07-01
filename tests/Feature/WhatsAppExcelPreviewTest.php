@@ -36,6 +36,6 @@ class WhatsAppExcelPreviewTest extends TestCase
         $this->assertSame('Ana', $rows[0]['nombre']);
         $this->assertSame('Pérez', $rows[0]['apellidos']);
         $this->assertSame('600123123', $rows[0]['telefono']);
-        $this->assertSame('Hola Ana te recordamos que el día 22/06/2026 tienes una cita a las 15:30 ; saludos Clínica Dental Eugénia', $rows[0]['message']);
+        $this->assertSame('Hola Ana te recordamos que el día 22/06/2026 tienes una cita a las 15:30 ; saludos Clínica Dental Eugenia', $rows[0]['message']);
     }
 }

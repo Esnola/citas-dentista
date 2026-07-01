@@ -8,13 +8,14 @@ use App\Models\WhatsAppMessage;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Maatwebsite\Excel\Concerns\Importable;
 use Maatwebsite\Excel\Concerns\ToCollection;
+use Maatwebsite\Excel\Concerns\WithCustomCsvSettings;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
-use Maatwebsite\Excel\Concerns\WithValidation;
 use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
 
-class WhatsAppMessagesImport implements ToCollection, WithHeadingRow, WithValidation
+class WhatsAppMessagesImport implements ToCollection, WithCustomCsvSettings, WithHeadingRow
 {
     use Importable;
 
@@ -23,9 +24,9 @@ class WhatsAppMessagesImport implements ToCollection, WithHeadingRow, WithValida
     public function __construct(
         private readonly ?User $user = null,
         private readonly string $templateKey = '',
-        private readonly bool $persist = true
-    ) {
-    }
+        private readonly bool $persist = true,
+        private readonly string $csvDelimiter = ','
+    ) {}
 
     public function collection(Collection $rows): void
     {
@@ -43,10 +44,10 @@ class WhatsAppMessagesImport implements ToCollection, WithHeadingRow, WithValida
                     'telefono' => $preparedRow['telefono'],
                     'scheduled_for' => $preparedRow['scheduled_for'],
                     'message' => $preparedRow['message'],
-                    'source' => WhatsAppMessage::SOURCE_EXCEL,
+                    'source' => WhatsAppMessage::SOURCE_CSV,
                     'status' => WhatsAppMessage::STATUS_PENDING,
                     'metadata' => [
-                        'imported_from' => 'excel',
+                        'imported_from' => 'csv',
                         'template_key' => $preparedRow['template_key'],
                     ],
                 ]);
@@ -63,16 +64,14 @@ class WhatsAppMessagesImport implements ToCollection, WithHeadingRow, WithValida
         return $this->previewRows;
     }
 
-    public function rules(): array
+    public function getCsvSettings(): array
     {
         return [
-            '*.nombre' => ['required', 'string', 'max:255'],
-            '*.apellidos' => ['required', 'string', 'max:255'],
-            '*.telefono' => ['required', 'string', 'max:40'],
-            '*.fecha' => ['required_without:*.scheduled_date'],
-            '*.scheduled_date' => ['required_without:*.fecha'],
-            '*.hora' => ['required_without:*.scheduled_time'],
-            '*.scheduled_time' => ['required_without:*.hora'],
+            'delimiter' => $this->csvDelimiter,
+            'enclosure' => '"',
+            'escape_character' => '\\',
+            'contiguous' => false,
+            'input_encoding' => 'UTF-8',
         ];
     }
 
@@ -116,6 +115,7 @@ class WhatsAppMessagesImport implements ToCollection, WithHeadingRow, WithValida
         $scheduledTime = $this->extractValue($normalized, ['hora', 'scheduled_time', 'hora_cita']);
         $scheduledFor = $this->combineDateAndTime($scheduledDate, $scheduledTime);
         $templateKey = $this->extractValue($normalized, ['plantilla', 'template', 'template_key']) ?: $this->templateKey;
+        $errors = [];
 
         $messageData = [
             'nombre' => $this->extractValue($normalized, ['nombre', 'nombre_completo', 'nombres']),
@@ -123,6 +123,24 @@ class WhatsAppMessagesImport implements ToCollection, WithHeadingRow, WithValida
             'telefono' => $this->extractValue($normalized, ['telefono', 'teléfono', 'numero', 'numero_telefono', 'telefono_movil', 'whatsapp_number']),
             'scheduled_for' => $scheduledFor,
         ];
+
+        foreach (['nombre', 'apellidos', 'telefono'] as $field) {
+            if (trim((string) $messageData[$field]) === '') {
+                $errors[$field] = 'El campo '.$field.' es obligatorio.';
+            }
+        }
+
+        if ($scheduledDate === null) {
+            $errors['fecha'] = 'La fecha es obligatoria.';
+        }
+
+        if ($scheduledTime === null) {
+            $errors['hora'] = 'La hora es obligatoria.';
+        }
+
+        if ($errors !== []) {
+            throw ValidationException::withMessages($errors);
+        }
 
         return [
             'nombre' => $messageData['nombre'],
@@ -149,7 +167,17 @@ class WhatsAppMessagesImport implements ToCollection, WithHeadingRow, WithValida
             return Carbon::instance(ExcelDate::excelToDateTimeObject((float) $value));
         }
 
-        return Carbon::parse((string) $value);
+        $value = trim((string) $value);
+
+        foreach (['d/m/Y', 'd-m-Y', 'd.m.Y', 'Y-m-d'] as $format) {
+            try {
+                return Carbon::createFromFormat($format, $value);
+            } catch (\Throwable) {
+                // Try the next common CSV format.
+            }
+        }
+
+        return Carbon::parse($value);
     }
 
     private function normalizeTime(mixed $value): Carbon

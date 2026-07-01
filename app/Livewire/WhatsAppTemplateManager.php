@@ -9,6 +9,8 @@ class WhatsAppTemplateManager extends Component
 {
     public ?int $editingTemplateId = null;
 
+    public ?int $templatePendingDeletionId = null;
+
     public string $key = '';
 
     public string $label = '';
@@ -109,6 +111,26 @@ class WhatsAppTemplateManager extends Component
         $this->redirect(url()->previous());
     }
 
+    public function confirmDelete(int $templateId): void
+    {
+        $this->templatePendingDeletionId = $templateId;
+    }
+
+    public function cancelDelete(): void
+    {
+        $this->templatePendingDeletionId = null;
+    }
+
+    public function deleteConfirmed(): void
+    {
+        if (! $this->templatePendingDeletionId) {
+            return;
+        }
+
+        $this->delete($this->templatePendingDeletionId);
+        $this->templatePendingDeletionId = null;
+    }
+
     public function setDefault(int $templateId): void
     {
         WhatsAppTemplate::query()->update(['is_default' => false]);
@@ -128,6 +150,9 @@ class WhatsAppTemplateManager extends Component
                 ->orderBy('sort_order')
                 ->orderBy('label')
                 ->get(),
+            'templatePendingDeletion' => $this->templatePendingDeletionId
+                ? WhatsAppTemplate::query()->find($this->templatePendingDeletionId)
+                : null,
         ]);
     }
 
