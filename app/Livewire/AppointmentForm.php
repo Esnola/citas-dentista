@@ -286,6 +286,13 @@ class AppointmentForm extends Component
         ];
     }
 
+    protected function messages(): array
+    {
+        return [
+            'fecha.after' => 'La fecha debe ser posterior a hoy.',
+        ];
+    }
+
     private function sendAppointmentNow(
         Appointment $appointment,
         Client $client,

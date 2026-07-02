@@ -28,7 +28,7 @@ class AppointmentsExport implements FromCollection, WithHeadings, WithMapping
 
     public function headings(): array
     {
-        return ['Cliente', 'Teléfono', 'Fecha', 'Hora', 'Enviado', 'Entregado', 'Activo'];
+        return ['Cliente', 'Teléfono', 'Fecha', 'Hora', 'Enviado', 'Entregado', 'Activo', 'Cita activa'];
     }
 
     public function map($appointment): array
@@ -41,6 +41,7 @@ class AppointmentsExport implements FromCollection, WithHeadings, WithMapping
             $appointment->enviado ? 'Sí' : 'No',
             $appointment->entregado ? 'Sí' : 'No',
             $appointment->activo ? 'Sí' : 'No',
+            $appointment->cita_activa ? 'Sí' : 'No',
         ];
     }
 }

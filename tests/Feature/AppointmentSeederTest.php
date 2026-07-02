@@ -19,21 +19,21 @@ class AppointmentSeederTest extends TestCase
         parent::tearDown();
     }
 
-    public function test_it_creates_three_hundred_thirty_appointments_with_unique_dates_per_phone(): void
+    public function test_it_creates_six_appointments_per_date_and_time_slot(): void
     {
         Carbon::setTestNow('2026-06-29 10:00:00');
 
         $this->seed(AppointmentSeeder::class);
         $this->seed(AppointmentSeeder::class);
 
-        $this->assertDatabaseCount('clients', 30);
-        $this->assertDatabaseCount('appointments', 330);
+        $this->assertDatabaseCount('clients', 174);
+        $this->assertDatabaseCount('appointments', 1914);
 
         $appointments = Appointment::query()
             ->with('client')
             ->get();
 
-        $this->assertCount(330, $appointments);
+        $this->assertCount(1914, $appointments);
 
         $startDate = now()->toDateString();
         $endDate = now()->addDays(10)->toDateString();
@@ -44,10 +44,16 @@ class AppointmentSeederTest extends TestCase
             $this->assertLessThanOrEqual($endDate, $appointment->fecha->toDateString());
         }
 
-        foreach ($appointments->groupBy(fn (Appointment $appointment): string => (string) $appointment->client?->telefono) as $phoneAppointments) {
-            $dates = $phoneAppointments->pluck('fecha')->map(fn (Carbon $date): string => $date->toDateString())->all();
-
-            $this->assertCount(count(array_unique($dates)), $dates);
+        foreach ($appointments->groupBy(fn (Appointment $appointment): string => $appointment->fecha->toDateString().' '.$appointment->hora) as $slotAppointments) {
+            $this->assertCount(6, $slotAppointments);
         }
+
+        $this->assertFalse(
+            Appointment::query()
+                ->select('client_id', 'fecha')
+                ->groupBy('client_id', 'fecha')
+                ->havingRaw('COUNT(*) > 1')
+                ->exists()
+        );
     }
 }

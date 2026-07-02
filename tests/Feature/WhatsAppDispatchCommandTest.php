@@ -81,6 +81,7 @@ class WhatsAppDispatchCommandTest extends TestCase
             'hora' => '11:45',
             'enviado' => false,
             'activo' => true,
+            'cita_activa' => true,
         ]);
 
         Config::set('whatsapp.driver', 'twilio');
@@ -118,6 +119,8 @@ class WhatsAppDispatchCommandTest extends TestCase
         $appointment->refresh();
 
         $this->assertTrue($appointment->enviado);
+        $this->assertFalse($appointment->activo);
+        $this->assertTrue($appointment->cita_activa);
         $this->assertTrue($appointment->entregado);
         $this->assertNotNull($appointment->refresh()->whatsapp_sent_at);
         $this->assertNotNull($appointment->whatsapp_delivered_at);

@@ -18,12 +18,16 @@ return new class extends Migration
             $table->time('hora');
             $table->boolean('enviado')->default(false)->index();
             $table->boolean('entregado')->default(false)->index();
+            $table->boolean('cita_activa')->default(true)->index();
             $table->boolean('activo')->default(true)->index();
             $table->dateTime('whatsapp_sent_at')->nullable();
             $table->dateTime('whatsapp_delivered_at')->nullable();
             $table->dateTime('whatsapp_read_at')->nullable();
+            $table->index(
+                ['client_id', 'enviado', 'activo', 'fecha', 'hora'],
+                'appointments_client_status_schedule_index'
+            );
             $table->timestamps();
-            $table->softDeletes();
         });
     }
 

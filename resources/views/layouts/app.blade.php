@@ -127,6 +127,8 @@
 
           <x-navegacion.aside-link route="dashboard" route-is="dashboard" color="sky" icono="dashboard"
                                    text="Dashboard" class="sidebar-link"/>
+          <x-navegacion.aside-link route="agenda.index" route-is="agenda.*" color="indigo" icono="agenda"
+                                   text="Agenda" class="sidebar-link"/>
           <x-navegacion.aside-link route="clients.list" route-is="clients.*" color="emerald" icono="customer"
                                    text="Clientes" class="sidebar-link"/>
           <x-navegacion.aside-link route="appointments.index" route-is="appointments.*" color="yellow"

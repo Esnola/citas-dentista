@@ -61,7 +61,7 @@
                       color="amber"
                       icon="ojo"
                       label="Ver Cliente"
-                      onclick="window.location ='{{ route('appointments.index', ['client' => $client->id]) }}'"
+                      onclick="window.location ='{{ route('clients.appointments', $client) }}'"
               />
               <x-botones.icono-buton
                       color="sky"

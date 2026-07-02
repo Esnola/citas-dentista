@@ -1,21 +1,17 @@
 <div class="grid gap-6">
-  <div class="rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur">
-    <div class="flex flex-wrap items-start justify-between gap-4">
-      <div>
-        <div class="flex gap-6 ">
-          <x-iconos.calendar/>
-          <h2 class="text-xl font-semibold">
-            {{ $sentOnly ? 'Citas enviadas' : ($selectedClient ?  $selectedClient->full_name : 'Citas registradas') }}
-          </h2>
-          <h3 class="rounded-2xl border border-gree-300/70 shadow-xs shadow-green-300 bg-slate-900/60 px-4 py-3 text-sm text-slate-300">
-            {{ $appointmentsCount }} cita{{ $appointmentsCount > 1 ? 's' : '' }}
-          </h3>
-        </div>
-        <div>
-          @if ($deliveryStatusesSyncedAt)
-            <span class="text-xs font-medium text-slate-400">Sincronizado: {{ $deliveryStatusesSyncedAt }}</span>
-          @endif
-        </div>
+  <div class='rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur '>
+    <div class="flex flex-wrap items-center justify-between gap-4">
+      <div class="flex gap-6 items-center">
+        <x-iconos.calendar/>
+        <h2 class="text-xl font-semibold">
+          {{ $sentOnly ? 'Citas enviadas' : $selectedClient->full_name }}
+        </h2>
+        <h3 class="rounded-2xl border border-green-300/70 shadow-xs shadow-green-300 bg-slate-900/60 px-4 py-3 text-sm text-slate-300">
+          {{ $appointmentsCount }} cita{{ $appointmentsCount > 1 ? 's' : '' }}
+        </h3>
+        @if ($deliveryStatusesSyncedAt)
+          <span class="text-xs font-medium text-slate-400">Sincronizado: {{ $deliveryStatusesSyncedAt }}</span>
+        @endif
       </div>
       <div class="flex flex-wrap items-center gap-2">
         <x-botones.icono-buton
@@ -52,7 +48,7 @@
                 label="Nueva cita"
                 texto="Nueva cita"
                 onclick="window.location.href='{{ route('appointments.create', $selectedClient ? ['client' => $selectedClient->id] : []) }}'"
-                />
+        />
 
 
       </div>
@@ -142,216 +138,259 @@
       @endunless
     </div>
 
-    <div class="mt-4 overflow-hidden rounded-2xl border border-white/10">
-      <table class="min-w-full divide-y divide-white/10 text-left text-sm">
-        <thead class="bg-slate-900/70 text-slate-300">
-        <tr>
-          <x-tabla.th :condicion="$showBulkActions">
-            <input type="checkbox"
-                   wire:key="select-all-appointments-{{ $dateFilter }}-{{ (int) $filter_enviado }}-{{ (int) $filter_activo }}-{{ (int) $filter_entregado }}"
-                   class="size-4 cursor-pointer rounded border-white/20 bg-slate-950/50 text-emerald-500 accent-emerald-500 focus:ring-2 focus:ring-emerald-400/40 focus:ring-offset-0"
-                   @checked($allVisibleAppointmentsSelected)
-                   wire:change="toggleVisibleAppointments(@js($visibleAppointmentIds))"
-                   aria-label="{{ $allVisibleAppointmentsSelected ? 'Deseleccionar todas las citas visibles' : 'Seleccionar todas las citas visibles' }}"
-            >
-          </x-tabla.th>
-          <x-tabla.th-sort sortBy="cliente" :sortDirection="$sort_direction" :currentSort="$sort_by"/>
-          <x-tabla.th-sort sortBy="fecha" :sortDirection="$sort_direction" :currentSort="$sort_by"/>
-          <th class="px-4 py-3 text-center">Hora Cita</th>
-          <x-tabla.th :condicion="$showSentColumns">
-            <x-iconos.whatsapp clase="size-4"/>
-            Enviado
-          </x-tabla.th>
-          <x-tabla.th :condicion="$showDeliveredColumns">
-            <x-iconos.whatsapp clase="size-4"/>
-            Entregado
-          </x-tabla.th>
-          <x-tabla.th :condicion="$showReadColumn">
-            <x-iconos.whatsapp clase="size-4"/>
-            Leído
-          </x-tabla.th>
-          <x-tabla.th :condicion="$showPendingColumn">
-            Pendiente
-          </x-tabla.th>
-          <th class="px-4 pr-16 text-right">Acciones</th>
-        </tr>
-        </thead>
-        <tbody class="divide-y divide-white/10 bg-slate-950/40">
-        @forelse ($appointments as $appointment)
-          @php
-            $canChange = $appointment->canBeChanged();
-            $canSendNow = $selectedClient && ! $appointment->enviado && $appointment->activo && $appointment->isFuture();
-            $editUrl = route('appointments.edit', $appointment);
-            $rowUrl = $selectedClient
-                ? $editUrl
-                : ($sentOnly ? $editUrl : route('appointments.index', ['client' => $appointment->client_id]));
-          @endphp
-          <tr wire:key="appointment-{{ $appointment->id }}"
-              role="link" tabindex="0"
-              onclick="window.location='{{ $rowUrl }}'"
-              onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();window.location='{{ $rowUrl }}';}else if(event.key==='ArrowDown'){event.preventDefault();this.nextElementSibling?.focus();}else if(event.key==='ArrowUp'){event.preventDefault();this.previousElementSibling?.focus();}"
-              class="cursor-pointer transition-colors hover:bg-white/5 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-400/60 focus-visible:bg-white/5 {{ $canChange ? '' : 'bg-slate-900/50 text-slate-400' }}"
+    @if ($selectedClient)
+      <div class="mt-4 overflow-hidden rounded-2xl border border-white/10">
+        <table class="min-w-full divide-y divide-white/10 text-left text-sm">
+          <thead class="bg-slate-900/70 text-slate-300">
+          <tr>
+            <th class="px-4 py-3 text-xs">
+              <input type="checkbox"
+                     wire:key="select-all-appointments-{{ $dateFilter }}-{{ (int) $filter_enviado }}-{{ (int) $filter_activo }}-{{ (int) $filter_entregado }}"
+                     class="size-4 cursor-pointer rounded border-white/20 bg-slate-950/50 text-emerald-500 accent-emerald-500 focus:ring-2 focus:ring-emerald-400/40 focus:ring-offset-0"
+                     @checked($allVisibleAppointmentsSelected)
+                     wire:change="toggleVisibleAppointments(@js($visibleAppointmentIds))"
+                     aria-label="{{ $allVisibleAppointmentsSelected ? 'Deseleccionar todas las citas visibles' : 'Seleccionar todas las citas visibles' }}"
+              >
+            </th>
+            <x-tabla.th-sort sortBy="cliente" :sortDirection="$sort_direction" :currentSort="$sort_by"/>
+            <x-tabla.th-sort sortBy="fecha" :sortDirection="$sort_direction" :currentSort="$sort_by"/>
+            <th class="px-4 py-3 text-center">Hora Cita</th>
+            <th class="px-4 py-3 text-center">
+              <div class="flex items-center justify-center gap-2">
+                <x-iconos.whatsapp clase="size-4"/>
+                Enviado
+              </div>
+            </th>
+            <th class="px-4 py-3 text-center">
+              <div class="flex items-center justify-center gap-2">
+                <x-iconos.whatsapp clase="size-4"/>
+                Entregado
+              </div>
+            </th>
+            <th class="px-4 py-3 text-center">
+              <div class="flex items-center justify-center gap-2">
+                <x-iconos.whatsapp clase="size-4"/>
+                Leído
+              </div>
+            </th>
+            <th class="px-4 py-3 text-xs text-center">Recordatorio</th>
+            <th class="px-4 py-3 text-xs text-center">Cita activa</th>
+            <th class="px-4 py-3 text-xs text-right">Acciones</th>
+          </tr>
+          </thead>
+          <tbody class="divide-y divide-white/10 bg-slate-950/40">
+          @forelse ($appointments as $appointment)
+            @php
+              $editUrl = route('appointments.edit', $appointment);
+              $rowUrl = $selectedClient
+                  ? $editUrl
+                  : ($sentOnly ? $editUrl : route('clients.appointments', $appointment->client_id));
+              $isInactive = ! $appointment->cita_activa || $appointment->scheduledFor()->isPast();
+            @endphp
+            <tr wire:key="appointment-{{ $appointment->id }}"
+                role="link" tabindex="0"
+                onclick="window.location='{{ $rowUrl }}'"
+                onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();window.location='{{ $rowUrl }}';}else if(event.key==='ArrowDown'){event.preventDefault();this.nextElementSibling?.focus();}else if(event.key==='ArrowUp'){event.preventDefault();this.previousElementSibling?.focus();}"
+                class="cursor-pointer transition-colors hover:bg-white/5 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-400/60 focus-visible:bg-white/5 {{ $isInactive ? 'bg-slate-400/15' : '' }}"
 
-              @if ($appointment->enviado && $appointment->latestWhatsAppMessage?->provider_message_id)
-                title="Message SID: {{ $appointment->latestWhatsAppMessage?->provider_message_id }}"
-                  @endif >
-            @if ($showBulkActions)
+                @if ($appointment->enviado && $appointment->latestWhatsAppMessage?->provider_message_id)
+                  title="Message SID: {{ $appointment->latestWhatsAppMessage?->provider_message_id }}"
+                    @endif >
               <td class="px-4 py-3 text-center" onclick="event.stopPropagation()">
                 <input type="checkbox"
                        class="size-4 cursor-pointer rounded border-white/20 bg-slate-950/50 text-emerald-500 accent-emerald-500 focus:ring-2 focus:ring-emerald-400/40 focus:ring-offset-0"
                        wire:model.live="selectedAppointmentIds"
                        value="{{ $appointment->id }}"
-                       aria-label="Seleccionar cita de {{ $appointment->client?->full_name }}"
-                >
+                       aria-label="Seleccionar cita de {{ $appointment->client?->full_name }}">
               </td>
-            @endif
-            <td class="px-4 py-3">
-              <a href="{{ $rowUrl }}" tabindex="-1"
-                 class="inline-flex items-center gap-2 font-medium {{ $canChange ? 'text-emerald-300 hover:text-emerald-200' : 'text-slate-400 hover:text-slate-300' }}">
-                <span>{{ $appointment->client?->nombre }} {{ $appointment->client?->apellidos }}</span>
-                @if (! $sentOnly && ($appointment->appointments_count ?? 1) > 1)
-                  <span class="inline-flex items-center rounded-full bg-sky-500/15 px-2 py-0.5 text-xs font-semibold text-sky-200 ring-1 ring-inset ring-sky-400/30"
-                        title="{{ $appointment->appointments_count }} citas"
-                        aria-label="{{ $appointment->appointments_count }} citas">
+              <td class="px-4 py-3">
+                <a href="{{ $rowUrl }}" tabindex="-1"
+                   class="inline-flex items-center gap-2 font-medium {{ $isInactive ? 'text-slate-400 hover:text-slate-300' : 'text-emerald-300 hover:text-emerald-200' }}">
+                  <span>{{ $appointment->client?->nombre }} {{ $appointment->client?->apellidos }}</span>
+                  @if (($appointment->appointments_count ?? 1) > 1)
+                    <span class="inline-flex items-center rounded-full bg-sky-500/15 px-2 py-0.5 text-xs font-semibold text-sky-200 ring-1 ring-inset ring-sky-400/30"
+                          title="{{ $appointment->appointments_count }} citas"
+                          aria-label="{{ $appointment->appointments_count }} citas">
                     {{ $appointment->appointments_count }}
                   </span>
-                @endif
-              </a>
-              <div class="text-xs text-slate-400 flex items-center gap-1">
-          <x-iconos.telefono-mesa/>
-        {{ Str::replaceStart('+34', '', $appointment->client?->telefono ?? '') }}
-              </div>
-            </td>
-            <td class="px-4 py-3 text-center">{{ucwords($appointment->fecha?->translatedFormat('l, d - F - Y'))}}</td>
-            <td class="px-4 py-3 text-center text-xs">{{ Str::substr($appointment->hora, 0, 5) }}</td>
-            @if ($showSentColumns)
+                  @endif
+                </a>
+              </td>
+              <td class="px-4 py-3 text-center text-xs">{{ucwords($appointment->fecha?->translatedFormat('l, d - F - Y'))}}</td>
+              <td class="px-4 py-3 text-center text-xs">{{ Str::substr($appointment->hora, 0, 5) }}</td>
               <td class="px-4 py-3 text-center">
                 <div class="relative flex flex-col items-center justify-center gap-1">
-                  @if(!$appointment->latestWhatsAppMessage?->provider_message_id)
-                    @if(!$appointment->enviado )
-                      @if(!$appointment->isFuture())
-                        <div class="flex flex-col items-center justify-center text-red-500/70 text-xs ">
-                          <x-iconos.alert clase="text-red-400/50 size-6"/>
-                          Vencido
-                        </div>
-                      @elseif($canSendNow)
-                        <div class="flex flex-col items-center jusitfy-center text-amber-200/50 text-xs ">
-                          <x-iconos.whatsapp/>
-                          En cola
-                        </div>
-                      @else
-                        <div class="flex flex-col items-center jusitfy-center text-red-500/70 text-xs ">
-                          <x-iconos.whatsapp/>
-                          Desactivado
-                        </div>
-                      @endif
-                    @else
-                      <x-iconos.alert clase="text-red-400/50 size-6"/>
-                      <h6 class="text-[10px] text-red-500/60">Error de envío o se ha pasado de fecha</h6>
-                    @endif
-                  @else
-                    <span class="flex items-center justify-center {{ $appointment->enviado && $appointment->whatsapp_sent_at ? 'text-green-400' : 'text-slate-300/40' }}">
-                    <span class="size-1 absolute top-1 left-1/2 rounded-full bg-red-500 {{ $appointment->whatsapp_sent_at ? 'hidden' : 'visible' }}"></span>
+                  @if($appointment->enviado)
+                    <span class="flex items-center justify-center text-green-400">
                     <x-iconos.doble-check/>
                   </span>
                     <h6 class="text-[10px] text-slate-400">
                       {{ $appointment->whatsapp_sent_at?->format('H:i d/m/Y') }}
                     </h6>
+                  @elseif($appointment->latestWhatsAppMessage?->provider_message_id)
+                    <span class="flex items-center justify-center text-slate-300/40">
+                    <x-iconos.doble-check/>
+                  </span>
+                  @else
+                    <div class="flex flex-col items-center justify-center text-slate-500 text-xs">
+                      <x-iconos.whatsapp clase="size-5"/>
+                      Pendiente
+                    </div>
                   @endif
                 </div>
               </td>
-            @endif
-            @if ($showDeliveredColumns)
               <td class="px-4 py-3 text-center">
-                @if($appointment->esFallido)
-                  <div class="relative flex flex-col items-center justify-center gap-1">
-                    <x-iconos.alert clase="text-red-400/50 size-6"/>
-                    <h6 class="text-[10px] text-red-500/60">No entregado</h6>
-                  </div>
-                @elseif($appointment->latestWhatsAppMessage?->provider_message_id)
-                  <div class="relative flex flex-col items-center justify-center gap-1">
-                    <span class="flex items-center justify-center
-                    {{ $appointment->entregado && $appointment->whatsapp_delivered_at ? 'text-green-400' : 'text-slate-300/40' }}">
-                      <span class="size-1 absolute top-1 left-1/2 rounded-full bg-red-500
-                      {{ $appointment->whatsapp_delivered_at  ? 'hidden' : 'visible' }}">
-                      </span>
-                      <x-iconos.doble-check/>
-                    </span>
-                    <h6 class="text-[10px] text-slate-400">
-                      {{ $appointment->whatsapp_delivered_at?->format('H:i d/m/Y') }}
-                    </h6>
-                  </div>
-                @endif
-              </td>
-            @endif
-            @if ($showReadColumn)
-              <td class="px-4 py-3">
-                @if($appointment->latestWhatsAppMessage?->provider_message_id)
+                @if($appointment->enviado)
                   <div class="relative flex flex-col items-center justify-center gap-1">
                     @if($appointment->entregado)
-                      <x-iconos.doble-check
-                              clase="size-6 {{ filled($appointment->whatsapp_read_at) ? 'text-green-400' : 'text-gray-400' }}"/>
+                      <span class="flex items-center justify-center text-green-400">
+                      <x-iconos.doble-check/>
+                    </span>
                       <h6 class="text-[10px] text-slate-400">
-                        {{ $appointment->whatsapp_read_at?->format('H:i d/m/Y') }}
+                        {{ $appointment->whatsapp_delivered_at?->format('H:i d/m/Y') }}
                       </h6>
                     @else
-                      <x-iconos.alert clase="text-red-600/50 size-6"/>
+                      <span class="flex items-center justify-center text-slate-500">
+                      <x-iconos.doble-check clase="size-6"/>
+                    </span>
                     @endif
                   </div>
                 @endif
               </td>
-            @endif
-            @if ($showPendingColumn)
+              <td class="px-4 py-3 text-center">
+                @if($appointment->entregado)
+                  <div class="relative flex flex-col items-center justify-center gap-1">
+                    @if($appointment->whatsapp_read_at)
+                      <span class="flex items-center justify-center text-green-400">
+                      <x-iconos.doble-check/>
+                    </span>
+                      <h6 class="text-[10px] text-slate-400">
+                        {{ $appointment->whatsapp_read_at?->format('H:i d/m/Y') }}
+                      </h6>
+                    @else
+                      <span class="flex items-center justify-center text-slate-500">
+                      <x-iconos.doble-check clase="size-6"/>
+                    </span>
+                    @endif
+                  </div>
+                @endif
+              </td>
               <td class="px-4 py-3 text-center" onclick="event.stopPropagation()">
-                @if ($canChange && ! $appointment->enviado)
+                @if ($appointment->enviado)
+                  <x-botones.icono-buton
+                          color="emerald"
+                          icon="whatsapp"
+                          label="Reenviar"
+                          texto="Reenviar"
+                          wire:click="resend({{ $appointment->id }})"
+                          wire:loading.attr="disabled"
+                          wire:target="resend({{ $appointment->id }})"
+                  />
+                @else
                   <x-formularios.toggle
                           :estado="$appointment->activo ? 'Sí' : 'No'"
                           :checked="$appointment->activo"
                           wire:change="updateActiveStatus({{ $appointment->id }}, $event.target.checked)"/>
                 @endif
               </td>
-            @endif
-            <td class="px-4 py-3 text-right" onclick="event.stopPropagation()">
-              <div class="flex justify-end items-center gap-2">
-                @if ($canSendNow)
-                  <x-botones.icono-buton
-                          color="emerald"
-                          icon="whatsapp"
-                          label="Enviar WhatsApp"
-                          x-on:click="localStorage.setItem('autoSyncAfterSend', '1')"
-                          wire:click="sendNow({{ $appointment->id }})"
-                          wire:loading.attr="disabled"
-                          wire:target="sendNow({{ $appointment->id }})"
-                  />
-                @endif
-                @if ($canChange)
+              <td class="px-4 py-3 text-center" onclick="event.stopPropagation()">
+                <x-formularios.toggle
+                        :estado="$appointment->cita_activa ? 'Sí' : 'No'"
+                        :checked="$appointment->cita_activa"
+                        wire:change="updateAppointmentActiveStatus({{ $appointment->id }}, $event.target.checked)"/>
+              </td>
+              <td class="px-4 py-3 text-right" onclick="event.stopPropagation()">
+                <div class="flex justify-end items-center gap-2">
+                  @if (! $appointment->enviado && $appointment->activo && $appointment->isFuture())
+                    <x-botones.icono-buton
+                            color="emerald"
+                            icon="whatsapp"
+                            label="Enviar WhatsApp"
+                            x-on:click="localStorage.setItem('autoSyncAfterSend', '1')"
+                            wire:click="sendNow({{ $appointment->id }})"
+                            wire:loading.attr="disabled"
+                            wire:target="sendNow({{ $appointment->id }})"
+                    />
+                  @endif
                   <x-botones.icono-buton
                           color="blue"
                           icon="lapiz"
                           label="Editar cita"
                           onclick="window.location='{{ $editUrl }}'"
                   />
-                @endif
-                <x-botones.icono-buton
-                        color="red"
-                        icon="papelera"
-                        label="Eliminar cita"
-                        wire:click="confirmDelete({{ $appointment->id }})"
-                />
+                  <x-botones.icono-buton
+                          color="red"
+                          icon="papelera"
+                          label="Eliminar cita"
+                          wire:click="confirmDelete({{ $appointment->id }})"
+                  />
+                </div>
+              </td>
+            </tr>
+          @empty
+            <tr>
+              <td class="px-4 py-6 text-slate-400" colspan="10">
+                {{ $sentOnly ? 'No hay citas enviadas para mostrar todavía.' : 'No hay citas para mostrar todavía.' }}
+              </td>
+            </tr>
+          @endforelse
+          </tbody>
+        </table>
+      </div>
+    @else
+      <div class="mt-4 grid grid-cols-5 gap-2">
+        @forelse ($appointmentsByClient as $clientId => $clientData)
+          @php
+            $first = $clientData['appointments']->first();
+            $isInactive = ! $first->cita_activa || $first->scheduledFor()->isPast();
+          @endphp
+          <div class="rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur transition-colors hover:bg-white/10 hover:border-white/20">
+            <div class="mb-3 flex items-start justify-between gap-2">
+              <div>
+                <a href="{{ route('clients.appointments', $clientId) }}"
+                   class="font-medium {{ $isInactive ? 'text-slate-400 hover:text-slate-300' : 'text-emerald-300 hover:text-emerald-200' }}">
+                  {{ $first->client?->nombre }} {{ $first->client?->apellidos }}
+                </a>
+                <div class="text-xs text-slate-400 flex items-center gap-1 mt-1">
+                  <x-iconos.telefono-mesa/>
+                  {{ $first->client?->telefono }}
+                </div>
               </div>
-            </td>
-          </tr>
+              <span class="shrink-0 inline-flex items-center rounded-full bg-sky-500/15 px-2 py-0.5 text-xs font-semibold text-sky-200 ring-1 ring-inset ring-sky-400/30">
+              {{ $clientData['pendingCount'] }}
+            </span>
+            </div>
+            <div class="space-y-2">
+              @foreach ($clientData['appointments'] as $appointment)
+                <a href="{{ route('clients.appointments', $clientId) }}"
+                   class="block rounded-xl border border-white/5 bg-slate-900/40 p-3 transition-colors hover:bg-white/5">
+                  <div class="flex items-center justify-between gap-2">
+                    <span class="text-xs text-slate-300">{{ $appointment->fecha?->format('d/m/Y') }}</span>
+                    <div class="flex items-center gap-1.5">
+                      @if($appointment->enviado)
+                        <span class="text-green-400"><x-iconos.doble-check clase="size-3.5"/></span>
+                      @else
+                        <span class="text-slate-600"><x-iconos.whatsapp clase="size-3.5"/></span>
+                      @endif
+                      @if($appointment->entregado)
+                        <span class="text-green-400"><x-iconos.doble-check clase="size-3.5"/></span>
+                      @endif
+                      @if($appointment->whatsapp_read_at)
+                        <span class="text-green-400"><x-iconos.doble-check clase="size-3.5"/></span>
+                      @endif
+                    </div>
+                  </div>
+                </a>
+              @endforeach
+            </div>
+          </div>
         @empty
-          <tr>
-            <td class="px-4 py-6 text-slate-400"
-                colspan="{{ 4 + ($showBulkActions ? 1 : 0) + ($showSentColumns ? 1 : 0) + ($showDeliveredColumns ? 1 : 0) + ($showReadColumn ? 1 : 0) + ($showPendingColumn ? 1 : 0) }}">
-              {{ $sentOnly ? 'No hay citas enviadas para mostrar todavía.' : 'No hay citas para mostrar todavía.' }}
-            </td>
-          </tr>
+          <div class="col-span-5 py-8 text-center text-slate-500">
+            No hay citas para mostrar todavía.
+          </div>
         @endforelse
-        </tbody>
-      </table>
-    </div>
+      </div>
+    @endif
 
     <div class="mt-4">
       {{ $appointments->links('vendor.pagination.tailwind') }}

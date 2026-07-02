@@ -60,7 +60,7 @@ class ClientManagerTest extends TestCase
         $component->set('filter_nombre', 'A')
             ->assertSee('Ana Pérez')
             ->assertSee('600123123')
-            ->assertSeeHtml('href="'.route('appointments.index', ['client' => $client->id]).'"')
+            ->assertSeeHtml('href="'.route('clients.appointments', $client).'"')
             ->assertSeeHtml('href="'.route('appointments.create', ['client' => $client->id]).'"');
         $this->assertTrue($component->instance()->getHasClientSearchProperty());
     }
@@ -214,7 +214,7 @@ class ClientManagerTest extends TestCase
             ->assertOk()
             ->assertSee('Listado de clientes')
             ->assertSee('Ana Pérez')
-            ->assertSeeHtml('href="'.route('appointments.index', ['client' => $client->id]).'"')
+            ->assertSeeHtml('href="'.route('clients.appointments', $client).'"')
             ->assertSeeHtml('href="'.route('appointments.create', ['client' => $client->id]).'"')
             ->assertSee('Citas')
             ->assertSee('Nuevo cliente');

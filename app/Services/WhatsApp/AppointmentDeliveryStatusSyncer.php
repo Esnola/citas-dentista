@@ -229,12 +229,14 @@ class AppointmentDeliveryStatusSyncer
             $readAt = $this->latestTimestamp($appointmentMessages->map(fn (WhatsAppMessage $message): ?Carbon => $message->readAt()));
 
             $newEnviado = $appointment->enviado || $sentAt !== null;
+            $newActivo = $newEnviado ? false : $appointment->activo;
             $newSentAt = $this->latestTimestamp(collect([$appointment->whatsapp_sent_at, $sentAt]));
             $newEntregado = $appointment->entregado || $deliveredAt !== null;
             $newDeliveredAt = $this->latestTimestamp(collect([$appointment->whatsapp_delivered_at, $deliveredAt]));
             $newReadAt = $this->latestTimestamp(collect([$appointment->whatsapp_read_at, $readAt]));
 
             $dirty = $newEnviado !== $appointment->enviado
+                || $newActivo !== $appointment->activo
                 || $this->timestampDiffers($appointment->whatsapp_sent_at, $newSentAt)
                 || $newEntregado !== $appointment->entregado
                 || $this->timestampDiffers($appointment->whatsapp_delivered_at, $newDeliveredAt)
@@ -243,6 +245,7 @@ class AppointmentDeliveryStatusSyncer
             if ($dirty) {
                 $appointment->update([
                     'enviado' => $newEnviado,
+                    'activo' => $newActivo,
                     'whatsapp_sent_at' => $newSentAt,
                     'entregado' => $newEntregado,
                     'whatsapp_delivered_at' => $newDeliveredAt,

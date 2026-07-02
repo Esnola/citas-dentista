@@ -10,8 +10,6 @@ use App\Services\WhatsApp\AppointmentImmediateSender;
 use App\Services\WhatsApp\WhatsAppSender;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Pagination\LengthAwarePaginator;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -48,6 +46,8 @@ class AppointmentList extends Component
 
     public ?int $appointmentPendingDeletionId = null;
 
+    public ?int $appointmentPendingResendId = null;
+
     /** @var array<int, int|string> */
     public array $selectedAppointmentIds = [];
 
@@ -65,18 +65,17 @@ class AppointmentList extends Component
         $this->deliveryStatusSyncer = $deliveryStatusSyncer;
     }
 
-    public function mount(): void
+    public function mount(?int $clientId = null): void
     {
+        $clientId ??= request()->integer('client');
+
         $this->showAppointmentNavigation = (request()->routeIs('appointments.index') || request()->routeIs('appointments.sent'))
           && request()->query() === [];
 
-        $clientId = request()->integer('client');
+        if ($clientId > 0) {
+            abort_unless(Client::query()->whereKey($clientId)->exists(), 404);
 
-        if ($clientId > 0 && Client::query()->whereKey($clientId)->exists()) {
             $this->clientId = $clientId;
-        }
-
-        if (request()->query('client')) {
             $this->show_filters_nombre = false;
         }
 
@@ -88,10 +87,6 @@ class AppointmentList extends Component
         }
 
         $this->deliveryStatusesSyncedAt = Cache::get('appointment_delivery_statuses_synced_at');
-
-        if (! app()->environment('testing')) {
-            $this->forceDeliveryStatusSync();
-        }
     }
 
     public function updated(string $property): void
@@ -117,7 +112,6 @@ class AppointmentList extends Component
         if (in_array($property, ['filter_enviado', 'filter_activo', 'filter_entregado'], true)) {
             $this->selectedAppointmentIds = [];
             $this->bulkDeleteConfirmationOpen = false;
-            $this->forceDeliveryStatusSync();
             $this->syncExclusiveDeliveryFilters($property);
             $this->resetAppointmentsPage();
 
@@ -298,6 +292,24 @@ class AppointmentList extends Component
         $this->redirect(url()->previous());
     }
 
+    public function updateAppointmentActiveStatus(int $appointmentId, bool|string $citaActiva): void
+    {
+        if (is_bool($citaActiva)) {
+            $isActive = $citaActiva;
+        } elseif (in_array($citaActiva, ['0', '1'], true)) {
+            $isActive = $citaActiva === '1';
+        } else {
+            return;
+        }
+
+        $appointment = Appointment::query()->findOrFail($appointmentId);
+        $appointment->update(['cita_activa' => $isActive]);
+
+        session()->flash('status', 'Estado de la cita actualizado.');
+
+        $this->redirect(url()->previous());
+    }
+
     public function sendNow(int $appointmentId, WhatsAppSender $sender): void
     {
         $appointment = Appointment::query()
@@ -347,6 +359,48 @@ class AppointmentList extends Component
         $this->redirect(url()->previous());
     }
 
+    public function confirmResend(int $appointmentId): void
+    {
+        $this->appointmentPendingResendId = $appointmentId;
+    }
+
+    public function cancelResend(): void
+    {
+        $this->appointmentPendingResendId = null;
+    }
+
+    public function resendConfirmed(WhatsAppSender $sender): void
+    {
+        if (! $this->appointmentPendingResendId) {
+            return;
+        }
+
+        $appointment = Appointment::query()->with('client')->findOrFail($this->appointmentPendingResendId);
+
+        if (! $appointment->enviado || ! $appointment->isFuture()) {
+            session()->flash('status', 'Esta cita no se puede reenviar.');
+
+            return;
+        }
+
+        if (! $appointment->client) {
+            session()->flash('status', 'No se pudo reenviar el WhatsApp porque la cita no tiene cliente asociado.');
+
+            return;
+        }
+
+        $result = $this->immediateSender->send(
+            $appointment,
+            $appointment->client,
+            $sender,
+            'WhatsApp reenviado correctamente.',
+            'No se pudo reenviar el WhatsApp.'
+        );
+
+        $this->appointmentPendingResendId = null;
+        session()->flash('status', $result['message']);
+    }
+
     public function syncDeliveryStatuses(): void
     {
         $updated = $this->forceDeliveryStatusSync();
@@ -369,14 +423,9 @@ class AppointmentList extends Component
         $now = Carbon::now(config('app.timezone'));
         $appointmentsQuery = $this->appointmentsQuery($selectedClient, $now);
 
-        $appointmentsCount = (clone $appointmentsQuery)->count();
-        $appointments = $this->resolveAppointments($appointmentsQuery, $selectedClient, $now);
+        $appointments = $appointmentsQuery->paginate(30, ['appointments.*'], 'appointmentsPage');
 
-        $showSentColumns = $this->showAllHistory || $appointments->getCollection()->contains(fn (Appointment $appointment): bool => $appointment->enviado);
-        $showDeliveredColumns = $this->showAllHistory || $appointments->getCollection()->contains(fn (Appointment $appointment): bool => $appointment->entregado || filled($appointment->latestWhatsAppMessage?->provider_message_id));
-        $showReadColumn = $this->showAllHistory || $appointments->getCollection()->contains(fn (Appointment $appointment): bool => filled($appointment->whatsapp_read_at));
-        $showPendingColumn = $this->showAllHistory || $appointments->getCollection()->contains(fn (Appointment $appointment): bool => ! $appointment->enviado);
-        $showBulkActions = $selectedClient && ! $this->sentOnly;
+        $showBulkActions = ! $this->sentOnly;
         $visibleAppointmentIds = $appointments->getCollection()->pluck('id')->all();
         $allVisibleAppointmentsSelected = $visibleAppointmentIds !== []
           && array_diff($visibleAppointmentIds, array_map('intval', $this->selectedAppointmentIds)) === [];
@@ -385,19 +434,25 @@ class AppointmentList extends Component
           ? Appointment::query()->with('client')->find($this->appointmentPendingDeletionId)
           : null;
 
+        $appointmentsByClient = $selectedClient
+          ? null
+          : $appointments->getCollection()->groupBy(fn (Appointment $a) => $a->client_id)->map(function ($group) {
+              return [
+                  'appointments' => $group->values(),
+                  'pendingCount' => $group->filter(fn (Appointment $a) => $a->cita_activa)->count(),
+              ];
+          });
+
         return view('livewire.appointment-list', [
             'appointments' => $appointments,
-            'appointmentsCount' => $appointmentsCount,
+            'appointmentsCount' => $appointments->total(),
             'appointmentPendingDeletion' => $appointmentPendingDeletion,
             'selectedClient' => $selectedClient,
             'sentOnly' => $this->sentOnly,
-            'showSentColumns' => $showSentColumns,
-            'showDeliveredColumns' => $showDeliveredColumns,
-            'showReadColumn' => $showReadColumn,
-            'showPendingColumn' => $showPendingColumn,
             'showBulkActions' => $showBulkActions,
             'visibleAppointmentIds' => $visibleAppointmentIds,
             'allVisibleAppointmentsSelected' => $allVisibleAppointmentsSelected,
+            'appointmentsByClient' => $appointmentsByClient,
         ]);
     }
 
@@ -467,7 +522,7 @@ class AppointmentList extends Component
         }
 
         session()->flash('status', $status);
-        $this->redirect($client ? route('appointments.index', ['client' => $client->id]) : url()->previous());
+        $this->redirect($client ? route('clients.appointments', $client) : url()->previous());
     }
 
     private function appointmentsQuery(?Client $selectedClient, Carbon $now): Builder
@@ -480,28 +535,13 @@ class AppointmentList extends Component
             ->when($this->filter_nombre, fn (Builder $query) => $query->whereHas('client', fn ($clientQuery) => $clientQuery->where('nombre', 'like', '%'.$this->filter_nombre.'%')))
             ->when($this->filter_apellidos, fn (Builder $query) => $query->whereHas('client', fn ($clientQuery) => $clientQuery->where('apellidos', 'like', '%'.$this->filter_apellidos.'%')))
             ->when($this->sentOnly, fn (Builder $query) => $query->where('appointments.enviado', true))
-            ->when(! $this->showAllHistory && $selectedClient && ! $this->sentOnly && $this->dateFilter === 'upcoming', fn (Builder $query) => $this->whereFutureAppointment($query, $now))
+            ->when(! $this->showAllHistory && $selectedClient && ! $this->sentOnly && $this->dateFilter === 'upcoming', fn (Builder $query) => $query->whereDate('appointments.fecha', '>=', $now->toDateString()))
             ->when(! $this->showAllHistory && ! $this->sentOnly && $this->dateFilter === 'past', fn (Builder $query) => $this->wherePastAppointment($query, $now))
             ->when(! $this->showAllHistory && ! $this->sentOnly && $this->filter_entregado, fn (Builder $query) => $query->where('appointments.entregado', true))
             ->when(! $this->showAllHistory && ! $this->sentOnly && $this->filter_enviado, fn (Builder $query) => $query->where('appointments.enviado', true))
-            ->when(! $this->showAllHistory && ! $this->sentOnly && ! $this->filter_entregado && ! $this->filter_enviado && $this->filter_activo, function (Builder $query) use ($now): void {
-                $query->where(function (Builder $nonPendingQuery) use ($now): void {
-                    $this->wherePastAppointment($nonPendingQuery, $now);
-                    $nonPendingQuery->orWhere(function (Builder $inactiveFutureQuery) use ($now): void {
-                        $inactiveFutureQuery
-                            ->where('appointments.enviado', false)
-                            ->where('appointments.activo', false);
-
-                        $this->whereFutureAppointment($inactiveFutureQuery, $now);
-                    });
-                });
-            })
-            ->when(! $this->showAllHistory && ! $selectedClient && ! $this->sentOnly && ! $this->filter_entregado && ! $this->filter_enviado && ! $this->filter_activo, function (Builder $query) use ($now): void {
-                $query
-                    ->where('appointments.enviado', false)
-                    ->where('appointments.activo', true);
-
-                $this->whereFutureAppointment($query, $now);
+            ->when(! $this->showAllHistory && ! $this->sentOnly && $this->dateFilter !== 'all' && ! $this->filter_entregado && ! $this->filter_enviado, function (Builder $query) use ($now): void {
+                $query->where('appointments.cita_activa', true)
+                    ->whereDate('appointments.fecha', '>=', $now->toDateString());
             })
             ->when($this->sort_by === 'cliente', function (Builder $query): void {
                 $query
@@ -514,107 +554,5 @@ class AppointmentList extends Component
                     ->orderBy('appointments.fecha', $this->sort_direction)
                     ->orderBy('appointments.hora', $this->sort_direction);
             });
-    }
-
-    private function resolveAppointments(Builder $appointmentsQuery, ?Client $selectedClient, Carbon $now): LengthAwarePaginator
-    {
-        if ($selectedClient || $this->sentOnly) {
-            return $appointmentsQuery->paginate(15, ['appointments.*'], 'appointmentsPage');
-        }
-
-        return $this->paginateUniqueAppointments(
-            $this->sortUniqueAppointments(
-                $this->buildUniqueAppointments($appointmentsQuery->get(), $now)
-            )
-        );
-    }
-
-    /**
-     * @param  Collection<int, Appointment>  $appointments
-     */
-    private function paginateUniqueAppointments(Collection $appointments): LengthAwarePaginator
-    {
-        $currentPage = LengthAwarePaginator::resolveCurrentPage('appointmentsPage');
-        $perPage = 15;
-        $items = $appointments->forPage($currentPage, $perPage)->values();
-
-        return new LengthAwarePaginator(
-            $items,
-            $appointments->count(),
-            $perPage,
-            $currentPage,
-            [
-                'path' => request()->url(),
-                'pageName' => 'appointmentsPage',
-            ],
-        );
-    }
-
-    /**
-     * @param  Collection<int, Appointment>  $appointments
-     * @return Collection<int, Appointment>
-     */
-    private function sortUniqueAppointments(Collection $appointments): Collection
-    {
-        return $appointments
-            ->sort(function (Appointment $left, Appointment $right): int {
-                $comparison = $this->sort_by === 'cliente'
-                  ? $this->compareByClient($left, $right)
-                  : $this->compareBySchedule($left, $right);
-
-                return $this->sort_direction === 'desc' ? -$comparison : $comparison;
-            })
-            ->values();
-    }
-
-    private function compareByClient(Appointment $left, Appointment $right): int
-    {
-        $leftName = mb_strtolower($left->client?->full_name ?? '');
-        $rightName = mb_strtolower($right->client?->full_name ?? '');
-
-        $comparison = $leftName <=> $rightName;
-
-        if ($comparison !== 0) {
-            return $comparison;
-        }
-
-        return $left->scheduledFor()->getTimestamp() <=> $right->scheduledFor()->getTimestamp();
-    }
-
-    private function compareBySchedule(Appointment $left, Appointment $right): int
-    {
-        $leftTimestamp = $left->scheduledFor()->getTimestamp();
-        $rightTimestamp = $right->scheduledFor()->getTimestamp();
-
-        $comparison = $leftTimestamp <=> $rightTimestamp;
-
-        if ($comparison !== 0) {
-            return $comparison;
-        }
-
-        return mb_strtolower($left->client?->full_name ?? '') <=> mb_strtolower($right->client?->full_name ?? '');
-    }
-
-    /**
-     * @param  Collection<int, Appointment>  $appointments
-     * @return Collection<int, Appointment>
-     */
-    private function buildUniqueAppointments(Collection $appointments, Carbon $now): Collection
-    {
-        return $appointments
-            ->groupBy('client_id')
-            ->map(function (Collection $clientAppointments) use ($now): Appointment {
-                $appointment = $clientAppointments
-                    ->sortBy(fn (Appointment $appointment): array => [
-                        abs($appointment->scheduledFor()->getTimestamp() - $now->getTimestamp()),
-                        $appointment->scheduledFor()->getTimestamp(),
-                    ])
-                    ->firstOrFail();
-
-                $appointment->setAttribute('appointments_count', $clientAppointments->count());
-
-                return $appointment;
-            })
-            ->values();
     }
 }

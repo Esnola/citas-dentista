@@ -66,7 +66,8 @@ class ClientMessageSchedulerTest extends TestCase
             ->set('scheduled_date', '2026-06-23')
             ->set('scheduled_time', '11:20')
             ->call('save')
-            ->assertHasErrors('scheduled_date');
+            ->assertHasErrors('scheduled_date')
+            ->assertSee('La fecha debe ser posterior a hoy.');
 
         Livewire::test(ClientMessageScheduler::class)
             ->call('selectClient', $client->id)

@@ -1,6 +1,6 @@
 # Citas Dentista — Agent Instructions
 
-Laravel 13 app for dental appointment management with WhatsApp reminders. Livewire 4 + Flux UI + Tailwind CSS 4. PHPUnit 12. PHP 8.4. SQLite default.
+Laravel 13 app for dental appointment management with WhatsApp reminders. Livewire 4 + Flux UI + Tailwind CSS 4. PHPUnit 12. PHP 8.4. MySQL production, SQLite for tests.
 
 ## Commands
 
@@ -44,5 +44,8 @@ npm run build / npm run dev                             # frontend assets
 - `WHATSAPP_DRIVER=log` is the safe default — never hardcode Twilio/Cloud API credentials
 - `composer run dev` spawns 4 processes concurrently via `npx concurrently`
 - Database migrations are timestamped with `2026_06_*` dates — newer files sort correctly
+- MySQL compatibility: never use `->after()` in `Schema::create()` (only works in `Schema::table()`)
+- MySQL compatibility: foreign keys in `Schema::create()` require the referenced table to already exist — check migration order or use `foreignId()->index()` without `constrained()` and add FKs later
+- Eloquent pluralizes model names for table lookup — set `protected $table` if the table name doesn't match (e.g., `LoginHistory` → `login_history`, not `login_histories`)
 - Custom Blade components use Spanish names: `<x-iconos.whatsapp>`, `<x-botones.accion>`, `<x-formularios.input>`
 - Livewire components are mounted via `<livewire:component-name>` in Blade views — routes point to views, not controllers

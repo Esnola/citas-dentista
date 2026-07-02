@@ -3,15 +3,15 @@
 return [
 
     /*
-    |--------------------------------------------------------------------------
-    | Validation Language Lines
-    |--------------------------------------------------------------------------
-    |
-    | The following language lines contain the default error messages used by
-    | the validator class. Some of these rules have multiple versions such
-    | as the size rules. Feel free to tweak each of these messages.
-    |
-    */
+  |--------------------------------------------------------------------------
+  | Validation Language Lines
+  |--------------------------------------------------------------------------
+  |
+  | The following language lines contain the default error messages used by
+  | the validator class. Some of these rules have multiple versions such
+  | as the size rules. Feel free to tweak each of these messages.
+  |
+  */
 
     'accepted' => ':attribute debe ser aceptado.',
     'accepted_if' => ':attribute debe ser aceptado cuando :other es :value.',
@@ -146,29 +146,29 @@ return [
     'ulid' => ':attribute debe ser un ULID válido.',
 
     /*
-    |--------------------------------------------------------------------------
-    | Custom Validation Language Lines
-    |--------------------------------------------------------------------------
-    |
-    | Here you may specify custom validation messages for attributes using the
-    | convention 'attribute.rule' to name the lines. This makes it quick to
-    | specify a specific custom language line for a given attribute rule.
-    |
-    */
+  |--------------------------------------------------------------------------
+  | Custom Validation Language Lines
+  |--------------------------------------------------------------------------
+  |
+  | Here you may specify custom validation messages for attributes using the
+  | convention 'attribute.rule' to name the lines. This makes it quick to
+  | specify a specific custom language line for a given attribute rule.
+  |
+  */
 
     'custom' => [],
 
     /*
-    |--------------------------------------------------------------------------
-    | Custom Validation Attributes
-    |--------------------------------------------------------------------------
-    |
-    | The following language lines are used to swap our attribute placeholder
-    | names with something more reader friendly such as "E-Mail Address"
-    | instead of "email". This simply helps us make our message more
-    | expressive.
-    |
-    */
+  |--------------------------------------------------------------------------
+  | Custom Validation Attributes
+  |--------------------------------------------------------------------------
+  |
+  | The following language lines are used to swap our attribute placeholder
+  | names with something more reader friendly such as "E-Mail Address"
+  | instead of "email". This simply helps us make our message more
+  | expressive.
+  |
+  */
 
     'attributes' => [
         'name' => 'nombre',

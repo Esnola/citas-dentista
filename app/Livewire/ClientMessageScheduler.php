@@ -165,6 +165,13 @@ class ClientMessageScheduler extends Component
         ];
     }
 
+    protected function messages(): array
+    {
+        return [
+            'scheduled_date.after' => 'La fecha debe ser posterior a hoy.',
+        ];
+    }
+
     /**
      * @param  array<string, mixed>  $metadata
      */

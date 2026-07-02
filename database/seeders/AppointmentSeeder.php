@@ -4,7 +4,6 @@ namespace Database\Seeders;
 
 use App\Models\Appointment;
 use App\Models\Client;
-use Carbon\Carbon;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
@@ -17,7 +16,6 @@ class AppointmentSeeder extends Seeder
      */
     public function run(): void
     {
-        $phones = $this->phones();
         $dates = collect(range(0, 10))
             ->map(fn (int $offset): string => now()->addDays($offset)->toDateString())
             ->all();
@@ -48,7 +46,12 @@ class AppointmentSeeder extends Seeder
             '14:30',
             '14:45',
             '15:00',
+            '15:15',
+            '15:30',
+            '15:45',
+            '16:00',
         ];
+        $phones = $this->phones(count($timeSlots) * 6);
 
         $clients = [];
 
@@ -56,32 +59,39 @@ class AppointmentSeeder extends Seeder
             $clients[$phone] = Client::query()->firstOrCreate(
                 ['telefono' => Client::normalizePhone($phone)],
                 [
-                    'nombre' => 'Paciente '.str_pad((string) ($index + 1), 2, '0', STR_PAD_LEFT),
-                    'apellidos' => 'Seeder',
+                    'nombre' => fake()->firstName(),
+                    'apellidos' => fake()->lastName(),
                 ]
             );
         }
 
         Appointment::query()
-            ->withTrashed()
             ->whereIn('client_id', array_map(fn (Client $client): int => $client->id, $clients))
-            ->forceDelete();
+            ->delete();
 
-        foreach ($phones as $phone) {
-            $client = $clients[$phone];
-            $phoneDates = $this->rotateDates($dates, crc32($phone) % count($dates));
+        $clientList = array_values($clients);
+        $appointmentIndex = 0;
 
-            foreach ($phoneDates as $dateIndex => $date) {
-                $time = $timeSlots[crc32($phone.'|'.$date) % count($timeSlots)];
+        foreach ($dates as $date) {
+            $dailyAppointmentIndex = 0;
 
-                Appointment::query()->create([
-                    'client_id' => $client->id,
-                    'fecha' => Carbon::parse($date)->startOfDay()->toDateString(),
-                    'hora' => $time,
-                    'enviado' => 0,
-                    'entregado' => false,
-                    'activo' => $dateIndex % 11 !== 0,
-                ]);
+            foreach ($timeSlots as $time) {
+                for ($slotAppointment = 0; $slotAppointment < 6; $slotAppointment++) {
+                    $client = $clientList[$dailyAppointmentIndex];
+
+                    Appointment::query()->create([
+                        'client_id' => $client->id,
+                        'fecha' => $date,
+                        'hora' => $time,
+                        'enviado' => false,
+                        'entregado' => false,
+                        'activo' => $appointmentIndex % 11 !== 0,
+                        'cita_activa' => $appointmentIndex % 12 !== 0,
+                    ]);
+
+                    $appointmentIndex++;
+                    $dailyAppointmentIndex++;
+                }
             }
         }
     }
@@ -89,39 +99,27 @@ class AppointmentSeeder extends Seeder
     /**
      * @return list<string>
      */
-    private function phones(): array
+    private function phones(int $count): array
     {
+        $phones = [
+            '618287914',
+            '659366775',
+            '611234567',
+            '622345678',
+            '633456789',
+            '644567890',
+            '655678901',
+            '666789012',
+            '677890123',
+            '688901234',
+            '699012345',
+        ];
+
         return array_merge(
-            [
-                '618287914',
-                '659366775',
-                '611234567',
-                '622345678',
-                '633456789',
-                '644567890',
-                '655678901',
-                '666789012',
-                '677890123',
-                '688901234',
-                '699012345',
-            ],
-            collect(range(1, 19))
+            $phones,
+            collect(range(1, $count - count($phones)))
                 ->map(fn (int $index): string => sprintf('611%06d', $index))
                 ->all(),
         );
-    }
-
-    /**
-     * @param  array<int, string>  $dates
-     * @return array<int, string>
-     */
-    private function rotateDates(array $dates, int $offset): array
-    {
-        $offset = $offset % count($dates);
-
-        return array_values(array_merge(
-            array_slice($dates, $offset),
-            array_slice($dates, 0, $offset),
-        ));
     }
 }

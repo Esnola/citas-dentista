@@ -8,11 +8,10 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
-use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Appointment extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory;
 
     protected $fillable = [
         'client_id',
@@ -24,26 +23,15 @@ class Appointment extends Model
         'whatsapp_delivered_at',
         'whatsapp_read_at',
         'activo',
+        'cita_activa',
     ];
 
     protected $attributes = [
         'enviado' => false,
         'entregado' => false,
         'activo' => true,
+        'cita_activa' => true,
     ];
-
-    protected function casts(): array
-    {
-        return [
-            'fecha' => 'date',
-            'enviado' => 'boolean',
-            'entregado' => 'boolean',
-            'whatsapp_sent_at' => 'datetime',
-            'whatsapp_delivered_at' => 'datetime',
-            'whatsapp_read_at' => 'datetime',
-            'activo' => 'boolean',
-        ];
-    }
 
     public function client(): BelongsTo
     {
@@ -60,9 +48,9 @@ class Appointment extends Model
         return $this->hasOne(WhatsAppMessage::class)->latestOfMany();
     }
 
-    public function scheduledFor(): Carbon
+    public function canBeChanged(): bool
     {
-        return Carbon::parse($this->fecha?->toDateString().' '.$this->hora, config('app.timezone'));
+        return ! $this->scheduledFor()->isPast();
     }
 
     public function isFuture(): bool
@@ -70,9 +58,9 @@ class Appointment extends Model
         return $this->scheduledFor()->isFuture();
     }
 
-    public function canBeChanged(): bool
+    public function scheduledFor(): Carbon
     {
-        return ! $this->enviado && $this->isFuture();
+        return Carbon::parse($this->fecha?->toDateString().' '.$this->hora, config('app.timezone'));
     }
 
     public function getEsFallidoAttribute(): bool
@@ -80,7 +68,7 @@ class Appointment extends Model
         $latestMsg = $this->latestWhatsAppMessage;
 
         return $latestMsg?->status === WhatsAppMessage::STATUS_FAILED
-            || in_array($latestMsg?->deliveryStatus(), ['failed', 'undelivered'], true);
+          || in_array($latestMsg?->deliveryStatus(), ['failed', 'undelivered'], true);
     }
 
     public function hasConflict(): bool
@@ -113,5 +101,19 @@ class Appointment extends Model
                         ->where('hora', '>', $now->format('H:i:s'));
                 });
         });
+    }
+
+    protected function casts(): array
+    {
+        return [
+            'fecha' => 'date',
+            'enviado' => 'boolean',
+            'entregado' => 'boolean',
+            'whatsapp_sent_at' => 'datetime',
+            'whatsapp_delivered_at' => 'datetime',
+            'whatsapp_read_at' => 'datetime',
+            'activo' => 'boolean',
+            'cita_activa' => 'boolean',
+        ];
     }
 }
