@@ -11,8 +11,8 @@ return new class extends Migration
         Schema::create('whatsapp_messages', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->nullable()->constrained()->nullOnDelete();
-            $table->foreignId('client_id')->nullable()->after('user_id')->constrained('clients')->nullOnDelete();
-            $table->foreignId('appointment_id')->nullable()->after('client_id')->constrained('appointments')->nullOnDelete();
+            $table->foreignId('client_id')->nullable()->constrained('clients')->nullOnDelete();
+            $table->foreignId('appointment_id')->nullable()->constrained('appointments')->nullOnDelete();
             $table->string('nombre');
             $table->string('apellidos');
             $table->string('telefono', 40);
