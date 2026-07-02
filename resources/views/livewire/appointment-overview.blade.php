@@ -32,32 +32,34 @@
         <flux:label>Apellidos</flux:label>
         <x-formularios.input wire:model.live.debounce.300ms="filter_apellidos" placeholder="Filtrar por apellidos"/>
       </flux:field>
-      <button type="button"
-              class="cursor-pointer rounded-full p-2"
-              aria-label="Mostrar información"
-              title="Mostrar información"
-              onclick="document.querySelector('[data-info]').classList.toggle('hidden');
+      <div class="group flex items-center gap-2">
+        <button type="button"
+                class="cursor-pointer rounded-full p-2"
+                aria-label="Mostrar información"
+                title="Mostrar información"
+                onclick="document.querySelector('[data-info]').classList.toggle('hidden');
                        document.querySelector('[data-bombilla]').classList.toggle('text-amber-200!')">
-        <x-iconos.bombilla
-                data-bombilla
-                clase="size-8 text-slate-400 transition-colors"/>
-      </button>
+          <x-iconos.bombilla
+                  data-bombilla
+                  clase="size-8 text-slate-400/30 transition-colors group-hover:text-amber-300!"/>
+        </button>
 
-      <div data-info class="text-xs hidden">
-        <div class="flex items-center gap-2 text-white/50"><span class="size-2 bg-white/50 rounded-full"></span>
-          Se muestran {{ $clients->total() }} cliente{{ $clients->total() !== 1 ? 's' : '' }} con citas
-          pendientes
-        </div>
-        <div class="flex items-center gap-2 text-white/50"><span class="size-2 bg-white/50 rounded-full"></span>
-          Se muestra la cita mas próxima.
-        </div>
-        <div class="flex items-center gap-2 text-white/50">
-          <x-iconos.doble-check clase="size-4 text-green-400"/>
-          Recordatorio Leído
-          <x-iconos.doble-check clase="size-4 text-gray-400"/>
-          Recordatorio enviado y No Leído
-          <x-iconos.whatsapp clase="size-4 text-gray-500/70"/>
-          Recordatorio pendiente de envío o no enviado
+        <div data-info class="text-xs hidden group-hover:block">
+          <div class="flex items-center gap-2 text-white/50"><span class="size-2 bg-white/50 rounded-full"></span>
+            Se muestran {{ $clients->total() }} cliente{{ $clients->total() !== 1 ? 's' : '' }} con citas
+            pendientes
+          </div>
+          <div class="flex items-center gap-2 text-white/50"><span class="size-2 bg-white/50 rounded-full"></span>
+            Se muestra la cita mas próxima.
+          </div>
+          <div class="flex items-center gap-2 text-white/50">
+            <x-iconos.doble-check clase="size-4 text-green-400"/>
+            Recordatorio Leído
+            <x-iconos.doble-check clase="size-4 text-gray-400"/>
+            Recordatorio enviado y No Leído
+            <x-iconos.whatsapp clase="size-4 text-gray-500/70"/>
+            Recordatorio pendiente de envío o no enviado
+          </div>
         </div>
       </div>
       {{--      <div class="flex items-center gap-4">

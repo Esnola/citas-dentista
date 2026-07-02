@@ -336,7 +336,7 @@ class ClientManagerTest extends TestCase
 
         Livewire::test(ClientForm::class, ['client' => $client->id])
             ->call('updateAppointmentActiveStatus', $appointment->id, false)
-            ->assertSee('Estado activo actualizado.');
+            ->assertDispatched('toast', fn ($n, $p) => $p['message'] === 'Estado activo actualizado.' && $p['type'] === 'success');
 
         $this->assertFalse($appointment->refresh()->activo);
         $this->assertSame(0, WhatsAppMessage::query()->where('appointment_id', $appointment->id)->count());

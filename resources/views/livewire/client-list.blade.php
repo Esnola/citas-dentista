@@ -1,4 +1,4 @@
-<div class="rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur">
+<div class="mx-auto max-w-3xl rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur">
   <div class="flex flex-wrap items-center justify-between ">
     <div class="flex items-center gap-6">
       <h1 class="text-xl font-semibold d uppercase tracking-[0.08em] text-emerald-300/80">Listado de

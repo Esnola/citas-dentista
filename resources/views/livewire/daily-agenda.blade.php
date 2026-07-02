@@ -1,3 +1,4 @@
+
 <div class="rounded-3xl border border-white/10 bg-slate-900/30 backdrop-blur-xl">
   <div class="flex flex-col gap-6 border-b border-white/5 p-8 md:flex-row md:items-center md:justify-between">
     <div class="space-y-1">
@@ -66,7 +67,8 @@
       @forelse ($nextAppointments as $hora => $citasHora)
         <div wire:key="appointment-group-{{ $selectedDate->toDateString() }}-{{ $hora }}" class="space-y-3">
           <div class="flex items-center gap-3">
-            <button type="button" x-on:click="alternar(@js($hora))"
+            <button type="button"
+                    x-on:click="alternar(@js($hora))"
                     x-bind:aria-expanded="estaAbierto(@js($hora)).toString()"
                     aria-controls="appointments-{{ str_replace(':', '-', $hora) }}"
                     class="flex cursor-pointer items-center gap-2 rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-3 py-1.5">
@@ -85,27 +87,33 @@
           </div>
 
           <div id="appointments-{{ str_replace(':', '-', $hora) }}" x-show="estaAbierto(@js($hora))" x-cloak
-               class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+               class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
             @foreach ($citasHora as $appointment)
               @php($incidences = $this->appointmentIncidences($appointment))
               <div class="group flex flex-col gap-3 rounded-2xl border border-white/5 bg-slate-950/40 p-4 transition-all duration-300 hover:border-white/10 hover:bg-slate-950/80">
                 <div class="space-y-2">
-                  <div class="flex items-center justify-between gap-3">
+                  <div class="flex flex-col items-center justify-between gap-3">
                     <a href="{{ route('clients.edit', $appointment->client_id) }}"
                        class="block truncate text-sm font-bold text-slate-200 transition-colors hover:text-emerald-300 hover:underline"
                        aria-label="Editar datos del cliente" title="Editar datos del cliente">
                       {{ $appointment->client?->full_name }}
                     </a>
                     <div class="flex gap-2">
-                      <x-botones.icono-buton color="indigo" icon="ojo" especial2="fill-blue-500/50 size-6"
-                                               label="Ver las citas de {{ $appointment->client?->full_name }}"
-                                               onclick="window.location.href='{{ route('clients.appointments', $appointment->client_id) }}'"/>
-                      <x-botones.icono-buton color="blue" icon="lapiz"
-                                               label="Editar esta cita de {{ $appointment->client?->full_name }}"
-                                               onclick="window.location.href='{{ route('clients.appointments', $appointment->client_id) }}'"/>
+                      <x-botones.icono-buton
+                              color="indigo" icon="ojo"
+                              especialtexto="text-xs! gap-2! w-full! flex "
+                              especial="size-6 fill-indigo-500/80"
+                              label="Ver citas de {{ $appointment->client?->full_name }}"
+                              texto="Ver todas las citas"
+                              onclick="window.location.href='{{ route('clients.appointments', $appointment->client_id) }}'"
+                      />
+                      {{--<x-botones.icono-buton color="blue" icon="lapiz"
+                                             especial2="fill-blue-500/50 size-4 group-hover:fill-blue-500/80"
+                                               label="Editar cita de {{ $appointment->client?->full_name }}"
+                                               onclick="window.location.href='{{ route('clients.appointments', $appointment->client_id) }}'"/>--}}
                     </div>
                   </div>
-                  @if ($incidences)
+{{--                  @if ($incidences)
                     <div class="flex flex-wrap gap-2">
                       @foreach ($incidences as $incidence)
                         <span class="inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold tracking-wide uppercase {{ $incidence['classes'] }}">
@@ -116,7 +124,7 @@
                         </span>
                       @endforeach
                     </div>
-                  @endif
+                  @endif--}}
                 </div>
               </div>
             @endforeach

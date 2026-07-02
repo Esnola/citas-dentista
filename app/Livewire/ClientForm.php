@@ -87,8 +87,7 @@ class ClientForm extends Component
             ->findOrFail($appointmentId);
 
         if (! $appointment->canBeChanged()) {
-            session()->flash('status', 'Esta cita no se puede modificar. Solo se puede eliminar.');
-            $this->redirect(url()->previous());
+            $this->dispatch('toast', message: 'Esta cita no se puede modificar. Solo se puede eliminar.', type: 'error');
 
             return;
         }
@@ -103,9 +102,7 @@ class ClientForm extends Component
                 ->delete();
         }
 
-        session()->flash('status', 'Estado activo actualizado.');
-
-        $this->redirect(url()->previous());
+        $this->dispatch('toast', message: 'Estado activo actualizado.', type: 'success');
     }
 
     public function deleteAppointment(int $appointmentId): void

@@ -239,11 +239,11 @@ class AppointmentList extends Component
 
         $this->selectedAppointmentIds = [];
 
-        $this->redirectAfterAction(sprintf(
+        $this->dispatch('toast', message: sprintf(
             '%d cita(s) %s correctamente.',
             $appointmentIds->count(),
             $activo ? 'activada(s)' : 'desactivada(s)'
-        ));
+        ), type: 'success');
     }
 
     public function deleteConfirmed(): void
@@ -271,8 +271,7 @@ class AppointmentList extends Component
         $appointment = Appointment::query()->findOrFail($appointmentId);
 
         if (! $appointment->canBeChanged()) {
-            session()->flash('status', 'Esta cita no se puede modificar. Solo se puede eliminar.');
-            $this->redirect(url()->previous());
+            $this->dispatch('toast', message: 'Esta cita no se puede modificar. Solo se puede eliminar.', type: 'error');
 
             return;
         }
@@ -287,9 +286,7 @@ class AppointmentList extends Component
                 ->delete();
         }
 
-        session()->flash('status', 'Estado pendiente actualizado.');
-
-        $this->redirect(url()->previous());
+        $this->dispatch('toast', message: 'Estado pendiente actualizado.', type: 'success');
     }
 
     public function updateAppointmentActiveStatus(int $appointmentId, bool|string $citaActiva): void
@@ -303,11 +300,16 @@ class AppointmentList extends Component
         }
 
         $appointment = Appointment::query()->findOrFail($appointmentId);
+
+        if (! $appointment->canBeChanged()) {
+            $this->dispatch('toast', message: 'Esta cita no se puede modificar. Solo se puede eliminar.', type: 'error');
+
+            return;
+        }
+
         $appointment->update(['cita_activa' => $isActive]);
 
-        session()->flash('status', 'Estado de la cita actualizado.');
-
-        $this->redirect(url()->previous());
+        $this->dispatch('toast', message: 'Estado de la cita actualizado.', type: 'success');
     }
 
     public function sendNow(int $appointmentId, WhatsAppSender $sender): void
@@ -317,22 +319,19 @@ class AppointmentList extends Component
             ->findOrFail($appointmentId);
 
         if ($appointment->enviado) {
-            session()->flash('status', 'Esta cita ya tiene el WhatsApp enviado.');
-            $this->redirect(url()->previous());
+            $this->dispatch('toast', message: 'Esta cita ya tiene el WhatsApp enviado.', type: 'error');
 
             return;
         }
 
         if (! $appointment->isFuture()) {
-            session()->flash('status', 'Las citas pasadas no pueden enviarse.');
-            $this->redirect(url()->previous());
+            $this->dispatch('toast', message: 'Las citas pasadas no pueden enviarse.', type: 'error');
 
             return;
         }
 
         if (! $appointment->activo) {
-            session()->flash('status', 'Las citas no pendientes no pueden enviarse.');
-            $this->redirect(url()->previous());
+            $this->dispatch('toast', message: 'Las citas no pendientes no pueden enviarse.', type: 'error');
 
             return;
         }
@@ -340,8 +339,7 @@ class AppointmentList extends Component
         $client = $appointment->client;
 
         if (! $client) {
-            session()->flash('status', 'No se pudo enviar el WhatsApp porque la cita no tiene cliente asociado.');
-            $this->redirect(url()->previous());
+            $this->dispatch('toast', message: 'No se pudo enviar el WhatsApp porque la cita no tiene cliente asociado.', type: 'error');
 
             return;
         }
@@ -354,9 +352,7 @@ class AppointmentList extends Component
             'No se pudo enviar el WhatsApp.'
         );
 
-        session()->flash('status', $result['message']);
-
-        $this->redirect(url()->previous());
+        $this->dispatch('toast', message: $result['message'], type: str_contains($result['message'], 'correctamente') ? 'success' : 'error');
     }
 
     public function confirmResend(int $appointmentId): void
@@ -378,13 +374,13 @@ class AppointmentList extends Component
         $appointment = Appointment::query()->with('client')->findOrFail($this->appointmentPendingResendId);
 
         if (! $appointment->enviado || ! $appointment->isFuture()) {
-            session()->flash('status', 'Esta cita no se puede reenviar.');
+            $this->dispatch('toast', message: 'Esta cita no se puede reenviar.', type: 'error');
 
             return;
         }
 
         if (! $appointment->client) {
-            session()->flash('status', 'No se pudo reenviar el WhatsApp porque la cita no tiene cliente asociado.');
+            $this->dispatch('toast', message: 'No se pudo reenviar el WhatsApp porque la cita no tiene cliente asociado.', type: 'error');
 
             return;
         }
@@ -398,7 +394,7 @@ class AppointmentList extends Component
         );
 
         $this->appointmentPendingResendId = null;
-        session()->flash('status', $result['message']);
+        $this->dispatch('toast', message: $result['message'], type: str_contains($result['message'], 'correctamente') ? 'success' : 'error');
     }
 
     public function syncDeliveryStatuses(): void
@@ -406,15 +402,12 @@ class AppointmentList extends Component
         $updated = $this->forceDeliveryStatusSync();
 
         if ($updated > 0) {
-            session()->flash('status', $updated === 1 ? 'Se ha actualizado 1 cita' : 'Se han actualizado '.$updated.' citas');
-            $this->redirect(url()->previous());
+            $this->dispatch('toast', message: $updated === 1 ? 'Se ha actualizado 1 cita' : 'Se han actualizado '.$updated.' citas', type: 'success');
 
             return;
         }
 
-        session()->flash('status', 'Todos los registros de citas y demás datos están actualizados.');
-
-        $this->redirect(url()->previous());
+        $this->dispatch('toast', message: 'Todos los registros de citas y demás datos están actualizados.', type: 'success');
     }
 
     public function render()
@@ -539,7 +532,7 @@ class AppointmentList extends Component
             ->when(! $this->showAllHistory && ! $this->sentOnly && $this->dateFilter === 'past', fn (Builder $query) => $this->wherePastAppointment($query, $now))
             ->when(! $this->showAllHistory && ! $this->sentOnly && $this->filter_entregado, fn (Builder $query) => $query->where('appointments.entregado', true))
             ->when(! $this->showAllHistory && ! $this->sentOnly && $this->filter_enviado, fn (Builder $query) => $query->where('appointments.enviado', true))
-            ->when(! $this->showAllHistory && ! $this->sentOnly && $this->dateFilter !== 'all' && ! $this->filter_entregado && ! $this->filter_enviado, function (Builder $query) use ($now): void {
+            ->when(! $this->showAllHistory && ! $this->sentOnly && $this->dateFilter === 'upcoming' && ! $this->filter_entregado && ! $this->filter_enviado, function (Builder $query) use ($now): void {
                 $query->where('appointments.cita_activa', true)
                     ->whereDate('appointments.fecha', '>=', $now->toDateString());
             })

@@ -6,6 +6,7 @@
     'type'=>'button',
     'especial'=> 'size-4',
     'especial2'=> null,
+    'especialtexto'=>''
 ])
 
 @php
@@ -25,11 +26,12 @@
 
 <button
         {{ $attributes->class([
-            'group inline-flex items-center gap-4 justify-center rounded-full border p-2 transition-colors duration-100',
+            'group flex items-center gap-4 justify-center rounded-full border p-2 transition-colors duration-100',
             'disabled:pointer-events-none disabled:opacity-50',
             'aria-disabled:pointer-events-none aria-disabled:opacity-50',
             'text-sm font-medium px-4! py-2!' => $texto,
-            $colors[$color] => true,
+             $especialtexto,
+             $colors[$color] => true,
         ]) }}
         type="{{ $type }}"
         aria-label="{{ $label }}"

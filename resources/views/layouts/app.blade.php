@@ -92,6 +92,23 @@
 @endif
 
 <div
+        x-data="{ show: false, message: '', type: 'success' }"
+        x-on:toast.window="message = $event.detail.message; type = $event.detail.type || 'success'; show = true; setTimeout(() => show = false, 3500)"
+        x-show="show"
+        x-transition:enter="transition transform ease-linear duration-500"
+        x-transition:enter-start="translate-x-full"
+        x-transition:enter-end="translate-x-0"
+        x-transition:leave="transition transform ease-linear duration-500"
+        x-transition:leave-start="translate-x-0"
+        x-transition:leave-end="translate-x-full"
+        style="display: none"
+        class="fixed top-34 -right-4 z-100 flex items-center gap-4 rounded-2xl px-10 py-3 text-sm font-medium inset-ring will-change-transform"
+        :class="type === 'error' ? 'bg-red-400/70 text-red-50 inset-ring-red-500/20' : 'bg-green-400/70 text-green-50 inset-ring-green-500/20'"
+>
+  <x-iconos.ojo clase="size-8"/> <span x-text="message"></span>
+</div>
+
+<div
         class="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(16,185,129,0.18),transparent_35%),linear-gradient(180deg,#020617,#0f172a)]"></div>
 <div class="relative mx-auto flex min-h-screen min-w-6/8">
   <aside
@@ -109,9 +126,12 @@
       <div class="grid gap-12 items-center jusitfy-center">
         <a x-show="!collapsed"
                 href="{{ route('dashboard') }}"
-                class="sidebar-logo-link group flex flex-col items-center gap-3 rounded-3xl border border-emerald-400/20 bg-emerald-400/10 p-3 text-emerald-100 transition-colors hover:bg-emerald-400/15">
-          <img src="/logo.png" alt="Logo" class="w-full">
-          <span class="sidebar-logo-text block truncate text-base font-semibold">
+                class="sidebar-logo-link group relative flex flex-col items-center gap-3 overflow-hidden rounded-3xl border border-emerald-400/20 bg-emerald-400/10 p-3 text-emerald-100 transition-all duration-500 hover:-translate-y-0.5 hover:border-emerald-300/50 hover:bg-emerald-400/15 hover:shadow-[0_0_35px_-5px_rgba(16,185,129,0.55)]">
+          <span aria-hidden="true"
+                class="pointer-events-none absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700 ease-out group-hover:translate-x-full"></span>
+          <img src="/logo.png" alt="Logo"
+               class="w-full transition-transform duration-500 ease-out group-hover:scale-105 group-hover:rotate-2 group-hover:drop-shadow-[0_0_12px_rgba(16,185,129,0.65)]">
+          <span class="sidebar-logo-text block truncate text-base font-semibold transition-colors duration-300 group-hover:text-emerald-50">
             {{ config('app.name', 'Citas') }}
           </span>
         </a>
@@ -185,10 +205,8 @@
       @endif
     </nav>
   </aside>
-  <main class="flex-1 px-4 py-5 lg:px-6 lg:py-6">
-    <div class="space-y-4">
+  <main class="px-4 py-5 lg:px-6 lg:py-6 w-full">
       @yield('content')
-    </div>
   </main>
 </div>
 @livewireScripts

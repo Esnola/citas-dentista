@@ -4,7 +4,7 @@
       <div class="flex gap-6 items-center">
         <x-iconos.calendar/>
         <h2 class="text-xl font-semibold">
-          {{ $sentOnly ? 'Citas enviadas' : $selectedClient->full_name }}
+          {{ $sentOnly ? 'Citas enviadas' : ($selectedClient?->full_name ?? 'Citas') }}
         </h2>
         <h3 class="rounded-2xl border border-green-300/70 shadow-xs shadow-green-300 bg-slate-900/60 px-4 py-3 text-sm text-slate-300">
           {{ $appointmentsCount }} cita{{ $appointmentsCount > 1 ? 's' : '' }}
@@ -234,7 +234,11 @@
                   @else
                     <div class="flex flex-col items-center justify-center text-slate-500 text-xs">
                       <x-iconos.whatsapp clase="size-5"/>
-                      Pendiente
+                      @if($appointment->isFuture())
+                        Pendiente
+                      @else
+                        No enviado
+                      @endif
                     </div>
                   @endif
                 </div>
@@ -290,6 +294,7 @@
                   <x-formularios.toggle
                           :estado="$appointment->activo ? 'Sí' : 'No'"
                           :checked="$appointment->activo"
+                          :locked="! $appointment->isFuture()"
                           wire:change="updateActiveStatus({{ $appointment->id }}, $event.target.checked)"/>
                 @endif
               </td>
@@ -297,6 +302,7 @@
                 <x-formularios.toggle
                         :estado="$appointment->cita_activa ? 'Sí' : 'No'"
                         :checked="$appointment->cita_activa"
+                        :locked="! $appointment->isFuture()"
                         wire:change="updateAppointmentActiveStatus({{ $appointment->id }}, $event.target.checked)"/>
               </td>
               <td class="px-4 py-3 text-right" onclick="event.stopPropagation()">

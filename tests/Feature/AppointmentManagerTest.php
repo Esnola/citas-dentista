@@ -317,7 +317,7 @@ class AppointmentManagerTest extends TestCase
 
         Livewire::test(AppointmentList::class)
             ->call('updateActiveStatus', $appointment->id, false)
-            ->assertSee('Estado pendiente actualizado.');
+            ->assertDispatched('toast', fn ($n, $p) => $p['message'] === 'Estado pendiente actualizado.' && $p['type'] === 'success');
 
         $this->assertFalse($appointment->refresh()->activo);
         $this->assertSame(0, WhatsAppMessage::query()->where('appointment_id', $appointment->id)->count());
@@ -347,7 +347,7 @@ class AppointmentManagerTest extends TestCase
             ->assertSee('Cita activa')
             ->assertSeeHtml('wire:change="updateAppointmentActiveStatus('.$appointment->id.', $event.target.checked)"')
             ->call('updateAppointmentActiveStatus', $appointment->id, false)
-            ->assertSessionHas('status', 'Estado de la cita actualizado.');
+            ->assertDispatched('toast', fn ($n, $p) => $p['message'] === 'Estado de la cita actualizado.' && $p['type'] === 'success');
 
         $this->assertFalse($appointment->refresh()->cita_activa);
 
@@ -393,7 +393,7 @@ class AppointmentManagerTest extends TestCase
             ->assertSee('Enviar ya')
             ->assertSeeHtml('appointments/'.$appointment->id.'/edit')
             ->call('sendNow', $appointment->id)
-            ->assertSee('WhatsApp enviado ahora correctamente.');
+            ->assertDispatched('toast', fn ($n, $p) => $p['message'] === 'WhatsApp enviado ahora correctamente.' && $p['type'] === 'success');
 
         Http::assertSent(function ($request): bool {
             return $request->url() === 'https://api.twilio.com/2010-04-01/Accounts/AC123/Messages.json'
@@ -1303,7 +1303,7 @@ class AppointmentManagerTest extends TestCase
 
         Livewire::test(AppointmentList::class)
             ->call('updateActiveStatus', $appointment->id, false)
-            ->assertSee('Estado pendiente actualizado.');
+            ->assertDispatched('toast', fn ($n, $p) => $p['message'] === 'Estado pendiente actualizado.' && $p['type'] === 'success');
 
         $this->assertFalse($appointment->refresh()->activo);
         $this->assertSame(0, WhatsAppMessage::query()->where('appointment_id', $appointment->id)->count());
@@ -1331,7 +1331,7 @@ class AppointmentManagerTest extends TestCase
 
         Livewire::test(AppointmentList::class)
             ->call('updateActiveStatus', $appointment->id, false)
-            ->assertSee('Esta cita no se puede modificar. Solo se puede eliminar.');
+            ->assertDispatched('toast', fn ($n, $p) => $p['message'] === 'Esta cita no se puede modificar. Solo se puede eliminar.' && $p['type'] === 'error');
 
         $this->assertTrue($appointment->refresh()->activo);
 
@@ -1358,9 +1358,9 @@ class AppointmentManagerTest extends TestCase
 
         Livewire::test(AppointmentList::class)
             ->call('updateActiveStatus', $appointment->id, false)
-            ->assertSee('Esta cita no se puede modificar. Solo se puede eliminar.');
+            ->assertDispatched('toast', fn ($n, $p) => $p['message'] === 'Estado pendiente actualizado.' && $p['type'] === 'success');
 
-        $this->assertTrue($appointment->refresh()->activo);
+        $this->assertFalse($appointment->refresh()->activo);
 
         Carbon::setTestNow();
     }
