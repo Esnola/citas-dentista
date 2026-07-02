@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\ExportController;
+use App\Http\Controllers\Admin\LoginHistoryController;
 use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\HomeController;
@@ -40,6 +41,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/admin/users/{user}/edit', [AdminUserController::class, 'edit'])->name('admin.users.edit');
         Route::put('/admin/users/{user}', [AdminUserController::class, 'update'])->name('admin.users.update');
         Route::delete('/admin/users/{user}', [AdminUserController::class, 'destroy'])->name('admin.users.destroy');
+        Route::get('/admin/login-history', [LoginHistoryController::class, 'index'])->name('admin.login-history');
         Route::view('/admin/tools', 'admin.tools.index')->name('admin.tools');
         Route::get('/admin/export/appointments', [ExportController::class, 'appointments'])->name('admin.export.appointments');
         Route::get('/admin/export/clients', [ExportController::class, 'clients'])->name('admin.export.clients');

@@ -17,8 +17,13 @@ return new class extends Migration
             $table->date('fecha')->index();
             $table->time('hora');
             $table->boolean('enviado')->default(false)->index();
+            $table->boolean('entregado')->default(false)->index();
             $table->boolean('activo')->default(true)->index();
+            $table->dateTime('whatsapp_sent_at')->nullable();
+            $table->dateTime('whatsapp_delivered_at')->nullable();
+            $table->dateTime('whatsapp_read_at')->nullable();
             $table->timestamps();
+            $table->softDeletes();
         });
     }
 

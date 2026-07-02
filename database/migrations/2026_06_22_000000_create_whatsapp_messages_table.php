@@ -11,6 +11,8 @@ return new class extends Migration
         Schema::create('whatsapp_messages', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->nullable()->constrained()->nullOnDelete();
+            $table->foreignId('client_id')->nullable()->after('user_id')->constrained('clients')->nullOnDelete();
+            $table->foreignId('appointment_id')->nullable()->after('client_id')->constrained('appointments')->nullOnDelete();
             $table->string('nombre');
             $table->string('apellidos');
             $table->string('telefono', 40);
@@ -20,8 +22,13 @@ return new class extends Migration
             $table->string('status', 20)->default('pending')->index();
             $table->dateTime('sent_at')->nullable();
             $table->text('last_error')->nullable();
+            $table->string('provider_message_id')->nullable();
+            $table->json('provider_payload')->nullable();
             $table->json('metadata')->nullable();
             $table->timestamps();
+
+            $table->index('appointment_id');
+            $table->index('provider_message_id');
         });
     }
 

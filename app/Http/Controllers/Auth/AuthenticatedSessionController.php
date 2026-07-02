@@ -30,6 +30,12 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
+        Auth::user()->loginHistory()->create([
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+            'logged_in_at' => now(),
+        ]);
+
         return redirect()->intended(route('dashboard'));
     }
 

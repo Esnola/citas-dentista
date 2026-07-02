@@ -13,9 +13,8 @@ return new class extends Migration
             $table->string('nombre');
             $table->string('apellidos');
             $table->string('telefono', 40)->index();
-            $table->date('fecha')->index();
-            $table->time('hora');
             $table->timestamps();
+            $table->softDeletes();
 
             $table->index(['nombre', 'apellidos']);
         });
