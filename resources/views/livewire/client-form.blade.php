@@ -37,7 +37,7 @@
 
             <div class="flex flex-wrap gap-2 mt-4">
               <x-botones.icono-buton
-                      icon="check"
+                      icon="{{ $selectedClient ? 'disquete' : 'check' }}"
                       type="submit"
                       especial="size-5"
                       label="{{ $selectedClient ? 'Guardar cambios' : 'Crear cliente' }}"

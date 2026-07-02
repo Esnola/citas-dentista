@@ -344,7 +344,7 @@ class WhatsAppSender
 
         $payload = [
             'messaging_product' => 'whatsapp',
-            'to' => $this->normalizePhone($recipient),
+            'to' => $this->normalizeInternationalPhone($recipient),
             'type' => 'text',
             'text' => [
                 'preview_url' => false,

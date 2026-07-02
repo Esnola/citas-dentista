@@ -12,7 +12,7 @@
           <x-botones.icono-buton
                   back
             color="amber"
-            icono="volver"
+            icon="volver"
             label="Volver al listado"
             texto="Volver al listado"
             onclick="window.location.href='{{ route('appointments.index')}}'"
@@ -134,7 +134,7 @@
                         @if ($showReturnAfterImmediateSend)
                           <x-botones.icono-buton
                             back
-                            icono="volver"
+                            icon="volver"
                             label="Volver"
                             texto="Volver"
                             onclick="window.location.href='{{ $returnUrl }}'"
@@ -156,8 +156,8 @@
                                      color="sky"
                                      type="submit"
                                      icon="disquete"
-                                     label="{{$selectedAppointment ? 'Guardar' : "Crear"}}"
-                                     texto="{{$selectedAppointment ? 'Guardar' : "Crear"}}"
+                                     label="{{ $selectedAppointment ? 'Guardar' : 'Crear' }}"
+                                     texto="{{ $selectedAppointment ? 'Guardar' : 'Crear' }}"
                                           />
                               <x-botones.icono-buton
                                       back

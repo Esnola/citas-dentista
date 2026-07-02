@@ -42,7 +42,7 @@ class ClientMessageSchedulerTest extends TestCase
         $this->assertSame($client->id, $message->client_id);
         $this->assertSame('Ana', $message->nombre);
         $this->assertSame('Pérez', $message->apellidos);
-        $this->assertSame('+34600123123', $message->telefono);
+        $this->assertSame('600123123', $message->telefono);
         $this->assertSame('2026-06-24 11:20:00', $message->scheduled_for->toDateTimeString());
 
         Carbon::setTestNow();
@@ -167,7 +167,7 @@ class ClientMessageSchedulerTest extends TestCase
             ->assertOk()
             ->assertSee('Programar desde cliente')
             ->assertSee('Lucía Martín')
-            ->assertSee('+34666777888');
+            ->assertSee('666777888');
 
         Carbon::setTestNow();
     }

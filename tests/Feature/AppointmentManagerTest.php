@@ -528,7 +528,7 @@ class AppointmentManagerTest extends TestCase
         $appointment = Appointment::query()->create([
             'client_id' => $client->id,
             'fecha' => '2026-06-30',
-            'hora' => '11:30',
+            'hora' => '11:30:45',
             'enviado' => true,
             'entregado' => false,
             'whatsapp_sent_at' => '2026-06-23 08:05:00',
@@ -540,7 +540,8 @@ class AppointmentManagerTest extends TestCase
 
         Livewire::test(AppointmentList::class)
             ->set('filter_enviado', true)
-            ->assertSee('11:30');
+            ->assertSee('11:30')
+            ->assertDontSee('11:30:45');
 
         Http::assertNothingSent();
 
@@ -1384,6 +1385,8 @@ class AppointmentManagerTest extends TestCase
             ->get(route('appointments.edit', $appointment))
             ->assertOk()
             ->assertSee('Editar cita')
+            ->assertSee('Guardar')
+            ->assertDontSee('Guardar cambios')
             ->assertDontSee('Buscar cliente')
             ->assertSee('Ana Pérez');
     }
@@ -1413,9 +1416,9 @@ class AppointmentManagerTest extends TestCase
             ->set('hora', '11:30')
             ->set('enviado', false)
             ->set('activo', false)
+            ->set('returnUrl', route('appointments.index'))
             ->call('save')
-            ->assertSee('Cita actualizada correctamente.')
-            ->assertDontSee('Buscar cliente');
+            ->assertRedirect(route('appointments.index'));
 
         $this->assertFalse($appointment->refresh()->activo);
 
@@ -2061,7 +2064,7 @@ class AppointmentManagerTest extends TestCase
 
         $component->set('filter_nombre', 'L')
             ->assertSee('Lucía Martín')
-            ->assertSee('+34666777888');
+            ->assertSee('666777888');
         $this->assertTrue($component->instance()->getHasClientSearchProperty());
     }
 }

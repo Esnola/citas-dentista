@@ -138,7 +138,7 @@ class ClientManagerTest extends TestCase
 
         $this->assertSame('Ana Maria', $client->nombre);
         $this->assertSame('Pérez López', $client->apellidos);
-        $this->assertSame('+34611222333', $client->telefono);
+        $this->assertSame('611222333', $client->telefono);
         $this->assertSame('2026-06-22', $client->created_at->toDateString());
 
         Carbon::setTestNow();
@@ -156,7 +156,7 @@ class ClientManagerTest extends TestCase
         $this->assertDatabaseHas('clients', [
             'nombre' => 'Marta',
             'apellidos' => 'Soler',
-            'telefono' => '+34600111222',
+            'telefono' => '600111222',
         ]);
     }
 

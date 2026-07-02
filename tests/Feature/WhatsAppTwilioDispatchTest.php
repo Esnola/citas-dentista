@@ -2,8 +2,10 @@
 
 namespace Tests\Feature;
 
+use App\Models\Client;
 use App\Models\User;
 use App\Models\WhatsAppMessage;
+use App\Services\WhatsApp\WhatsAppSender;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Http;
@@ -18,6 +20,29 @@ class WhatsAppTwilioDispatchTest extends TestCase
         parent::setUp();
 
         Config::set('whatsapp.message_mode', 'text');
+    }
+
+    public function test_phone_numbers_are_stored_without_the_spanish_prefix_and_added_for_twilio(): void
+    {
+        Config::set('whatsapp.default_country_code', '+34');
+
+        $spanishClient = Client::query()->create([
+            'nombre' => 'Ana',
+            'apellidos' => 'Pérez',
+            'telefono' => '+34 600 123 123',
+        ]);
+        $foreignClient = Client::query()->create([
+            'nombre' => 'Marie',
+            'apellidos' => 'Dupont',
+            'telefono' => '+33 6 12 34 56 78',
+        ]);
+
+        $sender = new WhatsAppSender;
+
+        $this->assertSame('600123123', $spanishClient->telefono);
+        $this->assertSame('+33612345678', $foreignClient->telefono);
+        $this->assertSame('whatsapp:+34600123123', $sender->buildTwilioPreviewRequest($spanishClient->telefono, 'Hola')['To']);
+        $this->assertSame('whatsapp:+33612345678', $sender->buildTwilioPreviewRequest($foreignClient->telefono, 'Bonjour')['To']);
     }
 
     public function test_due_messages_are_sent_via_twilio_and_marked_as_sent(): void
@@ -64,6 +89,7 @@ class WhatsAppTwilioDispatchTest extends TestCase
 
         $message = WhatsAppMessage::query()->firstOrFail();
 
+        $this->assertSame('600123123', $message->telefono);
         $this->assertSame(WhatsAppMessage::STATUS_SENT, $message->status);
         $this->assertSame('SMTEST123', $message->provider_message_id);
         $this->assertSame('twilio', $message->provider_payload['provider']);

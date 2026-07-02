@@ -166,14 +166,19 @@ class WhatsAppMessage extends Model
 
     public function normalizedPhone(): string
     {
-        return static::normalizePhone((string) $this->telefono);
+        return static::normalizeInternationalPhone((string) $this->telefono);
     }
 
     public function twilioPhone(): string
     {
-        $normalized = static::normalizePhone((string) $this->telefono);
+        $normalized = static::normalizeInternationalPhone((string) $this->telefono);
 
         return $normalized !== '' ? 'whatsapp:'.$normalized : '';
+    }
+
+    protected function telefono(): Attribute
+    {
+        return Attribute::set(fn (string $value): string => static::normalizePhone($value));
     }
 
     protected function formattedScheduledFor(): Attribute

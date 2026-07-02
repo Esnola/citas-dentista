@@ -38,7 +38,7 @@
 
                     <x-botones.icono-buton
                             type="submit"
-                            icon="guardar"
+                            icon="disquete"
                             especial="size-5"
                             label="Guardar Usuario"
                             texto="Guardar" />

@@ -57,7 +57,7 @@
 
       <div class="flex flex-wrap gap-3">
         <x-botones.icono-buton
-                icon="{{ $editingTemplateId ? 'guardar' : 'nuevo' }}"
+                icon="{{ $editingTemplateId ? 'disquete' : 'nuevo' }}"
                 label="{{ $editingTemplateId ? 'Guardar Cambios' : 'Crear Plantilla' }}"
                 wire:click="create"
                 texto="{{ $editingTemplateId ? 'Guardar Cambios' : 'Crear Plantilla' }}"

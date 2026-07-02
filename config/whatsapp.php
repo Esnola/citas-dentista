@@ -33,7 +33,7 @@ return [
 
     'default_message' => env(
         'WHATSAPP_DEFAULT_MESSAGE',
-        'Hola [NOMBRE] te recordamos que el día [DIA] tienes una cita a las [HORA] ; saludos Clínica Dental Eugénia'
+        'Hola [NOMBRE] te recordamos que el día [DIA] tienes una cita a las [HORA] ; saludos Clínica Dental'
     ),
 
     'templates' => [
@@ -43,7 +43,7 @@ return [
         ],
         'formal_reminder' => [
             'label' => 'Recordatorio formal',
-            'message' => 'Estimado/a [NOMBRE] [APELLIDOS], le recordamos su cita el [DIA] a las [HORA]. Saludos, Clínica Dental Eugenia',
+            'message' => 'Estimado/a [NOMBRE] [APELLIDOS], le recordamos su cita el [DIA] a las [HORA]. Saludos, Clínica Dental ',
         ],
         'short_reminder' => [
             'label' => 'Recordatorio breve',

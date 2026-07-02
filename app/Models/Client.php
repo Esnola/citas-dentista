@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Traits\NormalizesPhone;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -35,6 +36,11 @@ class Client extends Model
     public function appointments(): HasMany
     {
         return $this->hasMany(Appointment::class);
+    }
+
+    protected function telefono(): Attribute
+    {
+        return Attribute::set(fn (string $value): string => static::normalizePhone($value));
     }
 
     public static function isValidPhone(string $phone): bool

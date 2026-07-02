@@ -36,7 +36,7 @@ CSV;
             Client::query()->orderBy('nombre')->pluck('nombre')->all()
         );
         $this->assertSame(
-            ['+34600123123'],
+            ['600123123'],
             Client::query()->pluck('telefono')->unique()->values()->all()
         );
     }
@@ -63,7 +63,7 @@ CSV;
 
         $this->assertSame('Ana', $client->nombre);
         $this->assertSame('Pérez', $client->apellidos);
-        $this->assertSame('+34600123123', $client->telefono);
+        $this->assertSame('600123123', $client->telefono);
     }
 
     public function test_admin_can_import_same_csv_twice_without_creating_duplicates(): void
@@ -142,7 +142,7 @@ CSV;
 
         $this->assertSame('Ana', $client->nombre);
         $this->assertSame('Pérez', $client->apellidos);
-        $this->assertSame('+34600123123', $client->telefono);
+        $this->assertSame('600123123', $client->telefono);
     }
 
     public function test_import_restores_soft_deleted_same_client_instead_of_creating_duplicate(): void

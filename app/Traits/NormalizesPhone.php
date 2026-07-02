@@ -13,17 +13,24 @@ trait NormalizesPhone
             return '';
         }
 
-        if (str_starts_with($cleaned, '+')) {
-            return '+'.$digits;
-        }
-
         $countryCode = preg_replace('/\D+/', '', (string) config('whatsapp.default_country_code', '+34')) ?? '34';
 
         if (str_starts_with($digits, $countryCode)) {
-            return '+'.$digits;
+            return substr($digits, strlen($countryCode));
         }
 
-        return '+'.$countryCode.$digits;
+        return str_starts_with($cleaned, '+') ? '+'.$digits : $digits;
+    }
+
+    public static function normalizeInternationalPhone(string $phone): string
+    {
+        $normalized = static::normalizePhone($phone);
+
+        if ($normalized === '' || str_starts_with($normalized, '+')) {
+            return $normalized;
+        }
+
+        return (string) config('whatsapp.default_country_code', '+34').$normalized;
     }
 
     public static function normalizeWhatsAppAddress(string $address): string
@@ -33,7 +40,7 @@ trait NormalizesPhone
 
     public static function normalizeWhatsAppRecipient(string $recipient): string
     {
-        $normalized = static::normalizePhone($recipient);
+        $normalized = static::normalizeInternationalPhone($recipient);
 
         return $normalized !== '' ? 'whatsapp:'.$normalized : '';
     }

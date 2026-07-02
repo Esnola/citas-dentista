@@ -223,7 +223,7 @@
               </div>
             </td>
             <td class="px-4 py-3 text-center">{{ucwords($appointment->fecha?->translatedFormat('l, d - F - Y'))}}</td>
-            <td class="px-4 py-3 text-center text-xs">{{ $appointment->hora }}</td>
+            <td class="px-4 py-3 text-center text-xs">{{ Str::substr($appointment->hora, 0, 5) }}</td>
             @if ($showSentColumns)
               <td class="px-4 py-3 text-center">
                 <div class="relative flex flex-col items-center justify-center gap-1">
@@ -365,7 +365,7 @@
         ¿Seguro que quieres eliminar la cita de
         <span class="font-medium text-white">{{ $appointmentPendingDeletion->client?->full_name }}</span>
         del {{ $appointmentPendingDeletion->fecha?->format('d/m/Y') }} a
-        las {{ $appointmentPendingDeletion->hora }}?
+        las {{ Str::substr($appointmentPendingDeletion->hora, 0, 5) }}?
       </p>
       <p class="mt-2 text-sm text-slate-400">Esta acción no se puede deshacer.</p>
 

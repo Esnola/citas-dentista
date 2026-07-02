@@ -201,20 +201,53 @@
         </div>
       @endif
 
-      <div class="space-y-6">
+      <div
+              x-data="{
+                  abierto: null,
+                  fijados: [],
+                  estaAbierto(hora) { return this.abierto === hora || this.fijados.includes(hora) },
+                  alternar(hora) {
+                      if (this.estaAbierto(hora)) {
+                          this.fijados = this.fijados.filter((fijado) => fijado !== hora)
+                          if (this.abierto === hora) this.abierto = null
+                      } else {
+                          this.abierto = hora
+                      }
+                  },
+                  mantener(hora, activo) {
+                      if (activo && ! this.fijados.includes(hora)) this.fijados.push(hora)
+                      if (! activo) this.fijados = this.fijados.filter((fijado) => fijado !== hora)
+                      if (this.abierto === hora) this.abierto = null
+                  },
+              }"
+              class="space-y-6">
         @forelse ($nextAppointments as $hora => $citasHora)
-          <div class="space-y-3">
+          <div wire:key="appointment-group-{{ $selectedDate->toDateString() }}-{{ $hora }}" class="space-y-3">
             {{-- Encabezado de hora --}}
             <div class="flex items-center gap-3">
-              <div class="flex items-center gap-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5">
+              <button
+                      type="button"
+                      x-on:click="alternar(@js($hora))"
+                      x-bind:aria-expanded="estaAbierto(@js($hora)).toString()"
+                      aria-controls="appointments-{{ str_replace(':', '-', $hora) }}"
+                      class="flex cursor-pointer items-center gap-2 rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-3 py-1.5">
                 <x-iconos.reloj-agujas clase="size-4 text-emerald-400" />
-                <span class="text-sm font-bold text-emerald-300">{{ \Carbon\Carbon::parse($hora)->format('H:i') }} </span>
-              </div>
+                <span class="text-sm font-bold text-emerald-300">
+                  {{ \Carbon\Carbon::parse($hora)->format('H:i') }} · {{ $citasHora->count() }} {{ Str::plural('cita', $citasHora->count()) }}
+                </span>
+              </button>
               <div class="h-px flex-1 bg-white/5"></div>
-              <span class="text-xs text-slate-500">{{ $citasHora->count() }} {{ Str::plural('cita', $citasHora->count()) }}</span>
+              <label class="flex cursor-pointer items-center gap-2 text-[11px] font-medium text-slate-500">
+                <span>Mantener abierto</span>
+                <input
+                        type="checkbox"
+                        x-bind:checked="fijados.includes(@js($hora))"
+                        x-on:change="mantener(@js($hora), $event.target.checked)"
+                        class="size-4 cursor-pointer rounded border-white/20 bg-slate-950/50 text-emerald-500 accent-emerald-500 focus:ring-2 focus:ring-emerald-400/40 focus:ring-offset-0">
+              </label>
             </div>
             {{-- Citas de esta hora --}}
-            <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div id="appointments-{{ str_replace(':', '-', $hora) }}" x-show="estaAbierto(@js($hora))" x-cloak class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               @foreach ($citasHora as $appointment)
                 @php($incidences = $this->appointmentIncidences($appointment))
                 <div class="group flex flex-col gap-3 rounded-2xl border border-white/5 bg-slate-950/40 p-4 transition-all duration-300 hover:border-white/10 hover:bg-slate-950/80">

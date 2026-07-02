@@ -115,7 +115,7 @@ class AppointmentForm extends Component
 
             $appointment->update($payload);
             session()->flash('status', 'Cita actualizada correctamente.');
-            $this->redirect(url()->previous());
+            $this->redirect($this->returnUrl ?: url()->previous());
         } else {
             $appointment = Appointment::query()->create($payload);
             $this->selectedAppointmentId = $appointment->id;

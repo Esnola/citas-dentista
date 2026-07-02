@@ -35,7 +35,7 @@ class DatabaseSeederTest extends TestCase
 
         $this->assertDatabaseCount('clients', 11);
 
-        $client = Client::query()->where('telefono', '+34600123123')->firstOrFail();
+        $client = Client::query()->where('telefono', '600123123')->firstOrFail();
 
         $this->assertSame('Ana', $client->nombre);
         $this->assertSame('Pérez López', $client->apellidos);
@@ -49,7 +49,7 @@ class DatabaseSeederTest extends TestCase
         $this->assertDatabaseCount('clients', 30);
         $this->assertDatabaseCount('appointments', 330);
 
-        $client = Client::query()->where('telefono', '+34618287914')->firstOrFail();
+        $client = Client::query()->where('telefono', '618287914')->firstOrFail();
 
         $this->assertSame(11, $client->appointments()->count());
 

@@ -128,7 +128,7 @@ class WhatsAppConnectionTest extends Component
             'provider' => 'cloud_api',
             'request' => [
                 'messaging_product' => 'whatsapp',
-                'to' => static::normalizePhone($preview['recipient']),
+                'to' => static::normalizeInternationalPhone($preview['recipient']),
                 'type' => 'text',
                 'text' => [
                     'preview_url' => false,
