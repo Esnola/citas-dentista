@@ -99,6 +99,26 @@ class WhatsAppTwilioDispatchTest extends TestCase
         $this->assertNotNull($message->sent_at);
     }
 
+    public function test_twilio_api_key_authenticates_rest_requests(): void
+    {
+        Config::set('whatsapp.driver', 'twilio');
+        Config::set('whatsapp.twilio.account_sid', 'AC123');
+        Config::set('whatsapp.twilio.auth_token', null);
+        Config::set('whatsapp.twilio.api_key_sid', 'SK123');
+        Config::set('whatsapp.twilio.api_key_secret', 'api-secret');
+        Config::set('whatsapp.twilio.mode', 'sandbox');
+        Config::set('whatsapp.twilio.from', 'whatsapp:+14155238886');
+
+        Http::fake([
+            'api.twilio.com/*/Messages.json' => Http::response(['sid' => 'SMAPIKEY123'], 201),
+        ]);
+
+        (new WhatsAppSender)->sendTestMessage('600123123', 'Hola');
+
+        Http::assertSent(fn ($request): bool => $request->url() === 'https://api.twilio.com/2010-04-01/Accounts/AC123/Messages.json'
+            && $request->header('Authorization')[0] === 'Basic '.base64_encode('SK123:api-secret'));
+    }
+
     public function test_due_messages_can_be_sent_with_a_twilio_messaging_service(): void
     {
         $admin = User::factory()->create();

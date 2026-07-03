@@ -59,7 +59,7 @@
         <x-botones.icono-buton
                 icon="{{ $editingTemplateId ? 'disquete' : 'nuevo' }}"
                 label="{{ $editingTemplateId ? 'Guardar Cambios' : 'Crear Plantilla' }}"
-                wire:click="create"
+                type="submit"
                 texto="{{ $editingTemplateId ? 'Guardar Cambios' : 'Crear Plantilla' }}"
                 class="px-2! py-1! text-xs gap-2!"
                 especial="size-6"

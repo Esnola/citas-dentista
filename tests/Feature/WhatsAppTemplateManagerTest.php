@@ -46,4 +46,26 @@ class WhatsAppTemplateManagerTest extends TestCase
 
         $this->assertSame('postop-reminder', WhatsAppTemplate::defaultKey());
     }
+
+    public function test_admin_can_edit_a_template(): void
+    {
+        $admin = User::factory()->create();
+        $template = WhatsAppTemplate::query()->firstOrFail();
+
+        $this->actingAs($admin);
+
+        Livewire::test(WhatsAppTemplateManager::class)
+            ->call('edit', $template->id)
+            ->assertSeeHtml('type="submit"')
+            ->set('label', 'Recordatorio actualizado')
+            ->set('message', 'Hola [NOMBRE], tu cita cambia al [DIA].')
+            ->call('save')
+            ->assertHasNoErrors();
+
+        $this->assertDatabaseHas('whatsapp_templates', [
+            'id' => $template->id,
+            'label' => 'Recordatorio actualizado',
+            'message' => 'Hola [NOMBRE], tu cita cambia al [DIA].',
+        ]);
+    }
 }

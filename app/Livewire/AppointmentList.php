@@ -427,6 +427,10 @@ class AppointmentList extends Component
           ? Appointment::query()->with('client')->find($this->appointmentPendingDeletionId)
           : null;
 
+        $appointmentPendingResend = $this->appointmentPendingResendId
+          ? Appointment::query()->with('client')->find($this->appointmentPendingResendId)
+          : null;
+
         $appointmentsByClient = $selectedClient
           ? null
           : $appointments->getCollection()->groupBy(fn (Appointment $a) => $a->client_id)->map(function ($group) {
@@ -440,6 +444,7 @@ class AppointmentList extends Component
             'appointments' => $appointments,
             'appointmentsCount' => $appointments->total(),
             'appointmentPendingDeletion' => $appointmentPendingDeletion,
+            'appointmentPendingResend' => $appointmentPendingResend,
             'selectedClient' => $selectedClient,
             'sentOnly' => $this->sentOnly,
             'showBulkActions' => $showBulkActions,

@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use JsonException;
 use RuntimeException;
+use Throwable;
 
 class WhatsAppSender
 {
@@ -29,12 +30,24 @@ class WhatsAppSender
      */
     public function send(WhatsAppMessage $message): array
     {
-        return match (config('whatsapp.driver')) {
-            'twilio' => $this->sendViaTwilio($message),
-            'cloud_api' => $this->sendViaCloudApi($message),
-            'log' => $this->sendViaLog($message),
-            default => throw new RuntimeException('Unsupported WhatsApp driver: '.config('whatsapp.driver')),
-        };
+        try {
+            return match (config('whatsapp.driver')) {
+                'twilio' => $this->sendViaTwilio($message),
+                'cloud_api' => $this->sendViaCloudApi($message),
+                'log' => $this->sendViaLog($message),
+                default => throw new RuntimeException('Unsupported WhatsApp driver: '.config('whatsapp.driver')),
+            };
+        } catch (Throwable $throwable) {
+            Log::channel('whatsapp_error')->error('WhatsApp send failed', [
+                'message_id' => $message->id,
+                'appointment_id' => $message->appointment_id,
+                'client_id' => $message->client_id,
+                'telefono' => $message->telefono,
+                'error' => $throwable->getMessage(),
+            ]);
+
+            throw $throwable;
+        }
     }
 
     /**
@@ -122,9 +135,9 @@ class WhatsAppSender
     {
         $config = config('whatsapp.twilio');
         $accountSid = $config['account_sid'] ?? null;
-        $authToken = $config['auth_token'] ?? null;
+        [$username, $password] = $this->twilioApiCredentials($config);
 
-        if (! $accountSid || ! $authToken) {
+        if (! $accountSid || ! $username || ! $password) {
             throw new RuntimeException('Twilio credentials are not configured.');
         }
 
@@ -133,7 +146,7 @@ class WhatsAppSender
         $response = Http::baseUrl('https://api.twilio.com')
             ->acceptJson()
             ->asForm()
-            ->withBasicAuth($accountSid, $authToken)
+            ->withBasicAuth($username, $password)
             ->retry([100, 500, 1000])
             ->timeout((int) ($config['timeout'] ?? 15))
             ->connectTimeout((int) ($config['connect_timeout'] ?? 10))
@@ -147,6 +160,19 @@ class WhatsAppSender
             'payload' => $payload,
             'raw' => $response,
         ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $config
+     * @return array{0:?string,1:?string}
+     */
+    private function twilioApiCredentials(array $config): array
+    {
+        if (filled($config['api_key_sid'] ?? null) && filled($config['api_key_secret'] ?? null)) {
+            return [$config['api_key_sid'], $config['api_key_secret']];
+        }
+
+        return [$config['account_sid'] ?? null, $config['auth_token'] ?? null];
     }
 
     /**

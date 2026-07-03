@@ -133,17 +133,22 @@ class AppointmentDeliveryStatusSyncer
         }
 
         $accountSid = trim((string) config('whatsapp.twilio.account_sid', ''));
-        $authToken = trim((string) config('whatsapp.twilio.auth_token', ''));
+        $apiKeySid = trim((string) config('whatsapp.twilio.api_key_sid', ''));
+        $apiKeySecret = trim((string) config('whatsapp.twilio.api_key_secret', ''));
+        $username = $apiKeySid !== '' && $apiKeySecret !== '' ? $apiKeySid : $accountSid;
+        $password = $apiKeySid !== '' && $apiKeySecret !== ''
+            ? $apiKeySecret
+            : trim((string) config('whatsapp.twilio.auth_token', ''));
         $providerMessageId = trim((string) $message->provider_message_id);
 
-        if ($accountSid === '' || $authToken === '' || $providerMessageId === '') {
+        if ($accountSid === '' || $username === '' || $password === '' || $providerMessageId === '') {
             return $message;
         }
 
         try {
             $response = Http::baseUrl('https://api.twilio.com')
                 ->acceptJson()
-                ->withBasicAuth($accountSid, $authToken)
+                ->withBasicAuth($username, $password)
                 ->retry([100, 500, 1000])
                 ->timeout((int) config('whatsapp.twilio.timeout', 15))
                 ->connectTimeout((int) config('whatsapp.twilio.connect_timeout', 10))

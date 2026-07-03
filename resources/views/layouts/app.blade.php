@@ -110,7 +110,34 @@
 
 <div
         class="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(16,185,129,0.18),transparent_35%),linear-gradient(180deg,#020617,#0f172a)]"></div>
-<div class="relative mx-auto flex min-h-screen min-w-6/8">
+<div x-data="{ mobileOpen: false }" class="relative mx-auto flex min-h-screen min-w-6/8">
+
+  <button
+          x-on:click="mobileOpen = !mobileOpen"
+          class="fixed top-4 left-4 z-50 rounded-lg border border-white/20 bg-slate-900/80 p-2 backdrop-blur-xl xl:hidden"
+          :class="mobileOpen ? 'text-white' : 'text-slate-300'"
+  >
+    <svg x-show="!mobileOpen" class="size-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"/>
+    </svg>
+    <svg x-show="mobileOpen" class="size-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12"/>
+    </svg>
+  </button>
+
+  <div
+          x-show="mobileOpen"
+          x-on:click="mobileOpen = false"
+          x-transition:enter="transition-opacity duration-300"
+          x-transition:enter-start="opacity-0"
+          x-transition:enter-end="opacity-100"
+          x-transition:leave="transition-opacity duration-200"
+          x-transition:leave-start="opacity-100"
+          x-transition:leave-end="opacity-0"
+          class="fixed inset-0 z-30 bg-black/50 backdrop-blur-sm xl:hidden"
+          style="display: none"
+  ></div>
+
   <aside
           x-data="{
               collapsed: localStorage.getItem('sidebar-collapsed') === 'true',
@@ -118,7 +145,13 @@
           }"
           x-init="$el.dataset.collapsed = collapsed"
           :data-collapsed="collapsed"
-          class="sidebar-shell sticky top-0 hidden h-screen shrink-0 border-r border-white/10 px-4 py-5 shadow-[18px_0_60px_rgba(15,23,42,0.32)] backdrop-blur-xl transition-all duration-300 xl:block"
+          class="sidebar-shell sticky top-0 z-40 h-screen shrink-0 border-r border-white/10 px-4 py-5 shadow-[18px_0_60px_rgba(15,23,42,0.32)] backdrop-blur-xl transition-all duration-300 max-xl:fixed max-xl:inset-y-0 max-xl:left-0 max-xl:max-w-[80vw]"
+          :class="{
+              'max-xl:-translate-x-full': !mobileOpen,
+              'max-xl:translate-x-0': mobileOpen,
+              'hidden xl:block': !mobileOpen,
+              'block': mobileOpen
+          }"
   >
     <nav x-cloak class="flex h-full flex-col justify-between text-sm">
 

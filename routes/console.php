@@ -10,5 +10,5 @@ Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
 
-Schedule::command(DispatchDueWhatsAppMessages::class)->everyMinute()->withoutOverlapping();
+Schedule::command(DispatchDueWhatsAppMessages::class)->at('09:00')->at('12:00')->at('15:00')->withoutOverlapping();
 Schedule::command(SyncWhatsAppDeliveryStatus::class)->everyMinute()->withoutOverlapping();

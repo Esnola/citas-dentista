@@ -8,6 +8,7 @@ use App\Models\WhatsAppMessage;
 use App\Services\WhatsApp\AppointmentDeliveryStatusSyncer;
 use App\Services\WhatsApp\WhatsAppSender;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Log;
 use Throwable;
 
 class DispatchDueWhatsAppMessages extends Command
@@ -18,79 +19,102 @@ class DispatchDueWhatsAppMessages extends Command
 
     public function handle(WhatsAppSender $sender, AppointmentDeliveryStatusSyncer $deliveryStatusSyncer): int
     {
-        $queued = $this->queueActiveAppointmentMessages();
-        $count = 0;
+        try {
+            $queued = $this->queueActiveAppointmentMessages();
+            $count = 0;
 
-        WhatsAppMessage::due()
-            ->with('appointment')
-            ->chunkById(100, function ($messages) use (&$count, $sender, $deliveryStatusSyncer): void {
-                foreach ($messages as $message) {
-                    if ($message->appointment && ! $message->appointment->activo) {
-                        continue;
-                    }
-
-                    try {
-                        $result = $sender->send($message);
-
-                        $providerStatus = (string) data_get($result, 'raw.status', '');
-                        $isFailed = in_array($providerStatus, ['failed', 'undelivered'], true);
-
-                        $message->update([
-                            'status' => $isFailed ? WhatsAppMessage::STATUS_FAILED : WhatsAppMessage::STATUS_SENT,
-                            'sent_at' => $isFailed ? null : now(),
-                            'last_error' => null,
-                            'provider_message_id' => $result['message_id'],
-                            'provider_payload' => [
-                                'provider' => $result['provider'],
-                                'payload' => $result['payload'],
-                                'raw' => $result['raw'],
-                            ],
-                        ]);
-
-                        if (! $isFailed && $message->appointment) {
-                            $message->appointment->update([
-                                'enviado' => true,
-                                'whatsapp_sent_at' => now(),
-                            ]);
+            WhatsAppMessage::due()
+                ->with('appointment')
+                ->chunkById(100, function ($messages) use (&$count, $sender, $deliveryStatusSyncer): void {
+                    foreach ($messages as $message) {
+                        if ($message->appointment && ! $message->appointment->activo) {
+                            continue;
                         }
 
-                        $deliveryStatusSyncer->sync([$message->appointment_id]);
-                    } catch (Throwable $throwable) {
-                        $message->update([
-                            'status' => WhatsAppMessage::STATUS_FAILED,
-                            'last_error' => $throwable->getMessage(),
-                        ]);
+                        try {
+                            $result = $sender->send($message);
 
-                        $this->error("Failed to send message {$message->id}: {$throwable->getMessage()}");
+                            $providerStatus = (string) data_get($result, 'raw.status', '');
+                            $isFailed = in_array($providerStatus, ['failed', 'undelivered'], true);
+
+                            $message->update([
+                                'status' => $isFailed ? WhatsAppMessage::STATUS_FAILED : WhatsAppMessage::STATUS_SENT,
+                                'sent_at' => $isFailed ? null : now(),
+                                'last_error' => null,
+                                'provider_message_id' => $result['message_id'],
+                                'provider_payload' => [
+                                    'provider' => $result['provider'],
+                                    'payload' => $result['payload'],
+                                    'raw' => $result['raw'],
+                                ],
+                            ]);
+
+                            if (! $isFailed && $message->appointment) {
+                                $message->appointment->update([
+                                    'enviado' => true,
+                                    'whatsapp_sent_at' => now(),
+                                ]);
+                            }
+
+                            $deliveryStatusSyncer->sync([$message->appointment_id]);
+                        } catch (Throwable $throwable) {
+                            $message->update([
+                                'status' => WhatsAppMessage::STATUS_FAILED,
+                                'last_error' => $throwable->getMessage(),
+                            ]);
+
+                            Log::channel('whatsapp_error')->error('WhatsApp send failed', [
+                                'message_id' => $message->id,
+                                'appointment_id' => $message->appointment_id,
+                                'client_id' => $message->client_id,
+                                'telefono' => $message->telefono,
+                                'error' => $throwable->getMessage(),
+                            ]);
+
+                            $this->error("Failed to send message {$message->id}: {$throwable->getMessage()}");
+                        }
+
+                        $count++;
                     }
+                });
 
-                    $count++;
-                }
-            });
+            $this->info(sprintf('Queued %d appointment message(s).', $queued));
+            $this->info(sprintf('Processed %d due message(s).', $count));
 
-        $this->info(sprintf('Queued %d appointment message(s).', $queued));
-        $this->info(sprintf('Processed %d due message(s).', $count));
+            return self::SUCCESS;
+        } catch (Throwable $throwable) {
+            Log::channel('whatsapp_error')->error('WhatsApp dispatch command failed', [
+                'error' => $throwable->getMessage(),
+                'trace' => $throwable->getTraceAsString(),
+            ]);
 
-        return self::SUCCESS;
+            $this->error($throwable->getMessage());
+
+            return self::FAILURE;
+        }
     }
 
     private function queueActiveAppointmentMessages(): int
     {
         $queued = 0;
 
-        Appointment::query()
-            ->with('client')
-            ->where('activo', true)
-            ->where('enviado', false)
-            ->chunkById(100, function ($appointments) use (&$queued): void {
-                foreach ($appointments as $appointment) {
-                    $client = $appointment->client;
+        foreach (AppointmentReminderPreference::enabledLeadDaysFor(AppointmentReminderPreference::CHANNEL_WHATSAPP) as $leadDays) {
+            $targetDate = now(config('app.timezone'))->addDays($leadDays)->toDateString();
 
-                    if (! $client) {
-                        continue;
-                    }
+            Appointment::query()
+                ->with('client')
+              // ->where('client_id', 1)
+                ->where('activo', true)
+                ->where('cita_activa', true)
+                ->whereDate('fecha', $targetDate)
+                ->chunkById(100, function ($appointments) use (&$queued, $leadDays): void {
+                    foreach ($appointments as $appointment) {
+                        $client = $appointment->client;
 
-                    foreach (AppointmentReminderPreference::enabledLeadDaysFor(AppointmentReminderPreference::CHANNEL_WHATSAPP) as $leadDays) {
+                        if (! $client || ! $client->telefono) {
+                            continue;
+                        }
+
                         if ($this->appointmentReminderExists($appointment, $leadDays)) {
                             continue;
                         }
@@ -103,7 +127,7 @@ class DispatchDueWhatsAppMessages extends Command
                             'nombre' => $client->nombre,
                             'apellidos' => $client->apellidos,
                             'telefono' => $client->telefono,
-                            'scheduled_for' => $scheduledFor->copy()->subDays($leadDays),
+                            'scheduled_for' => now(),
                             'message' => WhatsAppMessage::buildMessage([
                                 'nombre' => $client->nombre,
                                 'apellidos' => $client->apellidos,
@@ -121,8 +145,8 @@ class DispatchDueWhatsAppMessages extends Command
 
                         $queued++;
                     }
-                }
-            });
+                });
+        }
 
         return $queued;
     }
@@ -135,7 +159,7 @@ class DispatchDueWhatsAppMessages extends Command
                 $metadata = $message->metadata ?? [];
 
                 return ($metadata['channel'] ?? null) === AppointmentReminderPreference::CHANNEL_WHATSAPP
-                    && (int) ($metadata['lead_days'] ?? 0) === $leadDays;
+                  && (int) ($metadata['lead_days'] ?? 0) === $leadDays;
             });
     }
 }

@@ -456,6 +456,7 @@ class AppointmentManagerTest extends TestCase
 
         $component = Livewire::test(AppointmentList::class, ['clientId' => $client->id])
             ->assertSee('Reenviar')
+            ->assertSeeHtml('wire:click="confirmResend('.$appointment->id.')"')
             ->assertDontSeeHtml('wire:change="updateActiveStatus('.$appointment->id.', $event.target.checked)"')
             ->call('confirmResend', $appointment->id)
             ->assertSee('Ya se ha enviado un WhatsApp de esta cita.')

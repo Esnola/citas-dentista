@@ -11,6 +11,8 @@ return [
         'mode' => env('TWILIO_WHATSAPP_MODE', 'auto'),
         'account_sid' => env('TWILIO_ACCOUNT_SID'),
         'auth_token' => env('TWILIO_AUTH_TOKEN'),
+        'api_key_sid' => env('TWILIO_API_KEY'),
+        'api_key_secret' => env('TWILIO_API_SECRET'),
         'from' => env('TWILIO_WHATSAPP_FROM'),
         'status_callback_url' => env('TWILIO_STATUS_CALLBACK_URL'),
         'messaging_service_sid' => env('TWILIO_MESSAGING_SERVICE_SID'),

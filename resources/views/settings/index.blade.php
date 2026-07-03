@@ -8,12 +8,15 @@
     $twilio = config('whatsapp.twilio', []);
     $twilioAccountSid = (string) ($twilio['account_sid'] ?? '');
     $twilioAuthToken = (string) ($twilio['auth_token'] ?? '');
+    $twilioApiKeySid = (string) ($twilio['api_key_sid'] ?? '');
+    $twilioApiKeySecret = (string) ($twilio['api_key_secret'] ?? '');
     $twilioFrom = (string) ($twilio['from'] ?? '');
     $twilioServiceSid = (string) ($twilio['messaging_service_sid'] ?? '');
     $twilioContentSid = (string) ($twilio['content_sid'] ?? '');
     $twilioMode = (string) ($twilio['mode'] ?? 'auto');
     $twilioResolvedMode = app(WhatsAppSender::class)->resolveTwilioMode();
-    $twilioHasCredentials = filled($twilioAccountSid) && filled($twilioAuthToken);
+    $twilioUsesApiKey = filled($twilioApiKeySid) && filled($twilioApiKeySecret);
+    $twilioHasCredentials = filled($twilioAccountSid) && ($twilioUsesApiKey || filled($twilioAuthToken));
     $twilioHasSender = $twilioResolvedMode === 'service' ? filled($twilioServiceSid) : filled($twilioFrom);
     $twilioUsesTemplate = config('whatsapp.message_mode') === 'template';
     $twilioTestRecipient = (string) ($twilio['test_recipient'] ?? '');
@@ -220,7 +223,12 @@
           <div class="rounded-2xl border border-white/10 bg-slate-900/60 p-4">
             <p class="text-xs uppercase tracking-[0.25em] text-slate-400">Auth Token</p>
             <p class="mt-2 font-medium">{{ $twilioAuthToken ? 'Configurado' : 'No configurado' }}</p>
-            <p class="mt-1 text-sm text-slate-300">Se usa solo en backend; nunca se muestra completo.</p>
+            <p class="mt-1 text-sm text-slate-300">Necesario para validar las firmas de los webhooks.</p>
+          </div>
+          <div class="rounded-2xl border border-white/10 bg-slate-900/60 p-4">
+            <p class="text-xs uppercase tracking-[0.25em] text-slate-400">API Key</p>
+            <p class="mt-2 font-medium">{{ $twilioUsesApiKey ? Str::mask($twilioApiKeySid, '*', 4) : 'No configurada' }}</p>
+            <p class="mt-1 text-sm text-slate-300">{{ $twilioUsesApiKey ? 'Usada para conectar con la API REST' : 'Se usará Account SID + Auth Token' }}</p>
           </div>
           <div class="rounded-2xl border border-white/10 bg-slate-900/60 p-4">
             <p class="text-xs uppercase tracking-[0.25em] text-slate-400">Destino de prueba</p>
