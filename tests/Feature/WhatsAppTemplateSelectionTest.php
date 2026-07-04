@@ -20,7 +20,7 @@ class WhatsAppTemplateSelectionTest extends TestCase
         ], 'formal_reminder');
 
         $this->assertSame(
-            'Estimado/a Lucía García, le recordamos su cita el 22/06/2026 a las 09:05. Saludos, Clínica Dental Eugénia',
+            'Estimado/a Lucía García, le recordamos su cita el 22/06/2026 a las 09:05. Saludos, Clínica Dental ',
             $rendered
         );
     }

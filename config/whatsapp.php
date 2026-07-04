@@ -1,7 +1,7 @@
 <?php
 
 return [
-    'driver' => env('WHATSAPP_DRIVER', 'log'),
+    'driver' => env('WHATSAPP_DRIVER', 'twilio'),
 
     'default_country_code' => env('WHATSAPP_DEFAULT_COUNTRY_CODE', '+34'),
 

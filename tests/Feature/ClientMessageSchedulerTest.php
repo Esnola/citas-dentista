@@ -134,9 +134,9 @@ class ClientMessageSchedulerTest extends TestCase
 
         Http::assertSent(function ($request): bool {
             return $request->url() === 'https://api.twilio.com/2010-04-01/Accounts/AC123/Messages.json'
-                && $request['From'] === 'whatsapp:+14155238886'
-                && $request['To'] === 'whatsapp:+34600123123'
-                && $request['Body'] === 'Hola Ana te recordamos que el día 24/06/2026 tienes una cita a las 10:15 ; saludos Clínica Dental Eugénia';
+            && $request['From'] === 'whatsapp:+14155238886'
+            && $request['To'] === 'whatsapp:+34600123123'
+            && $request['Body'] === 'Hola Ana te recordamos que el día 24/06/2026 tienes una cita a las 10:15 ; saludos Clínica Dental Eugenia';
         });
 
         $message = WhatsAppMessage::query()->firstOrFail();

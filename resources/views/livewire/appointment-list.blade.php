@@ -1,4 +1,4 @@
-<div class="grid gap-6">
+<div class="grid gap-6" x-on:reload-appointment-list.window="setTimeout(() => window.location.reload(), 3000)">
   <div class='rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur '>
     <div class="flex flex-wrap items-center justify-between gap-4">
       <div class="flex gap-6 items-center">
@@ -19,7 +19,6 @@
                 icon="reload"
                 label="Actualizar Datos"
                 texto="Actualizar Datos"
-                x-on:click="localStorage.setItem('autoSyncAfterSend', '1')"
                 wire:click="syncDeliveryStatuses"
                 wire:loading.attr="disabled"
                 wire:target="syncDeliveryStatuses"
@@ -280,7 +279,7 @@
                 @endif
               </td>
               <td class="px-4 py-3 text-center" onclick="event.stopPropagation()">
-                @if ($appointment->enviado)
+                @if ($appointment->enviado && $appointment->isFuture())
                   <x-botones.icono-buton
                           color="emerald"
                           icon="whatsapp"
@@ -312,7 +311,6 @@
                             color="emerald"
                             icon="whatsapp"
                             label="Enviar WhatsApp"
-                            x-on:click="localStorage.setItem('autoSyncAfterSend', '1')"
                             wire:click="sendNow({{ $appointment->id }})"
                             wire:loading.attr="disabled"
                             wire:target="sendNow({{ $appointment->id }})"
@@ -455,12 +453,4 @@
       </x-slot:actions>
     </x-modales.confirmacion>
   @endif
-
-  @script
-  <script>
-      if (localStorage.getItem('autoSyncAfterSend') === '1') {
-          localStorage.removeItem('autoSyncAfterSend');
-          setTimeout(() => $wire.syncDeliveryStatuses(), 3000);
-      }
-  </script>
-@endscript
+</div>

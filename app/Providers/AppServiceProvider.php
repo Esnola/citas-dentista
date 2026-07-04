@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Livewire\AppointmentReminderSettings;
+use App\Livewire\WhatsAppConnectionTest;
 use Illuminate\Support\ServiceProvider;
 use Livewire\Livewire;
 
@@ -20,8 +22,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        Livewire::component('whatsapp-connection-test', \App\Livewire\WhatsAppConnectionTest::class);
-        Livewire::component('whatsapp-template-manager', \App\Livewire\WhatsAppTemplateManager::class);
-        Livewire::component('appointment-reminder-settings', \App\Livewire\AppointmentReminderSettings::class);
+        Livewire::component('whatsapp-connection-test', WhatsAppConnectionTest::class);
+        Livewire::component('appointment-reminder-settings', AppointmentReminderSettings::class);
     }
 }

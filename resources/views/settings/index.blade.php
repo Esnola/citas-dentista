@@ -278,39 +278,6 @@
              class="mt-4 h-1 rounded-full bg-emerald-400/80 shadow-[0_0_24px_rgba(52,211,153,0.45)]"></div>
       </section>
 
-      <section data-settings-section="templates"
-               data-default-open="true"
-               class="rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur"
-               x-bind:class="sectionStateClasses('templates')"
-               x-on:dragenter.prevent="setDropTarget('templates', $event)"
-               x-on:dragover.prevent
-               x-on:drop.prevent="drop('templates', $event)"
-      >
-        <div x-show="showDropHint('templates', 'before')" x-cloak
-             class="mb-4 h-1 rounded-full bg-emerald-400/80 shadow-[0_0_24px_rgba(52,211,153,0.45)]"></div>
-        <div class="flex items-center justify-between gap-4">
-          <div class="flex items-center gap-3">
-            <x-botones.arrastrar-seccion seccion="templates"/>
-            <div>
-              <h3 class="text-lg font-semibold">Plantillas</h3>
-              <p class="text-sm text-slate-300">Editor y orden de plantillas guardadas.</p>
-            </div>
-          </div>
-          <x-botones.expandir-contraer abierto="isOpen('templates')" x-on:click="toggle('templates')"/>
-        </div>
-
-        <div x-show="dragging === 'templates'" x-cloak
-             class="mt-4 rounded-2xl border border-emerald-400/20 bg-emerald-500/10 px-4 py-3 text-xs uppercase tracking-[0.28em] text-emerald-100">
-          Plantilla en movimiento
-        </div>
-
-        <div x-show="isOpen('templates')" x-cloak class="mt-6">
-          <livewire:whatsapp-template-manager/>
-        </div>
-        <div x-show="showDropHint('templates', 'after')" x-cloak
-             class="mt-4 h-1 rounded-full bg-emerald-400/80 shadow-[0_0_24px_rgba(52,211,153,0.45)]"></div>
-      </section>
-
       <section data-settings-section="reminders"
                data-default-open="true"
                class="rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur"

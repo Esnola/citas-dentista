@@ -352,6 +352,10 @@ class AppointmentList extends Component
             'No se pudo enviar el WhatsApp.'
         );
 
+        if ($result['sent']) {
+            $this->queuePageReloadAfterWhatsAppSend();
+        }
+
         $this->dispatch('toast', message: $result['message'], type: str_contains($result['message'], 'correctamente') ? 'success' : 'error');
     }
 
@@ -394,6 +398,7 @@ class AppointmentList extends Component
         );
 
         $this->appointmentPendingResendId = null;
+
         $this->dispatch('toast', message: $result['message'], type: str_contains($result['message'], 'correctamente') ? 'success' : 'error');
     }
 
@@ -408,6 +413,11 @@ class AppointmentList extends Component
         }
 
         $this->dispatch('toast', message: 'Todos los registros de citas y demás datos están actualizados.', type: 'success');
+    }
+
+    private function queuePageReloadAfterWhatsAppSend(): void
+    {
+        $this->dispatch('reload-appointment-list');
     }
 
     public function render()

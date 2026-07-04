@@ -12,7 +12,7 @@ class SettingsPageTest extends TestCase
 
     public function test_settings_page_loads_with_collapsible_sections(): void
     {
-        $admin = User::factory()->create();
+        $admin = User::factory()->create(['is_admin' => true]);
 
         $this->actingAs($admin)
             ->get(route('settings.index'))
@@ -20,7 +20,6 @@ class SettingsPageTest extends TestCase
             ->assertSee('Ajustes')
             ->assertSee('Twilio Sandbox')
             ->assertSee('Prueba de conexión')
-            ->assertSee('Plantillas')
             ->assertDontSee('data-settings-section="overview" draggable', false)
             ->assertDontSee('data-settings-section="connection" draggable', false);
     }
