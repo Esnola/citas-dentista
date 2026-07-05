@@ -6,7 +6,7 @@
             <div class="flex items-center gap-4">
                 <x-iconos.calendar/>
                 <div>
-                    <h2 class="text-md">{{ $selectedAppointment ? 'Editando cita' : 'Gestión cita' }} de: <br />
+                    <h2 class="text-md">{{ $selectedAppointment ? 'Gestión cita de:' : 'Nueva cita para:' }} <br />
                       <span class=" font-semibold">{{ $selectedClient ? $selectedClient->nombre . ' ' . $selectedClient->apellidos : 'Cliente no seleccionado' }}</span></h2>
 
                 </div>
@@ -15,8 +15,8 @@
                     color="indigo"
                     icon="salir"
                     especial="size-5"
-                    label="Volver al listado"
-                    texto="Volver al listado"
+                    label="Todas las Citas"
+                    texto="Todas las Citas"
                     onclick="window.location.href='{{ route('appointments.index')}}'"
             />
         </div>
@@ -118,7 +118,9 @@
                                     <x-formularios.input
                                         wire:model="hora"
                                         data-time-picker
-                                        readonly
+                                        inputmode="numeric"
+                                        maxlength="5"
+                                        pattern="(?:[01][0-9]|2[0-3]):[0-5][0-9]"
                                         placeholder="--:--"
                                         :disabled="! $canChangeAppointment"
                                     />
@@ -163,10 +165,9 @@
                     <div class="mt-8 flex flex-wrap items-center gap-3">
                         @if ($showReturnAfterImmediateSend)
                             <x-botones.icono-buton
-                                    back
                                     icon="volver"
-                                    label="Volver"
-                                    texto="Volver"
+                                    label="Citas de {{ $selectedClient->nombre }}"
+                                    texto="Citas de {{ $selectedClient->nombre }}"
                                     onclick="window.location.href='{{ $returnUrl }}'"
                             />
                         @else
@@ -191,12 +192,11 @@
                                     :disabled="! $canChangeAppointment"
                             />
                             <x-botones.icono-buton
-                                    back
                                     color="gray"
                                     icon="volver"
                                     especial="size-5"
-                                    label="Volver"
-                                    texto="Volver"
+                                    label="Citas de {{ $selectedClient->nombre }}"
+                                    texto="Citas de {{ $selectedClient->nombre }}"
                                     onclick="window.location.href='{{ $returnUrl }}'"
                             />
                         @endif

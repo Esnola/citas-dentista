@@ -1,4 +1,8 @@
-<div class="grid gap-6" x-on:reload-appointment-list.window="setTimeout(() => window.location.reload(), 3000)">
+<div class="grid gap-6"
+     wire:poll.10s
+     x-on:reload-appointment-list.window="
+       setTimeout(() => $wire.syncDeliveryStatuses(), 3000)
+     ">
   <div class='rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur '>
     <div class="flex flex-wrap items-center justify-between gap-4">
       <div class="flex gap-6 items-center">

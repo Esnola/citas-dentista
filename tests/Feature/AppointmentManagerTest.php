@@ -20,7 +20,7 @@ class AppointmentManagerTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_appointment_edit_back_button_returns_to_the_previous_view(): void
+    public function test_appointment_edit_back_button_returns_to_the_clients_appointments(): void
     {
         $user = User::factory()->create();
         $client = Client::query()->create([
@@ -40,7 +40,8 @@ class AppointmentManagerTest extends TestCase
             ->from(route('clients.appointments', $client))
             ->get(route('appointments.edit', $appointment))
             ->assertOk()
-            ->assertSeeHtml('onclick="if (document.referrer) { event.preventDefault(); window.history.back(); }"');
+            ->assertSee('Gestión cita de:')
+            ->assertSeeHtml("onclick=\"window.location.href='".route('clients.appointments', $client)."'\"");
     }
 
     public function test_appointment_navigation_buttons_only_appear_on_the_exact_appointments_url(): void
@@ -111,6 +112,22 @@ class AppointmentManagerTest extends TestCase
         ]);
 
         Carbon::setTestNow();
+    }
+
+    public function test_appointment_form_returns_to_the_selected_clients_appointments(): void
+    {
+        $client = Client::query()->create([
+            'nombre' => 'Ana',
+            'apellidos' => 'Pérez',
+            'telefono' => '+34600111222',
+        ]);
+
+        Livewire::test(AppointmentForm::class)
+            ->call('selectClient', $client->id)
+            ->assertSet('returnUrl', route('clients.appointments', $client))
+            ->assertSee('Citas de Ana')
+            ->assertDontSee('Citas de Ana Pérez')
+            ->assertSee('Todas las Citas');
     }
 
     public function test_appointment_create_can_send_whatsapp_immediately(): void
@@ -278,8 +295,7 @@ class AppointmentManagerTest extends TestCase
         $this->actingAs($user)
             ->get(route('appointments.create', ['client' => $client->id]))
             ->assertOk()
-            ->assertSee('Gestión cita')
-            ->assertSee('Cliente seleccionado')
+            ->assertSee('Nueva cita para:')
             ->assertSee('Lucía Martín');
 
         Carbon::setTestNow();

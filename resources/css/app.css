@@ -114,6 +114,8 @@ body.bg-slate-950 :where(input[type='date'])::-webkit-calendar-picker-indicator 
     position: fixed;
     z-index: 80;
     width: min(20rem, calc(100vw - 2rem));
+    max-height: calc(100dvh - 2rem);
+    overflow-y: auto;
     border-radius: 1rem;
     border: 1px solid rgb(148 163 184 / 0.28);
     background: linear-gradient(180deg, rgb(15 23 42), rgb(2 6 23));

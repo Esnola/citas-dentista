@@ -86,6 +86,7 @@ class AppointmentForm extends Component
         $client = Client::query()->findOrFail($clientId);
 
         $this->selectedClientId = $client->id;
+        $this->returnUrl = route('clients.appointments', $client);
     }
 
     public function save(WhatsAppSender $sender): void
@@ -338,6 +339,7 @@ class AppointmentForm extends Component
 
         $this->selectedAppointmentId = $appointment->id;
         $this->selectedClientId = $appointment->client_id;
+        $this->returnUrl = route('clients.appointments', $appointment->client_id);
         $this->fecha = $appointment->fecha?->toDateString() ?? '';
         $this->hora = $appointment->hora;
         $this->enviado = (bool) $appointment->enviado;

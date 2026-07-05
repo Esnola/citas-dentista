@@ -106,9 +106,11 @@ const closeTimePicker = () => {
 const positionTimePicker = (input) => {
     const menu = ensureTimePickerMenu();
     const rect = input.getBoundingClientRect();
-    const top = Math.min(rect.bottom + 6, window.innerHeight - 330);
+    const top = window.innerHeight - rect.bottom - 16 >= menu.offsetHeight
+        ? rect.bottom + 6
+        : Math.max(16, rect.top - menu.offsetHeight - 6);
 
-    menu.style.left = `${Math.max(16, Math.min(rect.left, window.innerWidth - 336))}px`;
+    menu.style.left = `${Math.max(16, Math.min(rect.right + 8, window.innerWidth - menu.offsetWidth - 16))}px`;
     menu.style.top = `${Math.max(16, top)}px`;
 };
 
@@ -120,11 +122,11 @@ const openFallbackTimePicker = (input) => {
         button.setAttribute('aria-selected', button.dataset.timeValue === input.value ? 'true' : 'false');
     }
 
-    positionTimePicker(input);
     menu.hidden = false;
+    positionTimePicker(input);
 };
 
-document.addEventListener('pointerdown', (event) => {
+document.addEventListener('click', (event) => {
     const timeInput = event.target.closest('input[data-time-picker]');
 
     if (! timeInput || timeInput.disabled) {
@@ -135,6 +137,26 @@ document.addEventListener('pointerdown', (event) => {
     timeInput.focus();
     openFallbackTimePicker(timeInput);
 });
+
+document.addEventListener('input', (event) => {
+    const timeInput = event.target.closest('input[data-time-picker]:not([readonly])');
+
+    if (! timeInput) {
+        return;
+    }
+
+    const digits = timeInput.value.replace(/\D/g, '').slice(0, 4);
+    timeInput.value = digits.length > 2 ? `${digits.slice(0, 2)}:${digits.slice(2)}` : digits;
+    timeInput.setCustomValidity('');
+});
+
+document.addEventListener('invalid', (event) => {
+    const timeInput = event.target.closest('input[data-time-picker]:not([readonly])');
+
+    if (timeInput) {
+        timeInput.setCustomValidity('Hora incorrecta');
+    }
+}, true);
 
 document.addEventListener('click', (event) => {
     const selectedTime = event.target.closest('.time-picker-menu button');
