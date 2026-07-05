@@ -80,6 +80,8 @@ class WhatsAppMessage extends Model
 
     public static function buildMessage(array $data, ?string $template = null): string
     {
+        Carbon::setLocale('es');
+
         $templateKey = $template ?: WhatsAppTemplate::defaultKey();
         $template = WhatsAppTemplate::hasKey($templateKey)
             ? WhatsAppTemplate::resolve($templateKey)['message']
@@ -90,7 +92,7 @@ class WhatsAppMessage extends Model
             '[NOMBRE]' => (string) ($data['nombre'] ?? ''),
             '[APELLIDOS]' => (string) ($data['apellidos'] ?? ''),
             '[TELEFONO]' => (string) ($data['telefono'] ?? ''),
-            '[DIA]' => $scheduled?->format('d/m/Y') ?? '',
+            '[DIA]' => $scheduled?->translatedFormat('l j \d\e F') ?? '',
             '[HORA]' => $scheduled?->format('H:i') ?? '',
         ];
 

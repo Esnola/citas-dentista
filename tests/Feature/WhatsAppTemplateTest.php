@@ -19,6 +19,6 @@ class WhatsAppTemplateTest extends TestCase
             'scheduled_for' => now()->setDate(2026, 6, 22)->setTime(15, 30),
         ], 'Hola [NOMBRE] [APELLIDOS], tu cita es el [DIA] a las [HORA]. Tel: [TELEFONO]');
 
-        $this->assertSame('Hola Ana Pérez, tu cita es el 22/06/2026 a las 15:30. Tel: 600123123', $message);
+        $this->assertSame('Hola Ana Pérez, tu cita es el lunes 22 de junio a las 15:30. Tel: 600123123', $message);
     }
 }

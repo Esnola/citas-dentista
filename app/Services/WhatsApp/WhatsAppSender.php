@@ -4,6 +4,7 @@ namespace App\Services\WhatsApp;
 
 use App\Models\WhatsAppMessage;
 use App\Traits\NormalizesPhone;
+use Carbon\Carbon;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -282,6 +283,7 @@ class WhatsAppSender
      */
     private function twilioContentVariables(?WhatsAppMessage $message, string $body): array
     {
+        Carbon::setLocale('es');
         $variables = config('whatsapp.twilio.content_variables', []);
 
         if (! is_array($variables)) {
@@ -293,8 +295,8 @@ class WhatsAppSender
             '[NOMBRE]' => (string) ($message?->nombre ?? ''),
             '[APELLIDOS]' => (string) ($message?->apellidos ?? ''),
             '[TELEFONO]' => (string) ($message?->telefono ?? ''),
-            '[DIA]' => $scheduledFor?->format('d/m/Y') ?? '',
-            '[FECHA]' => $scheduledFor?->format('d/m/Y') ?? '',
+            '[DIA]' => $scheduledFor?->translatedFormat('l j \d\e F') ?? '',
+            '[FECHA]' => $scheduledFor?->translatedFormat('l j \d\e F') ?? '',
             '[HORA]' => $scheduledFor?->format('H:i') ?? '',
             '[MENSAJE]' => $body,
         ];
