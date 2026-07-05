@@ -43,13 +43,14 @@ class TwilioWhatsAppStatusController extends Controller
         $direction = strtolower(trim((string) data_get($payload, 'Direction', '')));
         $status = strtolower(trim((string) data_get($payload, 'Status', data_get($payload, 'MessageStatus', ''))));
         $buttonText = trim((string) data_get($payload, 'ButtonText', ''));
+        $buttonPayload = trim((string) data_get($payload, 'ButtonPayload', ''));
         $body = trim((string) data_get($payload, 'Body', ''));
 
         if (in_array($direction, ['inbound api', 'inbound-api', 'inbound_api'], true) && $status === 'received') {
             return true;
         }
 
-        return $buttonText !== '' || in_array($body, ['Confirmar', 'Reprogramar'], true);
+        return $buttonText !== '' || $buttonPayload !== '' || in_array($body, ['Confirmar', 'Reprogramar'], true);
     }
 
     /**
@@ -60,7 +61,8 @@ class TwilioWhatsAppStatusController extends Controller
         $from = trim((string) data_get($payload, 'From', ''));
         $body = trim((string) data_get($payload, 'Body', ''));
         $buttonText = trim((string) data_get($payload, 'ButtonText', ''));
-        $responseText = $buttonText !== '' ? $buttonText : $body;
+        $buttonPayload = trim((string) data_get($payload, 'ButtonPayload', ''));
+        $responseText = $buttonText !== '' ? $buttonText : ($buttonPayload !== '' ? $buttonPayload : $body);
         $messageSid = trim((string) data_get($payload, 'MessageSid', ''));
         $profileName = trim((string) data_get($payload, 'ProfileName', ''));
         $parentSid = trim((string) data_get($payload, 'ParentMessageSid', ''));
@@ -100,6 +102,7 @@ class TwilioWhatsAppStatusController extends Controller
                     'status' => strtolower(trim((string) data_get($payload, 'Status', data_get($payload, 'MessageStatus', '')))),
                     'body' => $body,
                     'button_text' => $buttonText !== '' ? $buttonText : null,
+                    'button_payload' => $buttonPayload !== '' ? $buttonPayload : null,
                     'response_text' => $responseText,
                     'message_sid' => $messageSid,
                     'parent_message_sid' => $parentSid ?: null,
