@@ -38,6 +38,11 @@ return [
         'Hola [NOMBRE] te recordamos que el día [DIA] tienes una cita a las [HORA] ; saludos Clínica Dental'
     ),
 
+    'response_actions' => [
+        'Confirmar' => 'confirmar',
+        'Reprogramar' => 'reprogramar',
+    ],
+
     'templates' => [
         'clinical_reminder' => [
             'label' => 'Recordatorio clínica',

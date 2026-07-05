@@ -27,6 +27,10 @@ class WhatsAppMessage extends Model
 
     public const SOURCE_APPOINTMENT = 'appointment';
 
+    public const RESPUESTA_CONFIRMAR = 'Confirmar';
+
+    public const RESPUESTA_REPROGRAMAR = 'Reprogramar';
+
     protected $fillable = [
         'user_id',
         'client_id',
@@ -43,6 +47,8 @@ class WhatsAppMessage extends Model
         'provider_message_id',
         'provider_payload',
         'metadata',
+        'respuesta',
+        'responded_at',
     ];
 
     protected function casts(): array
@@ -52,6 +58,7 @@ class WhatsAppMessage extends Model
             'sent_at' => 'datetime',
             'provider_payload' => 'array',
             'metadata' => 'array',
+            'responded_at' => 'datetime',
         ];
     }
 
@@ -164,6 +171,26 @@ class WhatsAppMessage extends Model
         }
 
         return $rawStatus;
+    }
+
+    public function hasResponse(): bool
+    {
+        return $this->respuesta !== null;
+    }
+
+    public function isConfirmed(): bool
+    {
+        return $this->respuesta === self::RESPUESTA_CONFIRMAR;
+    }
+
+    public function isRescheduleRequested(): bool
+    {
+        return $this->respuesta === self::RESPUESTA_REPROGRAMAR;
+    }
+
+    public function scopeResponded($query)
+    {
+        return $query->whereNotNull('respuesta');
     }
 
     public function normalizedPhone(): string

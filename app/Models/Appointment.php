@@ -24,6 +24,8 @@ class Appointment extends Model
         'whatsapp_read_at',
         'activo',
         'cita_activa',
+        'confirmada',
+        'pendiente_reprogramacion',
     ];
 
     protected $attributes = [
@@ -31,6 +33,8 @@ class Appointment extends Model
         'entregado' => false,
         'activo' => true,
         'cita_activa' => true,
+        'confirmada' => false,
+        'pendiente_reprogramacion' => false,
     ];
 
     public function client(): BelongsTo
@@ -103,6 +107,26 @@ class Appointment extends Model
         });
     }
 
+    public function confirmar(): void
+    {
+        $this->update(['confirmada' => true]);
+    }
+
+    public function marcarReprogramacion(): void
+    {
+        $this->update(['pendiente_reprogramacion' => true]);
+    }
+
+    public function isConfirmed(): bool
+    {
+        return $this->confirmada;
+    }
+
+    public function needsReschedule(): bool
+    {
+        return $this->pendiente_reprogramacion;
+    }
+
     protected function casts(): array
     {
         return [
@@ -114,6 +138,8 @@ class Appointment extends Model
             'whatsapp_read_at' => 'datetime',
             'activo' => 'boolean',
             'cita_activa' => 'boolean',
+            'confirmada' => 'boolean',
+            'pendiente_reprogramacion' => 'boolean',
         ];
     }
 }

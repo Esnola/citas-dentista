@@ -240,22 +240,42 @@ class AppointmentDeliveryStatusSyncer
             $newDeliveredAt = $this->latestTimestamp(collect([$appointment->whatsapp_delivered_at, $deliveredAt]));
             $newReadAt = $this->latestTimestamp(collect([$appointment->whatsapp_read_at, $readAt]));
 
+            // Check for responses and update appointment accordingly
+            $hasConfirmation = $appointmentMessages->contains(
+                fn (WhatsAppMessage $m): bool => $m->isConfirmed() && ! $appointment->confirmada
+            );
+            $hasReschedule = $appointmentMessages->contains(
+                fn (WhatsAppMessage $m): bool => $m->isRescheduleRequested() && ! $appointment->pendiente_reprogramacion
+            );
+
             $dirty = $newEnviado !== $appointment->enviado
                 || $newActivo !== $appointment->activo
                 || $this->timestampDiffers($appointment->whatsapp_sent_at, $newSentAt)
                 || $newEntregado !== $appointment->entregado
                 || $this->timestampDiffers($appointment->whatsapp_delivered_at, $newDeliveredAt)
-                || $this->timestampDiffers($appointment->whatsapp_read_at, $newReadAt);
+                || $this->timestampDiffers($appointment->whatsapp_read_at, $newReadAt)
+                || $hasConfirmation
+                || $hasReschedule;
 
             if ($dirty) {
-                $appointment->update([
+                $updateData = [
                     'enviado' => $newEnviado,
                     'activo' => $newActivo,
                     'whatsapp_sent_at' => $newSentAt,
                     'entregado' => $newEntregado,
                     'whatsapp_delivered_at' => $newDeliveredAt,
                     'whatsapp_read_at' => $newReadAt,
-                ]);
+                ];
+
+                if ($hasConfirmation) {
+                    $updateData['confirmada'] = true;
+                }
+
+                if ($hasReschedule) {
+                    $updateData['pendiente_reprogramacion'] = true;
+                }
+
+                $appointment->update($updateData);
 
                 $updated++;
             }
