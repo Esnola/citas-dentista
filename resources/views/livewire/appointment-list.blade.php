@@ -176,7 +176,7 @@
                 Leído
               </div>
             </th>
-            <th>
+            <th class="px-4 py-3 text-center">
               Confir / Repro
             </th>
             <th class="px-4 py-3 text-xs text-center">Recordatorio</th>
@@ -213,13 +213,13 @@
                 <a href="{{ $rowUrl }}" tabindex="-1"
                    class="inline-flex items-center gap-2 font-medium {{ $isInactive ? 'text-slate-400 hover:text-slate-300' : 'text-emerald-300 hover:text-emerald-200' }}">
                   <span>{{ $appointment->client?->nombre }} {{ $appointment->client?->apellidos }}</span>
-                  @if (($appointment->appointments_count ?? 1) > 1)
+          {{--        @if (($appointment->appointments_count ?? 1) > 1)
                     <span class="inline-flex items-center rounded-full bg-sky-500/15 px-2 py-0.5 text-xs font-semibold text-sky-200 ring-1 ring-inset ring-sky-400/30"
                           title="{{ $appointment->appointments_count }} citas"
                           aria-label="{{ $appointment->appointments_count }} citas">
                     {{ $appointment->appointments_count }}
                   </span>
-                  @endif
+                  @endif--}}
                 </a>
               </td>
               <td class="px-4 py-3 text-center text-xs">{{ucwords($appointment->fecha?->translatedFormat('l, d - F - Y'))}}</td>
@@ -288,17 +288,37 @@
               <td class="px-4 py-3 text-center text-xs">
                 @php
                   $responseLabel = $appointment->responseStatusLabel();
-                  $responseColor = $appointment->responseStatusColor();
+                  $displayResponseLabel = match ($responseLabel) {
+                    'Confirmar' => 'Confirmada',
+                     default => $responseLabel,
+                  };
                   $respondedAt = $appointment->latestRespondedWhatsAppMessage?->responded_at;
+                  $responseClasses = match ($displayResponseLabel) {
+                    'Confirmada' => 'bg-emerald-500/15 text-emerald-300 ring-1 ring-inset ring-emerald-400/30',
+                    default => 'bg-red-500/15 text-red-300 ring-1 ring-inset ring-red-400/30',
+
+                  };
+                $responseIcono = match ($displayResponseLabel) {
+                  'Confirmada' => 'usuario-plus',
+                  default => 'alert',
+                  };
                 @endphp
-                @if ($responseLabel)
+                @if ($displayResponseLabel || $appointment->wasRescheduled())
                   <div class="flex flex-col items-center gap-1">
-                    <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold
-                      {{ $responseColor === 'emerald'
-                          ? 'bg-emerald-500/15 text-emerald-300 ring-1 ring-inset ring-emerald-400/30'
-                          : 'bg-amber-500/15 text-amber-300 ring-1 ring-inset ring-amber-400/30' }}">
-                      {{ $responseLabel }}
-                    </span>
+                    @if ($displayResponseLabel)
+                      <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold {{ $responseClasses }}">
+                     @if($displayResponseLabel!== 'Confirmada')
+                        <x-iconos.alert clase="size-4 m-1"/>
+                        @endif
+                      {{ $displayResponseLabel }}
+                      </span>
+                    @endif
+                    @if ($appointment->wasRescheduled())
+                      <span class="flex items-center gap-2 rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold text-amber-300 ring-1 ring-inset ring-amber-400/30">
+                        <x-iconos.ajustes clase="size-5"/>
+                        Reprogramada
+                      </span>
+                    @endif
                     @if ($respondedAt)
                       <span class="text-[10px] text-slate-400">{{ $respondedAt->format('H:i d/m/Y') }}</span>
                     @endif
@@ -415,16 +435,28 @@
                   </div>
                   @php
                     $cardResponseLabel = $appointment->responseStatusLabel();
-                    $cardResponseColor = $appointment->responseStatusColor();
+                    $cardDisplayResponseLabel = match ($cardResponseLabel) {
+                      'Confirmar' => 'Confirmada',
+                      default => $cardResponseLabel,
+                    };
+                    $cardResponseClasses = match ($cardDisplayResponseLabel) {
+                      'Confirmada' => 'bg-emerald-500/15 text-emerald-300 ring-1 ring-inset ring-emerald-400/30',
+                      'Reprogramar' => 'bg-amber-500/15 text-amber-300 ring-1 ring-inset ring-amber-400/30',
+                      default => 'bg-slate-500/15 text-slate-300 ring-1 ring-inset ring-slate-400/30',
+                    };
                   @endphp
-                  @if ($cardResponseLabel)
+                  @if ($cardDisplayResponseLabel || $appointment->wasRescheduled())
                     <div class="mt-2">
-                      <span class="inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold
-                        {{ $cardResponseColor === 'emerald'
-                            ? 'bg-emerald-500/15 text-emerald-300 ring-1 ring-inset ring-emerald-400/30'
-                            : 'bg-amber-500/15 text-amber-300 ring-1 ring-inset ring-amber-400/30' }}">
-                        {{ $cardResponseLabel }}
-                      </span>
+                      @if ($cardDisplayResponseLabel)
+                        <span class="inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold {{ $cardResponseClasses }}">
+                          {{ $cardDisplayResponseLabel }}
+                        </span>
+                      @endif
+                      @if ($appointment->wasRescheduled())
+                        <span class="mt-1 inline-flex items-center rounded-full bg-indigo-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-indigo-300 ring-1 ring-inset ring-indigo-400/30">
+                          Reprogramada
+                        </span>
+                      @endif
                     </div>
                   @endif
                 </a>

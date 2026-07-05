@@ -23,4 +23,20 @@ class WhatsAppMessageTimezoneTest extends TestCase
 
         $this->assertSame('25/06/2026 04:00', $message->deliveredAt()?->format('d/m/Y H:i'));
     }
+
+    public function test_inbound_api_received_body_is_used_as_the_response_value(): void
+    {
+        $message = new WhatsAppMessage([
+            'provider_payload' => [
+                'inbound' => [
+                    'direction' => 'inbound-api',
+                    'status' => 'received',
+                    'body' => 'Reprogramar por la tarde',
+                ],
+            ],
+        ]);
+
+        $this->assertSame('Reprogramar por la tarde', $message->responseValue());
+        $this->assertTrue($message->hasResponse());
+    }
 }

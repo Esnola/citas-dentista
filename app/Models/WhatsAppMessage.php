@@ -175,7 +175,7 @@ class WhatsAppMessage extends Model
 
     public function hasResponse(): bool
     {
-        return $this->respuesta !== null;
+        return $this->responseValue() !== null;
     }
 
     public function isConfirmed(): bool
@@ -186,6 +186,23 @@ class WhatsAppMessage extends Model
     public function isRescheduleRequested(): bool
     {
         return $this->respuesta === self::RESPUESTA_REPROGRAMAR;
+    }
+
+    public function responseValue(): ?string
+    {
+        $direction = strtolower(trim((string) data_get($this->provider_payload, 'inbound.direction', '')));
+        $status = strtolower(trim((string) data_get($this->provider_payload, 'inbound.status', '')));
+        $body = trim((string) data_get($this->provider_payload, 'inbound.body', ''));
+
+        if (in_array($direction, ['inbound api', 'inbound-api', 'inbound_api'], true) && $status === 'received' && $body !== '') {
+            return $body;
+        }
+
+        if (filled($this->respuesta)) {
+            return $this->respuesta;
+        }
+
+        return null;
     }
 
     public function scopeResponded($query)

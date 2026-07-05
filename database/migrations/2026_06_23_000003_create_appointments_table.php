@@ -18,6 +18,8 @@ return new class extends Migration
             $table->time('hora');
             $table->boolean('enviado')->default(false)->index();
             $table->boolean('entregado')->default(false)->index();
+            $table->boolean('confirmada')->default(false)->index();
+            $table->boolean('pendiente_reprogramacion')->default(false)->index();
             $table->boolean('cita_activa')->default(true)->index();
             $table->boolean('activo')->default(true)->index();
             $table->dateTime('whatsapp_sent_at')->nullable();

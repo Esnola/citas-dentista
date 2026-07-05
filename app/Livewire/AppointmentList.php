@@ -537,7 +537,7 @@ class AppointmentList extends Component
     {
         return Appointment::query()
             ->select('appointments.*')
-            ->with(['client', 'latestWhatsAppMessage'])
+            ->with(['client', 'latestWhatsAppMessage', 'latestRespondedWhatsAppMessage'])
             ->leftJoin('clients', 'clients.id', '=', 'appointments.client_id')
             ->when($selectedClient, fn (Builder $query) => $query->where('appointments.client_id', $selectedClient->id))
             ->when($this->filter_nombre, fn (Builder $query) => $query->whereHas('client', fn ($clientQuery) => $clientQuery->where('nombre', 'like', '%'.$this->filter_nombre.'%')))

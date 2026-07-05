@@ -17,6 +17,8 @@ class Appointment extends Model
         'client_id',
         'fecha',
         'hora',
+        'fecha_original',
+        'hora_original',
         'enviado',
         'entregado',
         'whatsapp_sent_at',
@@ -36,6 +38,23 @@ class Appointment extends Model
         'confirmada' => false,
         'pendiente_reprogramacion' => false,
     ];
+
+    protected static function booted(): void
+    {
+        static::creating(function (self $appointment): void {
+            $appointment->fecha_original ??= $appointment->fecha;
+            $appointment->hora_original ??= $appointment->hora;
+        });
+
+        static::updating(function (self $appointment): void {
+            if (! $appointment->wasChangedSchedule() || ($appointment->fecha_original && filled($appointment->hora_original))) {
+                return;
+            }
+
+            $appointment->fecha_original ??= $appointment->getOriginal('fecha');
+            $appointment->hora_original ??= $appointment->getOriginal('hora');
+        });
+    }
 
     public function client(): BelongsTo
     {
@@ -116,67 +135,56 @@ class Appointment extends Model
 
     public function confirmar(): void
     {
-        $this->update(['confirmada' => true]);
+        $this->update([
+            'confirmada' => true,
+            'pendiente_reprogramacion' => false,
+        ]);
     }
 
     public function marcarReprogramacion(): void
     {
-        $this->update(['pendiente_reprogramacion' => true]);
-    }
-
-    public function isConfirmed(): bool
-    {
-        return $this->confirmada;
-    }
-
-    public function needsReschedule(): bool
-    {
-        return $this->pendiente_reprogramacion;
+        $this->update([
+            'confirmada' => false,
+            'pendiente_reprogramacion' => true,
+        ]);
     }
 
     public function responseStatusLabel(): ?string
     {
-        $response = $this->latestRespondedWhatsAppMessage;
-
-        if ($response && $response->respuesta) {
-            return $response->respuesta;
-        }
-
-        if ($this->confirmada) {
-            return 'Confirmada';
-        }
-
-        if ($this->pendiente_reprogramacion) {
-            return 'Reprogramar';
-        }
-
-        return null;
+        return $this->latestRespondedWhatsAppMessage?->respuesta
+          ?? match (true) {
+              $this->confirmada => 'Confirmada',
+              $this->pendiente_reprogramacion => 'Reprogramar',
+              default => null,
+          };
     }
 
-    public function responseStatusColor(): ?string
+    public function wasRescheduled(): bool
     {
-        $label = $this->responseStatusLabel();
-
-        if ($label === 'Confirmar' || $label === 'Confirmada') {
-            return 'emerald';
+        if (! $this->fecha_original || blank($this->hora_original)) {
+            return false;
         }
 
-        if ($label === 'Reprogramar') {
-            return 'amber';
-        }
+        return $this->fecha_original->toDateString() !== $this->fecha?->toDateString()
+            || $this->hora_original !== $this->hora;
+    }
 
-        return null;
+    public function wasChangedSchedule(): bool
+    {
+        return $this->isDirty('fecha') || $this->isDirty('hora');
     }
 
     protected function casts(): array
     {
         return [
             'fecha' => 'date',
+            'fecha_original' => 'date',
             'enviado' => 'boolean',
             'entregado' => 'boolean',
             'whatsapp_sent_at' => 'datetime',
             'whatsapp_delivered_at' => 'datetime',
             'whatsapp_read_at' => 'datetime',
+            'hora_original' => 'string',
             'activo' => 'boolean',
             'cita_activa' => 'boolean',
             'confirmada' => 'boolean',

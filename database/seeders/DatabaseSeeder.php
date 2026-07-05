@@ -29,7 +29,7 @@ class DatabaseSeeder extends Seeder
             'password' => '1234',
             'is_admin' => true,
         ]);
-        User::factory(10)->create();
+        //    User::factory(10)->create();
         $this->call(ClientSeeder::class);
         $this->call(AppointmentSeeder::class);
     }

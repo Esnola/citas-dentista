@@ -25,6 +25,8 @@ return new class extends Migration
             $table->string('provider_message_id')->nullable();
             $table->json('provider_payload')->nullable();
             $table->json('metadata')->nullable();
+            $table->string('respuesta', 50)->nullable();
+            $table->dateTime('responded_at')->nullable();
             $table->timestamps();
 
             $table->index('provider_message_id');

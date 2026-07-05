@@ -69,6 +69,76 @@ class AppointmentManagerTest extends TestCase
             ->assertSee('Todas las citas');
     }
 
+    public function test_appointment_list_shows_the_inbound_whatsapp_body_in_the_confir_repro_column(): void
+    {
+        $user = User::factory()->create();
+        $client = Client::query()->create([
+            'nombre' => 'Ana',
+            'apellidos' => 'Pérez',
+            'telefono' => '+34600111222',
+        ]);
+        $appointment = Appointment::query()->create([
+            'client_id' => $client->id,
+            'fecha' => now()->addWeek(),
+            'hora' => '11:30',
+            'enviado' => true,
+            'entregado' => false,
+            'activo' => true,
+        ]);
+
+        WhatsAppMessage::query()->create([
+            'client_id' => $client->id,
+            'appointment_id' => $appointment->id,
+            'nombre' => 'Ana',
+            'apellidos' => 'Pérez',
+            'telefono' => '+34600111222',
+            'scheduled_for' => now()->subMinute(),
+            'message' => 'Hola Ana',
+            'source' => WhatsAppMessage::SOURCE_APPOINTMENT,
+            'status' => WhatsAppMessage::STATUS_SENT,
+            'provider_message_id' => 'SM123456789',
+            'provider_payload' => [
+                'provider' => 'twilio',
+                'inbound' => [
+                    'direction' => 'inbound-api',
+                    'status' => 'received',
+                    'body' => 'Necesito reprogramar la cita',
+                ],
+            ],
+            'respuesta' => 'Reprogramar',
+            'responded_at' => now(),
+        ]);
+
+        WhatsAppMessage::query()->create([
+            'client_id' => $client->id,
+            'appointment_id' => $appointment->id,
+            'nombre' => 'Ana',
+            'apellidos' => 'Pérez',
+            'telefono' => '+34600111222',
+            'scheduled_for' => now(),
+            'message' => 'Recordatorio de seguimiento',
+            'source' => WhatsAppMessage::SOURCE_APPOINTMENT,
+            'status' => WhatsAppMessage::STATUS_SENT,
+            'provider_message_id' => 'SM987654321',
+            'provider_payload' => [
+                'provider' => 'twilio',
+                'payload' => [
+                    'to' => 'whatsapp:+34600111222',
+                ],
+                'raw' => [
+                    'sid' => 'SM987654321',
+                    'status' => 'sent',
+                ],
+            ],
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('clients.appointments', $client))
+            ->assertOk()
+            ->assertSee('Confir / Repro')
+            ->assertSee('Necesito reprogramar la cita');
+    }
+
     public function test_legacy_client_query_redirects_to_the_client_appointments_route(): void
     {
         $user = User::factory()->create();
@@ -1979,6 +2049,91 @@ class AppointmentManagerTest extends TestCase
         $this->assertSame('11:30', $appointment->hora);
         $this->assertFalse($appointment->enviado);
         $this->assertTrue($appointment->activo);
+
+        Carbon::setTestNow();
+    }
+
+    public function test_appointment_detects_when_its_schedule_changes_after_creation(): void
+    {
+        Carbon::setTestNow('2026-06-23 09:00:00');
+
+        $client = Client::query()->create([
+            'nombre' => 'Ana',
+            'apellidos' => 'Pérez',
+            'telefono' => '+34600111222',
+        ]);
+        $appointment = Appointment::query()->create([
+            'client_id' => $client->id,
+            'fecha' => '2026-06-30',
+            'hora' => '11:30',
+            'enviado' => false,
+            'activo' => true,
+        ]);
+
+        $this->assertFalse($appointment->wasRescheduled());
+        $this->assertSame('2026-06-30', $appointment->fecha_original->toDateString());
+        $this->assertSame('11:30', $appointment->hora_original);
+
+        Livewire::test(AppointmentForm::class)
+            ->set('selectedAppointmentId', $appointment->id)
+            ->set('selectedClientId', $client->id)
+            ->set('returnUrl', route('clients.appointments', $client))
+            ->set('fecha', '2026-07-01')
+            ->set('hora', '10:00')
+            ->set('enviado', false)
+            ->set('activo', true)
+            ->call('save')
+            ->assertRedirect(route('clients.appointments', $client));
+
+        $appointment->refresh();
+
+        $this->assertSame('2026-06-30', $appointment->fecha_original->toDateString());
+        $this->assertSame('11:30', $appointment->hora_original);
+        $this->assertTrue($appointment->wasRescheduled());
+        $this->assertSame('2026-07-01', $appointment->fecha->toDateString());
+        $this->assertSame('10:00', $appointment->hora);
+
+        Carbon::setTestNow();
+    }
+
+    public function test_appointment_detects_reschedule_even_when_original_schedule_fields_are_missing(): void
+    {
+        Carbon::setTestNow('2026-06-23 09:00:00');
+
+        $client = Client::query()->create([
+            'nombre' => 'Ana',
+            'apellidos' => 'Pérez',
+            'telefono' => '+34600111222',
+        ]);
+        $appointment = Appointment::query()->create([
+            'client_id' => $client->id,
+            'fecha' => '2026-06-30',
+            'hora' => '11:30',
+            'enviado' => false,
+            'activo' => true,
+        ]);
+
+        Appointment::query()->whereKey($appointment->id)->update([
+            'fecha_original' => null,
+            'hora_original' => null,
+        ]);
+
+        Livewire::test(AppointmentForm::class)
+            ->set('selectedAppointmentId', $appointment->id)
+            ->set('selectedClientId', $client->id)
+            ->set('returnUrl', route('clients.appointments', $client))
+            ->set('fecha', '2026-07-01')
+            ->set('hora', '10:00')
+            ->set('enviado', false)
+            ->set('activo', true)
+            ->call('save')
+            ->assertRedirect(route('clients.appointments', $client));
+
+        $appointment->refresh();
+
+        $this->assertSame('2026-06-30', $appointment->fecha_original->toDateString());
+        $this->assertSame('11:30', $appointment->hora_original);
+        $this->assertTrue($appointment->wasRescheduled());
 
         Carbon::setTestNow();
     }
