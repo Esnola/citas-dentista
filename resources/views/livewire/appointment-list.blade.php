@@ -176,6 +176,9 @@
                 Leído
               </div>
             </th>
+            <th>
+              Confir / Repro
+            </th>
             <th class="px-4 py-3 text-xs text-center">Recordatorio</th>
             <th class="px-4 py-3 text-xs text-center">Cita activa</th>
             <th class="px-4 py-3 text-xs text-right">Acciones</th>
@@ -282,6 +285,28 @@
                   </div>
                 @endif
               </td>
+              <td class="px-4 py-3 text-center text-xs">
+                @php
+                  $responseLabel = $appointment->responseStatusLabel();
+                  $responseColor = $appointment->responseStatusColor();
+                  $respondedAt = $appointment->latestRespondedWhatsAppMessage?->responded_at;
+                @endphp
+                @if ($responseLabel)
+                  <div class="flex flex-col items-center gap-1">
+                    <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold
+                      {{ $responseColor === 'emerald'
+                          ? 'bg-emerald-500/15 text-emerald-300 ring-1 ring-inset ring-emerald-400/30'
+                          : 'bg-amber-500/15 text-amber-300 ring-1 ring-inset ring-amber-400/30' }}">
+                      {{ $responseLabel }}
+                    </span>
+                    @if ($respondedAt)
+                      <span class="text-[10px] text-slate-400">{{ $respondedAt->format('H:i d/m/Y') }}</span>
+                    @endif
+                  </div>
+                @else
+                  <span class="text-slate-500">—</span>
+                @endif
+              </td>
               <td class="px-4 py-3 text-center" onclick="event.stopPropagation()">
                 @if ($appointment->enviado && $appointment->isFuture())
                   <x-botones.icono-buton
@@ -337,7 +362,7 @@
             </tr>
           @empty
             <tr>
-              <td class="px-4 py-6 text-slate-400" colspan="10">
+              <td class="px-4 py-6 text-slate-400" colspan="11">
                 {{ $sentOnly ? 'No hay citas enviadas para mostrar todavía.' : 'No hay citas para mostrar todavía.' }}
               </td>
             </tr>
@@ -388,6 +413,20 @@
                       @endif
                     </div>
                   </div>
+                  @php
+                    $cardResponseLabel = $appointment->responseStatusLabel();
+                    $cardResponseColor = $appointment->responseStatusColor();
+                  @endphp
+                  @if ($cardResponseLabel)
+                    <div class="mt-2">
+                      <span class="inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold
+                        {{ $cardResponseColor === 'emerald'
+                            ? 'bg-emerald-500/15 text-emerald-300 ring-1 ring-inset ring-emerald-400/30'
+                            : 'bg-amber-500/15 text-amber-300 ring-1 ring-inset ring-amber-400/30' }}">
+                        {{ $cardResponseLabel }}
+                      </span>
+                    </div>
+                  @endif
                 </a>
               @endforeach
             </div>

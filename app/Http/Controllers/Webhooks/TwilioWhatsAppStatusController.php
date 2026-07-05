@@ -40,8 +40,14 @@ class TwilioWhatsAppStatusController extends Controller
      */
     private function isInboundMessage(array $payload): bool
     {
+        $direction = strtolower(trim((string) data_get($payload, 'Direction', '')));
+        $status = strtolower(trim((string) data_get($payload, 'Status', data_get($payload, 'MessageStatus', ''))));
         $buttonText = trim((string) data_get($payload, 'ButtonText', ''));
         $body = trim((string) data_get($payload, 'Body', ''));
+
+        if (in_array($direction, ['inbound api', 'inbound-api', 'inbound_api'], true) && $status === 'received') {
+            return true;
+        }
 
         return $buttonText !== '' || in_array($body, ['Confirmar', 'Reprogramar'], true);
     }
@@ -55,11 +61,15 @@ class TwilioWhatsAppStatusController extends Controller
         $body = trim((string) data_get($payload, 'Body', ''));
         $messageSid = trim((string) data_get($payload, 'MessageSid', ''));
         $profileName = trim((string) data_get($payload, 'ProfileName', ''));
+        $parentSid = trim((string) data_get($payload, 'ParentMessageSid', ''));
+        $conversationSid = trim((string) data_get($payload, 'ConversationSid', ''));
 
-        Log::info('WhatsApp inbound button response received.', [
+        Log::info('WhatsApp inbound message received.', [
             'from' => $from,
             'body' => $body,
             'message_sid' => $messageSid,
+            'parent_message_sid' => $parentSid ?: null,
+            'conversation_sid' => $conversationSid ?: null,
         ]);
 
         if ($from === '' || $body === '') {
@@ -67,29 +77,29 @@ class TwilioWhatsAppStatusController extends Controller
         }
 
         $phone = WhatsAppMessage::normalizePhone($from);
-
-        $message = WhatsAppMessage::query()
-            ->where('telefono', $phone)
-            ->whereNull('respuesta')
-            ->where('status', WhatsAppMessage::STATUS_SENT)
-            ->latest('sent_at')
-            ->first();
+        $message = $this->findMatchingMessage($parentSid, $phone);
 
         if (! $message) {
             Log::info('No matching WhatsApp message found for inbound response.', [
                 'phone' => $phone,
                 'body' => $body,
+                'parent_message_sid' => $parentSid ?: null,
             ]);
 
             return;
         }
 
         $message->update([
-            'respuesta' => $body,
+            'respuesta' => mb_substr($body, 0, 50),
             'responded_at' => now(),
             'provider_payload' => array_merge($message->provider_payload ?? [], [
                 'inbound' => [
+                    'direction' => strtolower(trim((string) data_get($payload, 'Direction', ''))),
+                    'status' => strtolower(trim((string) data_get($payload, 'Status', data_get($payload, 'MessageStatus', '')))),
+                    'body' => $body,
                     'message_sid' => $messageSid,
+                    'parent_message_sid' => $parentSid ?: null,
+                    'conversation_sid' => $conversationSid ?: null,
                     'profile_name' => $profileName,
                     'received_at' => now()->toDateTimeString(),
                     'payload' => $payload,
@@ -101,10 +111,32 @@ class TwilioWhatsAppStatusController extends Controller
 
         Log::info('WhatsApp response recorded.', [
             'message_id' => $message->id,
+            'matched_by' => $parentSid !== '' ? 'parent_message_sid' : 'phone_latest',
+            'parent_message_sid' => $parentSid ?: null,
             'phone' => $phone,
             'respuesta' => $body,
             'appointment_id' => $message->appointment_id,
         ]);
+    }
+
+    private function findMatchingMessage(string $parentSid, string $phone): ?WhatsAppMessage
+    {
+        if ($parentSid !== '') {
+            $message = WhatsAppMessage::query()
+                ->where('provider_message_id', $parentSid)
+                ->where('status', WhatsAppMessage::STATUS_SENT)
+                ->first();
+
+            if ($message) {
+                return $message;
+            }
+        }
+
+        return WhatsAppMessage::query()
+            ->where('telefono', $phone)
+            ->where('status', WhatsAppMessage::STATUS_SENT)
+            ->latest('sent_at')
+            ->first();
     }
 
     private function isValidTwilioRequest(Request $request): bool

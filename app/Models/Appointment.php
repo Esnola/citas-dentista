@@ -52,6 +52,13 @@ class Appointment extends Model
         return $this->hasOne(WhatsAppMessage::class)->latestOfMany();
     }
 
+    public function latestRespondedWhatsAppMessage(): HasOne
+    {
+        return $this->hasOne(WhatsAppMessage::class)
+            ->whereNotNull('respuesta')
+            ->latestOfMany('responded_at');
+    }
+
     public function canBeChanged(): bool
     {
         return ! $this->scheduledFor()->isPast();
@@ -125,6 +132,40 @@ class Appointment extends Model
     public function needsReschedule(): bool
     {
         return $this->pendiente_reprogramacion;
+    }
+
+    public function responseStatusLabel(): ?string
+    {
+        $response = $this->latestRespondedWhatsAppMessage;
+
+        if ($response && $response->respuesta) {
+            return $response->respuesta;
+        }
+
+        if ($this->confirmada) {
+            return 'Confirmada';
+        }
+
+        if ($this->pendiente_reprogramacion) {
+            return 'Reprogramar';
+        }
+
+        return null;
+    }
+
+    public function responseStatusColor(): ?string
+    {
+        $label = $this->responseStatusLabel();
+
+        if ($label === 'Confirmar' || $label === 'Confirmada') {
+            return 'emerald';
+        }
+
+        if ($label === 'Reprogramar') {
+            return 'amber';
+        }
+
+        return null;
     }
 
     protected function casts(): array

@@ -16,8 +16,14 @@ class WhatsAppResponseHandler
         }
 
         match ($message->respuesta) {
-            WhatsAppMessage::RESPUESTA_CONFIRMAR => $appointment->confirmar(),
-            WhatsAppMessage::RESPUESTA_REPROGRAMAR => $appointment->marcarReprogramacion(),
+            WhatsAppMessage::RESPUESTA_CONFIRMAR => $appointment->update([
+                'confirmada' => true,
+                'pendiente_reprogramacion' => false,
+            ]),
+            WhatsAppMessage::RESPUESTA_REPROGRAMAR => $appointment->update([
+                'confirmada' => false,
+                'pendiente_reprogramacion' => true,
+            ]),
             default => Log::info('WhatsApp response received (no action).', [
                 'message_id' => $message->id,
                 'appointment_id' => $appointment->id,
