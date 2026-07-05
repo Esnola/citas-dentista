@@ -59,6 +59,8 @@ class TwilioWhatsAppStatusController extends Controller
     {
         $from = trim((string) data_get($payload, 'From', ''));
         $body = trim((string) data_get($payload, 'Body', ''));
+        $buttonText = trim((string) data_get($payload, 'ButtonText', ''));
+        $responseText = $buttonText !== '' ? $buttonText : $body;
         $messageSid = trim((string) data_get($payload, 'MessageSid', ''));
         $profileName = trim((string) data_get($payload, 'ProfileName', ''));
         $parentSid = trim((string) data_get($payload, 'ParentMessageSid', ''));
@@ -72,7 +74,7 @@ class TwilioWhatsAppStatusController extends Controller
             'conversation_sid' => $conversationSid ?: null,
         ]);
 
-        if ($from === '' || $body === '') {
+        if ($from === '' || $responseText === '') {
             return;
         }
 
@@ -90,13 +92,15 @@ class TwilioWhatsAppStatusController extends Controller
         }
 
         $message->update([
-            'respuesta' => mb_substr($body, 0, 50),
+            'respuesta' => mb_substr($responseText, 0, 50),
             'responded_at' => now(),
             'provider_payload' => array_merge($message->provider_payload ?? [], [
                 'inbound' => [
                     'direction' => strtolower(trim((string) data_get($payload, 'Direction', ''))),
                     'status' => strtolower(trim((string) data_get($payload, 'Status', data_get($payload, 'MessageStatus', '')))),
                     'body' => $body,
+                    'button_text' => $buttonText !== '' ? $buttonText : null,
+                    'response_text' => $responseText,
                     'message_sid' => $messageSid,
                     'parent_message_sid' => $parentSid ?: null,
                     'conversation_sid' => $conversationSid ?: null,
@@ -114,7 +118,7 @@ class TwilioWhatsAppStatusController extends Controller
             'matched_by' => $parentSid !== '' ? 'parent_message_sid' : 'phone_latest',
             'parent_message_sid' => $parentSid ?: null,
             'phone' => $phone,
-            'respuesta' => $body,
+            'respuesta' => $responseText,
             'appointment_id' => $message->appointment_id,
         ]);
     }

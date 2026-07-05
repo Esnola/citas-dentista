@@ -294,6 +294,63 @@ class TwilioWhatsAppStatusWebhookTest extends TestCase
         Carbon::setTestNow();
     }
 
+    public function test_twilio_inbound_uses_button_text_when_present(): void
+    {
+        Carbon::setTestNow('2026-06-23 10:00:00');
+
+        Config::set('whatsapp.twilio.auth_token', 'test-token');
+        Config::set('whatsapp.twilio.status_callback_url', route('webhooks.twilio.whatsapp-status', absolute: true));
+
+        $client = Client::query()->create([
+            'nombre' => 'Ana',
+            'apellidos' => 'Perez',
+            'telefono' => '+34600111222',
+        ]);
+
+        $message = WhatsAppMessage::query()->create([
+            'client_id' => $client->id,
+            'nombre' => 'Ana',
+            'apellidos' => 'Perez',
+            'telefono' => '+34600111222',
+            'scheduled_for' => now()->subMinute(),
+            'message' => 'Recordatorio',
+            'source' => WhatsAppMessage::SOURCE_APPOINTMENT,
+            'status' => WhatsAppMessage::STATUS_SENT,
+            'sent_at' => now()->subMinute(),
+            'provider_message_id' => 'SM_BUTTON_TEXT_001',
+            'provider_payload' => ['provider' => 'twilio'],
+        ]);
+
+        $payload = [
+            'AccountSid' => 'AC123',
+            'MessageSid' => 'SM_INBOUND_BUTTON_TEXT',
+            'Direction' => 'inbound-api',
+            'Status' => 'received',
+            'ButtonText' => 'Confirmar',
+            'Body' => '',
+            'To' => 'whatsapp:+14155238886',
+            'From' => 'whatsapp:+34600111222',
+            'ParentMessageSid' => 'SM_BUTTON_TEXT_001',
+        ];
+
+        $signature = (new RequestValidator('test-token'))->computeSignature(
+            route('webhooks.twilio.whatsapp-status', absolute: true),
+            $payload
+        );
+
+        $this->post(route('webhooks.twilio.whatsapp-status'), $payload, [
+            'X-Twilio-Signature' => $signature,
+        ])->assertNoContent();
+
+        $message->refresh();
+
+        $this->assertSame('Confirmar', $message->respuesta);
+        $this->assertSame('Confirmar', $message->provider_payload['inbound']['button_text']);
+        $this->assertSame('Confirmar', $message->provider_payload['inbound']['response_text']);
+
+        Carbon::setTestNow();
+    }
+
     public function test_twilio_inbound_overwrites_previous_response_on_same_message(): void
     {
         Carbon::setTestNow('2026-06-23 10:00:00');
