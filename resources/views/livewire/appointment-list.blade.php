@@ -441,7 +441,7 @@
                     };
                     $cardResponseClasses = match ($cardDisplayResponseLabel) {
                       'Confirmada' => 'bg-emerald-500/15 text-emerald-300 ring-1 ring-inset ring-emerald-400/30',
-                      'Reprogramar' => 'bg-amber-500/15 text-amber-300 ring-1 ring-inset ring-amber-400/30',
+                      'Consultar' => 'bg-red-500/15 text-red-300 ring-1 ring-inset ring-red-400/30',
                       default => 'bg-slate-500/15 text-slate-300 ring-1 ring-inset ring-slate-400/30',
                     };
                   @endphp

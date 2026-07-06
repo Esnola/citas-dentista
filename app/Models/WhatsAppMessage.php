@@ -180,6 +180,12 @@ class WhatsAppMessage extends Model
 
     public function isConfirmed(): bool
     {
+        $buttonPayload = strtolower(trim((string) data_get($this->provider_payload, 'inbound.button_payload', '')));
+
+        if ($buttonPayload !== '') {
+            return str_starts_with($buttonPayload, 'confirm');
+        }
+
         return $this->respuesta === self::RESPUESTA_CONFIRMAR;
     }
 

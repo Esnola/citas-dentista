@@ -10,6 +10,7 @@ class TwilioContentTemplate extends Model
     protected $fillable = [
         'nombre',
         'content_sid',
+        'content_variables',
         'seleccionada',
     ];
 
@@ -17,12 +18,21 @@ class TwilioContentTemplate extends Model
     {
         return [
             'seleccionada' => 'boolean',
+            'content_variables' => 'array',
         ];
     }
 
     public static function selectedContentSid(): ?string
     {
         return static::query()->where('seleccionada', true)->value('content_sid');
+    }
+
+    /**
+     * @return array<string, string>|null
+     */
+    public static function selectedContentVariables(): ?array
+    {
+        return static::query()->where('seleccionada', true)->first()?->content_variables;
     }
 
     public function select(): void

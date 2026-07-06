@@ -15,20 +15,26 @@ class WhatsAppResponseHandler
             return;
         }
 
-        match ($message->respuesta) {
-            WhatsAppMessage::RESPUESTA_CONFIRMAR => $appointment->update([
+        $buttonPayload = strtolower(trim((string) data_get($message->provider_payload, 'inbound.button_payload', '')));
+
+        $isConfirmed = $buttonPayload !== ''
+            ? str_starts_with($buttonPayload, 'confirm')
+            : strtolower(trim((string) $message->respuesta)) === 'confirmar';
+
+        if ($isConfirmed) {
+            $appointment->update([
                 'confirmada' => true,
                 'pendiente_reprogramacion' => false,
-            ]),
-            WhatsAppMessage::RESPUESTA_REPROGRAMAR => $appointment->update([
-                'confirmada' => false,
-                'pendiente_reprogramacion' => true,
-            ]),
-            default => Log::info('WhatsApp response received (no action).', [
-                'message_id' => $message->id,
-                'appointment_id' => $appointment->id,
-                'respuesta' => $message->respuesta,
-            ]),
-        };
+            ]);
+
+            return;
+        }
+
+        Log::info('WhatsApp response received (no action).', [
+            'message_id' => $message->id,
+            'appointment_id' => $appointment->id,
+            'respuesta' => $message->respuesta,
+            'button_payload' => $buttonPayload ?: null,
+        ]);
     }
 }

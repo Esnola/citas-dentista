@@ -171,9 +171,17 @@ class AppointmentDeliveryStatusSyncer
             'received_at' => now()->toDateTimeString(),
         ];
 
-        $message->update([
-            'provider_payload' => $providerPayload,
-        ]);
+        $updateData = ['provider_payload' => $providerPayload];
+
+        $rawStatus = strtolower(trim((string) data_get($response, 'status', '')));
+
+        if (in_array($rawStatus, ['failed', 'undelivered'], true) && $message->status !== WhatsAppMessage::STATUS_FAILED) {
+            $updateData['status'] = WhatsAppMessage::STATUS_FAILED;
+            $updateData['last_error'] = data_get($response, 'error_message')
+                ?: 'Twilio status: '.$rawStatus.' (error_code: '.data_get($response, 'error_code', 'N/A').')';
+        }
+
+        $message->update($updateData);
 
         return $message;
     }

@@ -19,6 +19,14 @@
         <flux:error name="contentSid"/>
       </flux:field>
 
+      <flux:radio.group wire:model="variablePreset" label="Variables de la plantilla">
+        <div class="grid gap-3 pt-2">
+          <flux:radio value="with_name" label='Nombre, día y hora · {"1":"[NOMBRE]","2":"[DIA]","3":"[HORA]"}'/>
+          <flux:radio value="appointment" label='Día y hora · {"1":"[DIA]","2":"[HORA]"}'/>
+        </div>
+      </flux:radio.group>
+      <flux:error name="variablePreset"/>
+
       <div>
         <flux:button type="submit" variant="primary">Guardar plantilla</flux:button>
       </div>
@@ -37,6 +45,7 @@
                 @endif
               </p>
               <p class="mt-1 font-mono text-sm text-slate-400">{{ $template->content_sid }}</p>
+              <p class="mt-1 font-mono text-xs text-slate-500">{{ json_encode($template->content_variables, JSON_UNESCAPED_SLASHES) }}</p>
             </div>
             <div class="flex flex-wrap gap-2">
               @unless ($template->seleccionada)

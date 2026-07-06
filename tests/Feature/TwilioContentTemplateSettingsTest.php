@@ -24,9 +24,11 @@ class TwilioContentTemplateSettingsTest extends TestCase
             ->test(TwilioContentTemplateSettings::class)
             ->set('nombre', 'Recordatorio')
             ->set('contentSid', $firstSid)
+            ->set('variablePreset', 'with_name')
             ->call('addTemplate')
             ->set('nombre', 'Confirmación')
             ->set('contentSid', $secondSid)
+            ->set('variablePreset', 'appointment')
             ->call('addTemplate');
 
         $second = TwilioContentTemplate::query()->where('content_sid', $secondSid)->firstOrFail();
@@ -38,10 +40,18 @@ class TwilioContentTemplateSettingsTest extends TestCase
             ->assertSet('status', 'Plantilla seleccionada.');
 
         $this->assertSame($secondSid, app(WhatsAppSender::class)->twilioContentSid());
+        $this->assertSame(
+            ['1' => '[DIA]', '2' => '[HORA]'],
+            $second->content_variables,
+        );
         config()->set('whatsapp.message_mode', 'template');
         $this->assertSame(
             $secondSid,
             app(WhatsAppSender::class)->buildTwilioPreviewRequest('600123123', 'Prueba')['ContentSid'],
+        );
+        $this->assertSame(
+            json_encode(['1' => '', '2' => '']),
+            app(WhatsAppSender::class)->buildTwilioPreviewRequest('600123123', 'Prueba')['ContentVariables'],
         );
         $this->assertTrue($second->fresh()->seleccionada);
     }

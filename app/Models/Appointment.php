@@ -151,12 +151,23 @@ class Appointment extends Model
 
     public function responseStatusLabel(): ?string
     {
-        return $this->latestRespondedWhatsAppMessage?->respuesta
-          ?? match (true) {
-              $this->confirmada => 'Confirmada',
-              $this->pendiente_reprogramacion => 'Reprogramar',
-              default => null,
-          };
+        $latest = $this->latestRespondedWhatsAppMessage;
+
+        if ($latest) {
+            $buttonPayload = strtolower(trim((string) data_get($latest->provider_payload, 'inbound.button_payload', '')));
+
+            if ($buttonPayload !== '') {
+                return str_starts_with($buttonPayload, 'confirm') ? 'Confirmar' : 'Consultar';
+            }
+
+            return $latest->respuesta;
+        }
+
+        return match (true) {
+            $this->confirmada => 'Confirmada',
+            $this->pendiente_reprogramacion => 'Reprogramar',
+            default => null,
+        };
     }
 
     public function wasRescheduled(): bool

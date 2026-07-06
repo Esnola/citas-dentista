@@ -285,7 +285,8 @@ class WhatsAppSender
     private function twilioContentVariables(?WhatsAppMessage $message, string $body): array
     {
         Carbon::setLocale('es');
-        $variables = config('whatsapp.twilio.content_variables', []);
+        $variables = TwilioContentTemplate::selectedContentVariables()
+            ?? config('whatsapp.twilio.content_variables', []);
 
         if (! is_array($variables)) {
             return [];
