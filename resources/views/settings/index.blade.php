@@ -285,6 +285,8 @@
                x-on:dragenter.prevent="setDropTarget('twilio-templates', $event)"
                x-on:dragover.prevent
                x-on:drop.prevent="drop('twilio-templates', $event)">
+        <div x-show="showDropHint('twilio-templates', 'before')" x-cloak
+             class="mb-4 h-1 rounded-full bg-emerald-400/80 shadow-[0_0_24px_rgba(52,211,153,0.45)]"></div>
         <div class="flex items-center justify-between gap-4">
           <div class="flex items-center gap-3">
             <x-botones.arrastrar-seccion seccion="twilio-templates"/>
@@ -296,9 +298,16 @@
           <x-botones.expandir-contraer abierto="isOpen('twilio-templates')" x-on:click="toggle('twilio-templates')"/>
         </div>
 
+        <div x-show="dragging === 'twilio-templates'" x-cloak
+             class="mt-4 rounded-2xl border border-emerald-400/20 bg-emerald-500/10 px-4 py-3 text-xs uppercase tracking-[0.28em] text-emerald-100">
+          Plantillas en movimiento
+        </div>
+
         <div x-show="isOpen('twilio-templates')" x-cloak class="mt-6">
           <livewire:twilio-content-template-settings/>
         </div>
+        <div x-show="showDropHint('twilio-templates', 'after')" x-cloak
+             class="mt-4 h-1 rounded-full bg-emerald-400/80 shadow-[0_0_24px_rgba(52,211,153,0.45)]"></div>
       </section>
 
       <section data-settings-section="reminders"

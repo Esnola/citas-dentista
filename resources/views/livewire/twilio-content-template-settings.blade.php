@@ -28,36 +28,68 @@
       <flux:error name="variablePreset"/>
 
       <div>
-        <flux:button type="submit" variant="primary">Guardar plantilla</flux:button>
+        <x-botones.icono-buton
+                icon="disquete"
+                type="submit"
+                label="Guardar plantilla"
+                texto="Guardar plantilla" />
       </div>
     </form>
 
     <div class="grid content-start gap-3">
       @if ($templates->isNotEmpty())
-        @foreach ($templates as $template)
+        @php
+          $selectedTemplate = $templates->firstWhere('seleccionada', true);
+          $otherTemplates = $templates->reject(fn ($t) => $t->seleccionada);
+        @endphp
+
+        @if ($selectedTemplate)
+          <div wire:key="twilio-template-selected-{{ $selectedTemplate->id }}"
+               class="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-emerald-400/50 bg-emerald-500/[0.03] p-4 transition-colors duration-150 hover:border-emerald-400/70 hover:bg-emerald-500/10">
+            <div>
+              <p class="font-medium text-slate-100">
+                {{ $selectedTemplate->nombre }}
+                <span class="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-0.5 text-xs font-semibold text-emerald-300 ring-1 ring-inset ring-emerald-400/40">
+                  <x-iconos.check clase="size-3"/>
+                  En uso
+                </span>
+              </p>
+              <p class="mt-1 font-mono text-sm text-slate-400">{{ $selectedTemplate->content_sid }}</p>
+              <p class="mt-1 font-mono text-xs text-slate-500">{{ json_encode($selectedTemplate->content_variables, JSON_UNESCAPED_SLASHES) }}</p>
+            </div>
+            <div class="flex flex-wrap gap-2">
+              <x-botones.icono-buton
+                      color="red"
+                      icon="papelera"
+                      label="Eliminar plantilla"
+                      texto="Eliminar"
+                      wire:click="deleteTemplate({{ $selectedTemplate->id }})"
+                      wire:confirm="¿Eliminar esta plantilla?" />
+            </div>
+          </div>
+        @endif
+
+        @foreach ($otherTemplates as $template)
           <div wire:key="twilio-template-{{ $template->id }}"
                class="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/10 bg-slate-900/50 p-4">
             <div>
-              <p class="font-medium text-slate-100">
-                {{ $template->nombre }}
-                @if ($template->seleccionada)
-                  <flux:badge color="emerald" size="sm">En uso</flux:badge>
-                @endif
-              </p>
+              <p class="font-medium text-slate-100">{{ $template->nombre }}</p>
               <p class="mt-1 font-mono text-sm text-slate-400">{{ $template->content_sid }}</p>
               <p class="mt-1 font-mono text-xs text-slate-500">{{ json_encode($template->content_variables, JSON_UNESCAPED_SLASHES) }}</p>
             </div>
             <div class="flex flex-wrap gap-2">
-              @unless ($template->seleccionada)
-                <flux:button type="button" size="sm" wire:click="selectTemplate({{ $template->id }})">
-                  Usar plantilla
-                </flux:button>
-              @endunless
-              <flux:button type="button" variant="danger" size="sm"
-                           wire:click="deleteTemplate({{ $template->id }})"
-                           wire:confirm="¿Eliminar esta plantilla?">
-                Eliminar
-              </flux:button>
+              <x-botones.icono-buton
+                      icon="check"
+                      label="Usar plantilla"
+                      texto="Usar plantilla"
+                      wire:click="selectTemplate({{ $template->id }})" />
+              <x-botones.icono-buton
+                      color="red"
+                      icon="papelera"
+                      label="Eliminar plantilla"
+                      texto="Eliminar"
+                      wire:click="deleteTemplate({{ $template->id }})"
+                      wire:confirm="¿Eliminar esta plantilla?" />
             </div>
           </div>
         @endforeach
