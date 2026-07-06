@@ -24,14 +24,20 @@
     </div>
 
     <div class="mt-4 flex flex-wrap items-end gap-4">
-      <flux:field>
-        <flux:label>Nombre</flux:label>
-        <x-formularios.input wire:model.live.debounce.300ms="filter_nombre" placeholder="Filtrar por nombre"/>
-      </flux:field>
-      <flux:field>
-        <flux:label>Apellidos</flux:label>
-        <x-formularios.input wire:model.live.debounce.300ms="filter_apellidos" placeholder="Filtrar por apellidos"/>
-      </flux:field>
+      <div class="flex items-center gap-4">
+        <flux:field class="flex flex-col">
+          <flux:label>Enviadas</flux:label>
+          <x-formularios.toggle :checked="false" disabled/>
+        </flux:field>
+        <flux:field class="flex flex-col">
+          <flux:label>Entregadas</flux:label>
+          <x-formularios.toggle :checked="false" disabled/>
+        </flux:field>
+        <flux:field class="flex flex-col">
+          <flux:label>Suspendidas</flux:label>
+          <x-formularios.toggle :checked="false" disabled/>
+        </flux:field>
+      </div>
       <div class="group flex items-center gap-2">
         <button type="button"
                 class="cursor-pointer rounded-full p-2"
@@ -62,20 +68,6 @@
           </div>
         </div>
       </div>
-      {{--      <div class="flex items-center gap-4">
-              <flux:field class="flex flex-col">
-                <flux:label>Enviadas</flux:label>
-                <x-formularios.toggle wire:model.live="filter_enviado"/>
-              </flux:field>
-              <flux:field class="flex flex-col">
-                <flux:label>Entregadas</flux:label>
-                <x-formularios.toggle wire:model.live="filter_entregado"/>
-              </flux:field>
-              <flux:field class="flex flex-col">
-                <flux:label>Suspendidas</flux:label>
-                <x-formularios.toggle wire:model.live="filter_activo"/>
-              </flux:field>
-    </div>--}}
     </div>
 
     <div class="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">

@@ -8,7 +8,7 @@
       <div class="flex gap-6 items-center">
         <x-iconos.calendar/>
         <h2 class="text-xl font-semibold">
-          {{ $sentOnly ? 'Citas enviadas' : ($selectedClient?->full_name ?? 'Citas') }}
+          {{ $selectedClient?->full_name ?? 'Citas' }}
         </h2>
         <h3 class="rounded-2xl border border-green-300/70 shadow-xs shadow-green-300 bg-slate-900/60 px-4 py-3 text-sm text-slate-300">
           {{ $appointmentsCount }} cita{{ $appointmentsCount > 1 ? 's' : '' }}
@@ -28,23 +28,6 @@
                 wire:target="syncDeliveryStatuses"
         />
 
-        @if ($showAppointmentNavigation)
-          <div class="contents" data-appointment-navigation="{{ $sentOnly ? 'all' : 'sent' }}">
-            @if ($sentOnly)
-              <x-botones.icono-buton
-                      icon="calendar"
-                      label="Todas las citas"
-                      texto="Todas las citas"
-                      onclick="window.location.href='{{ route('appointments.index')}}'"/>
-            @else
-              <x-botones.icono-buton
-                      icon="calendario-filtro"
-                      label="Citas enviadas"
-                      texto="Citas enviadas"
-                      onclick="window.location.href='{{ route('appointments.sent')}}'"/>
-            @endif
-          </div>
-        @endif
         <x-botones.icono-buton
                 color="emerald"
                 icon="nueva-cita"
@@ -52,35 +35,53 @@
                 texto="Nueva cita"
                 onclick="window.location.href='{{ route('appointments.create', $selectedClient ? ['client' => $selectedClient->id] : []) }}'"
         />
-
-
       </div>
     </div>
 
     <div class="mt-4 flex flex-wrap items-center gap-4">
-      @if ($selectedClient && ! $sentOnly)
-        <flux:radio.group wire:model.live="dateFilter" variant="segmented" label="Citas"
-                          class="border border-white/10 rounded-2xl gap-1"
-                          :disabled="$showAllHistory">
-          <flux:radio value="upcoming"
-                      class="cursor-pointer bg-white/5 hover:bg-emerald-50/60 hover:text-white/60t transition-all duration-300 data-checked:bg-emerald-200/30! data-checked:text-emerald-200!">
-            <x-iconos.proxima-cita/>
-            Próximas
-          </flux:radio>
-          <flux:radio value="all"
-                      class="cursor-pointer bg-white/5 hover:bg-emerald-50/60 hover:text-white/60t transition-all duration-300 data-checked:bg-emerald-200/30! data-checked:text-emerald-200!">
-            <x-iconos.todos/>
-            Todas
-          </flux:radio>
-          <flux:radio value="past"
-                      class="cursor-pointer bg-white/5 hover:bg-emerald-50/60 hover:text-white/60t transition-all duration-300 data-checked:bg-emerald-200/30! data-checked:text-emerald-200!">
-            <x-iconos.calendario-pasado/>
-            Pasadas
-          </flux:radio>
-        </flux:radio.group>
-      @endif
+      <flux:radio.group variant="segmented" label="Citas"
+                        class="border border-white/10 rounded-2xl gap-1"
+                        disabled>
+        <flux:radio value="upcoming"
+                    class="cursor-pointer bg-white/5 hover:bg-emerald-50/60 hover:text-white/60t transition-all duration-300 data-checked:bg-emerald-200/30! data-checked:text-emerald-200!">
+          <x-iconos.proxima-cita/>
+          Próximas
+        </flux:radio>
+        <flux:radio value="all"
+                    class="cursor-pointer bg-white/5 hover:bg-emerald-50/60 hover:text-white/60t transition-all duration-300 data-checked:bg-emerald-200/30! data-checked:text-emerald-200!">
+          <x-iconos.todos/>
+          Todas
+        </flux:radio>
+        <flux:radio value="past"
+                    class="cursor-pointer bg-white/5 hover:bg-emerald-50/60 hover:text-white/60t transition-all duration-300 data-checked:bg-emerald-200/30! data-checked:text-emerald-200!">
+          <x-iconos.calendario-pasado/>
+          Pasadas
+        </flux:radio>
+      </flux:radio.group>
 
-      @if ($showBulkActions && count($selectedAppointmentIds))
+      <div class="flex flex-col items-center justify-center gap-2">
+        <flux:label class="text-[14px] font-bold">Filtros</flux:label>
+        <div class="flex items-center justify-center ml-6 gap-4">
+          <flux:field class="flex flex-col">
+            <flux:label>Enviadas</flux:label>
+            <x-formularios.toggle :checked="false" disabled/>
+          </flux:field>
+
+          <flux:field class="flex flex-col">
+            <flux:label>Entregadas</flux:label>
+            <x-formularios.toggle :checked="false" disabled/>
+          </flux:field>
+
+          <flux:field class="flex flex-col">
+            <flux:label>Suspendidas</flux:label>
+            <x-formularios.toggle :checked="false" disabled/>
+          </flux:field>
+        </div>
+      </div>
+    </div>
+
+    @if ($showBulkActions && count($selectedAppointmentIds))
+      <div class="mt-4">
         <flux:dropdown>
           <flux:button icon="list-bullet" icon:trailing="chevron-down" variant="primary"
                        class="bg-emerald-600! text-white! hover:bg-emerald-500!"
@@ -103,43 +104,8 @@
             </flux:menu.item>
           </flux:menu>
         </flux:dropdown>
-      @endif
-      @if($show_filters_nombre)
-        <flux:field>
-          <flux:label>Nombre</flux:label>
-          <x-formularios.input wire:model.live.debounce.300ms="filter_nombre" placeholder="Filtrar por nombre"
-                               id="filter-nombre"
-                               onkeydown="if(event.key==='Tab'){const a=document.querySelector('table tbody tr a');if(a){event.preventDefault();a.focus();}}"/>
-        </flux:field>
-
-        <flux:field>
-          <flux:label>Apellidos</flux:label>
-          <x-formularios.input wire:model.live.debounce.300ms="filter_apellidos"
-                               placeholder="Filtrar por apellidos"/>
-        </flux:field>
-      @endif
-      @unless ($sentOnly)
-        <div class="flex flex-col items-center justify-center gap-2">
-          <flux:label class="text-[14px] font-bold">Filtros</flux:label>
-          <div class="flex items-center justify-center ml-6 gap-4">
-            <flux:field class="flex flex-col">
-              <flux:label>Enviadas</flux:label>
-              <x-formularios.toggle wire:model.live="filter_enviado"/>
-            </flux:field>
-
-            <flux:field class="flex flex-col">
-              <flux:label>Entregadas</flux:label>
-              <x-formularios.toggle wire:model.live="filter_entregado"/>
-            </flux:field>
-
-            <flux:field class="flex flex-col">
-              <flux:label>Supendidas</flux:label>
-              <x-formularios.toggle wire:model.live="filter_activo"/>
-            </flux:field>
-          </div>
-        </div>
-      @endunless
-    </div>
+      </div>
+    @endif
 
     @if ($selectedClient)
       <div class="mt-4 overflow-hidden rounded-2xl border border-white/10">
@@ -148,15 +114,15 @@
           <tr>
             <th class="px-4 py-3 text-xs">
               <input type="checkbox"
-                     wire:key="select-all-appointments-{{ $dateFilter }}-{{ (int) $filter_enviado }}-{{ (int) $filter_activo }}-{{ (int) $filter_entregado }}"
+                     wire:key="select-all-appointments"
                      class="size-4 cursor-pointer rounded border-white/20 bg-slate-950/50 text-emerald-500 accent-emerald-500 focus:ring-2 focus:ring-emerald-400/40 focus:ring-offset-0"
                      @checked($allVisibleAppointmentsSelected)
                      wire:change="toggleVisibleAppointments(@js($visibleAppointmentIds))"
                      aria-label="{{ $allVisibleAppointmentsSelected ? 'Deseleccionar todas las citas visibles' : 'Seleccionar todas las citas visibles' }}"
               >
             </th>
-            <x-tabla.th-sort sortBy="cliente" :sortDirection="$sort_direction" :currentSort="$sort_by"/>
-            <x-tabla.th-sort sortBy="fecha" :sortDirection="$sort_direction" :currentSort="$sort_by"/>
+            <th class="px-4 py-3">Cliente</th>
+            <x-tabla.th-sort sortBy="fecha" :sortDirection="$sort_direction" currentSort="fecha"/>
             <th class="px-4 py-3 text-center">Hora Cita</th>
             <th class="px-4 py-3 text-center">
               <div class="flex items-center justify-center gap-2">
@@ -190,7 +156,7 @@
               $editUrl = route('appointments.edit', $appointment);
               $rowUrl = $selectedClient
                   ? $editUrl
-                  : ($sentOnly ? $editUrl : route('clients.appointments', $appointment->client_id));
+                  : route('clients.appointments', $appointment->client_id);
               $isInactive = ! $appointment->cita_activa || $appointment->scheduledFor()->isPast();
             @endphp
             <tr wire:key="appointment-{{ $appointment->id }}"
@@ -213,13 +179,6 @@
                 <a href="{{ $rowUrl }}" tabindex="-1"
                    class="inline-flex items-center gap-2 font-medium {{ $isInactive ? 'text-slate-400 hover:text-slate-300' : 'text-emerald-300 hover:text-emerald-200' }}">
                   <span>{{ $appointment->client?->nombre }} {{ $appointment->client?->apellidos }}</span>
-          {{--        @if (($appointment->appointments_count ?? 1) > 1)
-                    <span class="inline-flex items-center rounded-full bg-sky-500/15 px-2 py-0.5 text-xs font-semibold text-sky-200 ring-1 ring-inset ring-sky-400/30"
-                          title="{{ $appointment->appointments_count }} citas"
-                          aria-label="{{ $appointment->appointments_count }} citas">
-                    {{ $appointment->appointments_count }}
-                  </span>
-                  @endif--}}
                 </a>
               </td>
               <td class="px-4 py-3 text-center text-xs">{{ucwords($appointment->fecha?->translatedFormat('l, d - F - Y'))}}</td>
@@ -334,6 +293,7 @@
                           icon="whatsapp"
                           label="Reenviar"
                           texto="Reenviar"
+                          especialtexto="text-xs!"
                           wire:click="confirmResend({{ $appointment->id }})"
                           wire:loading.attr="disabled"
                           wire:target="confirmResend({{ $appointment->id }})"
@@ -383,7 +343,7 @@
           @empty
             <tr>
               <td class="px-4 py-6 text-slate-400" colspan="11">
-                {{ $sentOnly ? 'No hay citas enviadas para mostrar todavía.' : 'No hay citas para mostrar todavía.' }}
+                No hay citas para mostrar todavía.
               </td>
             </tr>
           @endforelse
@@ -476,6 +436,7 @@
     </div>
   </div>
 
+  {{-- MODAL DE CONFIRMACION BORRADO --}}
   @if ($appointmentPendingDeletion)
     <x-modales.confirmacion x-data="{ modalOpen: true }" x-trap.noscroll="modalOpen"
                             x-on:keydown.escape.window="$wire.cancelDelete()" titulo="Eliminar cita">
@@ -495,7 +456,7 @@
       </x-slot:actions>
     </x-modales.confirmacion>
   @endif
-
+{{-- MODAL DE CONFIRMACION REENVIO --}}
   @if ($appointmentPendingResend)
     <x-modales.confirmacion x-data="{ modalOpen: true }" x-trap.noscroll="modalOpen"
                             x-on:keydown.escape.window="$wire.cancelResend()" titulo="Reenviar WhatsApp">
