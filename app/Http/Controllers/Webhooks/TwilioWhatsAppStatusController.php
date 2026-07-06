@@ -65,12 +65,15 @@ class TwilioWhatsAppStatusController extends Controller
         $responseText = $buttonText !== '' ? $buttonText : ($buttonPayload !== '' ? $buttonPayload : $body);
         $messageSid = trim((string) data_get($payload, 'MessageSid', ''));
         $profileName = trim((string) data_get($payload, 'ProfileName', ''));
-        $parentSid = trim((string) data_get($payload, 'ParentMessageSid', ''));
+        $parentSid = trim((string) data_get($payload, 'ParentMessageSid', ''))
+            ?: trim((string) data_get($payload, 'OriginalRepliedMessageSid', ''));
         $conversationSid = trim((string) data_get($payload, 'ConversationSid', ''));
 
         Log::info('WhatsApp inbound message received.', [
             'from' => $from,
             'body' => $body,
+            'button_text' => $buttonText ?: null,
+            'button_payload' => $buttonPayload ?: null,
             'message_sid' => $messageSid,
             'parent_message_sid' => $parentSid ?: null,
             'conversation_sid' => $conversationSid ?: null,
