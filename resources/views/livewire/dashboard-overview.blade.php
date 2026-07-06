@@ -18,7 +18,7 @@
     <div class="relative flex flex-col justify-between gap-6 md:flex-row md:items-center">
       <div class="space-y-2">
         <h1 class="text-3xl font-bold tracking-tight text-white md:text-4xl">
-          {{ $saludo }}, <span class="bg-gradient-to-r from-emerald-400 to-indigo-400 bg-clip-text text-transparent">{{ auth()->user()->name ?? 'Doctor' }}</span>
+          {{ $saludo }}, <span class="bg-linear-to-r from-emerald-400 to-indigo-400 bg-clip-text text-transparent">{{ auth()->user()->name ?? 'Doctor' }}</span>
         </h1>
         <p class="text-slate-400 max-w-xl text-base">
           Bienvenido de nuevo a tu panel de control. Aquí tienes un resumen del estado de tus citas y recordatorios para hoy.
@@ -33,113 +33,13 @@
 
   {{-- Grid de métricas --}}
   <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-    {{-- Pendientes --}}
-    <div class="group relative overflow-hidden rounded-2xl border border-amber-500/10 bg-slate-900/30 p-4 backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:border-amber-500/30 hover:bg-slate-900/60 hover:shadow-xl hover:shadow-amber-500/5">
-      <div class="absolute top-0 right-0 h-16 w-16 rounded-bl-full bg-amber-500/5 transition-all duration-300 group-hover:bg-amber-500/10"></div>
-      <div class="flex items-center justify-between">
-        <div class="space-y-0.5">
-          <p class="text-xs font-semibold tracking-wide uppercase text-amber-400/80">Pendientes</p>
-          <p class="text-2xl font-extrabold text-white tracking-tight">{{ $pendingCount }}</p>
-        </div>
-        <div class="rounded-xl bg-amber-500/10 p-2.5 text-amber-300 transition-all duration-300 group-hover:bg-amber-500/20 group-hover:scale-110">
-          <x-iconos.reloj-arena clase="size-5" />
-        </div>
-      </div>
-      <div class="mt-3 flex items-center justify-between border-t border-white/5 pt-2.5">
-        <span class="text-[10px] text-slate-400">Por enviar</span>
-        <span class="inline-flex items-center text-[10px] font-medium text-amber-300 bg-amber-500/10 px-1.5 py-0.5 rounded-full">Espera</span>
-      </div>
-    </div>
 
-    {{-- Enviados --}}
-    <div class="group relative overflow-hidden rounded-2xl border border-emerald-500/10 bg-slate-900/30 p-4 backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:border-emerald-500/30 hover:bg-slate-900/60 hover:shadow-xl hover:shadow-emerald-500/5">
-      <div class="absolute top-0 right-0 h-16 w-16 rounded-bl-full bg-emerald-500/5 transition-all duration-300 group-hover:bg-emerald-500/10"></div>
-      <div class="flex items-center justify-between">
-        <div class="space-y-0.5">
-          <p class="text-xs font-semibold tracking-wide uppercase text-emerald-400/80">Enviados</p>
-          <p class="text-2xl font-extrabold text-white tracking-tight">{{ $sentCount }}</p>
-        </div>
-        <div class="rounded-xl bg-emerald-500/10 p-2.5 text-emerald-300 transition-all duration-300 group-hover:bg-emerald-500/20 group-hover:scale-110">
-          <x-iconos.whatsapp clase="size-5" />
-        </div>
-      </div>
-      <div class="mt-3 flex items-center justify-between border-t border-white/5 pt-2.5">
-        <span class="text-[10px] text-slate-400">Entregados</span>
-        <span class="inline-flex items-center text-[10px] font-medium text-emerald-300 bg-emerald-500/10 px-1.5 py-0.5 rounded-full">Éxito</span>
-      </div>
-    </div>
-
-    {{-- Fallidos --}}
-    <div class="group relative overflow-hidden rounded-2xl border border-red-500/10 bg-slate-900/30 p-4 backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:border-red-500/30 hover:bg-slate-900/60 hover:shadow-xl hover:shadow-red-500/5">
-      <div class="absolute top-0 right-0 h-16 w-16 rounded-bl-full bg-red-500/5 transition-all duration-300 group-hover:bg-red-500/10"></div>
-      <div class="flex items-center justify-between">
-        <div class="space-y-0.5">
-          <p class="text-xs font-semibold tracking-wide uppercase text-red-400/80">Fallidos</p>
-          <p class="text-2xl font-extrabold text-white tracking-tight">{{ $failedCount }}</p>
-        </div>
-        <div class="rounded-xl bg-red-500/10 p-2.5 text-red-300 transition-all duration-300 group-hover:bg-red-500/20 group-hover:scale-110">
-          <x-iconos.alert clase="size-5" />
-        </div>
-      </div>
-      <div class="mt-3 flex items-center justify-between border-t border-white/5 pt-2.5">
-        <span class="text-[10px] text-slate-400">Atención</span>
-        <span class="inline-flex items-center text-[10px] font-medium text-red-300 bg-red-500/10 px-1.5 py-0.5 rounded-full">Error</span>
-      </div>
-    </div>
-
-    {{-- Canceladas --}}
-    <div class="group relative overflow-hidden rounded-2xl border border-slate-500/10 bg-slate-900/30 p-4 backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:border-slate-500/30 hover:bg-slate-900/60 hover:shadow-xl hover:shadow-slate-500/5">
-      <div class="absolute top-0 right-0 h-16 w-16 rounded-bl-full bg-slate-500/5 transition-all duration-300 group-hover:bg-slate-500/10"></div>
-      <div class="flex items-center justify-between">
-        <div class="space-y-0.5">
-          <p class="text-xs font-semibold tracking-wide uppercase text-slate-400/80">Canceladas</p>
-          <p class="text-2xl font-extrabold text-white tracking-tight">{{ $cancelados }}</p>
-        </div>
-        <div class="rounded-xl bg-slate-500/10 p-2.5 text-slate-300 transition-all duration-300 group-hover:bg-slate-500/20 group-hover:scale-110">
-          <x-iconos.papelera clase="size-5" />
-        </div>
-      </div>
-      <div class="mt-3 flex items-center justify-between border-t border-white/5 pt-2.5">
-        <span class="text-[10px] text-slate-400">Inactivo</span>
-        <span class="inline-flex items-center text-[10px] font-medium text-slate-300 bg-slate-500/10 px-1.5 py-0.5 rounded-full">Off</span>
-      </div>
-    </div>
-
-    {{-- Caducados --}}
-    <div class="group relative overflow-hidden rounded-2xl border border-orange-500/10 bg-slate-900/30 p-4 backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:border-orange-500/30 hover:bg-slate-900/60 hover:shadow-xl hover:shadow-orange-500/5">
-      <div class="absolute top-0 right-0 h-16 w-16 rounded-bl-full bg-orange-500/5 transition-all duration-300 group-hover:bg-orange-500/10"></div>
-      <div class="flex items-center justify-between">
-        <div class="space-y-0.5">
-          <p class="text-xs font-semibold tracking-wide uppercase text-orange-400/80">Caducados</p>
-          <p class="text-2xl font-extrabold text-white tracking-tight">{{ $caducados }}</p>
-        </div>
-        <div class="rounded-xl bg-orange-500/10 p-2.5 text-orange-300 transition-all duration-300 group-hover:bg-orange-500/20 group-hover:scale-110">
-          <x-iconos.calendario-pasado clase="size-5" />
-        </div>
-      </div>
-      <div class="mt-3 flex items-center justify-between border-t border-white/5 pt-2.5">
-        <span class="text-[10px] text-slate-400">Sin notificar</span>
-        <span class="inline-flex items-center text-[10px] font-medium text-orange-300 bg-orange-500/10 px-1.5 py-0.5 rounded-full">Expira</span>
-      </div>
-    </div>
-
-    {{-- Totales --}}
-    <div class="group relative overflow-hidden rounded-2xl border border-indigo-500/10 bg-slate-900/30 p-4 backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:border-indigo-500/30 hover:bg-slate-900/60 hover:shadow-xl hover:shadow-indigo-500/5">
-      <div class="absolute top-0 right-0 h-16 w-16 rounded-bl-full bg-indigo-500/5 transition-all duration-300 group-hover:bg-indigo-500/10"></div>
-      <div class="flex items-center justify-between">
-        <div class="space-y-0.5">
-          <p class="text-xs font-semibold tracking-wide uppercase text-indigo-400/80">Totales</p>
-          <p class="text-2xl font-extrabold text-white tracking-tight">{{ $totales }}</p>
-        </div>
-        <div class="rounded-xl bg-indigo-500/10 p-2.5 text-indigo-300 transition-all duration-300 group-hover:bg-indigo-500/20 group-hover:scale-110">
-          <x-iconos.cita clase="size-5" />
-        </div>
-      </div>
-      <div class="mt-3 flex items-center justify-between border-t border-white/5 pt-2.5">
-        <span class="text-[10px] text-slate-400">Histórico</span>
-        <span class="inline-flex items-center text-[10px] font-medium text-indigo-300 bg-indigo-500/10 px-1.5 py-0.5 rounded-full">Total</span>
-      </div>
-    </div>
+    <x-dashboard.metric-card title="Citas Pendientes" :value="$pendingCount" icon="reloj-arena" detail="Por enviar" badge="Espera" color="amber" />
+    <x-dashboard.metric-card title="Enviados" :value="$sentCount" icon="whatsapp" detail="Entregados" badge="Éxito" color="emerald" />
+    <x-dashboard.metric-card title="Fallidos" :value="$failedCount" icon="alert" detail="Atención" badge="Error" color="red" />
+    <x-dashboard.metric-card title="Canceladas" :value="$cancelados" icon="papelera" detail="Inactivo" badge="Off" color="slate" />
+    <x-dashboard.metric-card title="Caducados" :value="$caducados" icon="calendario-pasado" detail="Sin notificar" badge="Expira" color="orange" />
+    <x-dashboard.metric-card title="Totales" :value="$totales" icon="cita" detail="Histórico" badge="Total" color="indigo" />
   </div>
 
 </div>
