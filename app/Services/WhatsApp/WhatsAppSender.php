@@ -2,6 +2,7 @@
 
 namespace App\Services\WhatsApp;
 
+use App\Models\TwilioContentTemplate;
 use App\Models\WhatsAppMessage;
 use App\Traits\NormalizesPhone;
 use Carbon\Carbon;
@@ -197,7 +198,7 @@ class WhatsAppSender
         $config = config('whatsapp.twilio');
         $from = $config['from'] ?? null;
         $messagingServiceSid = $config['messaging_service_sid'] ?? null;
-        $contentSid = $config['content_sid'] ?? null;
+        $contentSid = $this->twilioContentSid();
         $resolvedMode = $this->resolveTwilioMode($mode);
         $messageMode = strtolower(trim((string) config('whatsapp.message_mode', 'text')));
         $usesTemplate = $messageMode === 'template';
@@ -418,6 +419,12 @@ class WhatsAppSender
         return filled(config('whatsapp.twilio.test_recipient'))
             ? (string) config('whatsapp.twilio.test_recipient')
             : null;
+    }
+
+    public function twilioContentSid(): ?string
+    {
+        return TwilioContentTemplate::selectedContentSid()
+            ?: config('whatsapp.twilio.content_sid');
     }
 
     private function twilioStatusCallbackUrl(): string

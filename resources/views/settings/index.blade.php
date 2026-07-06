@@ -12,7 +12,7 @@
     $twilioApiKeySecret = (string) ($twilio['api_key_secret'] ?? '');
     $twilioFrom = (string) ($twilio['from'] ?? '');
     $twilioServiceSid = (string) ($twilio['messaging_service_sid'] ?? '');
-    $twilioContentSid = (string) ($twilio['content_sid'] ?? '');
+    $twilioContentSid = (string) app(WhatsAppSender::class)->twilioContentSid();
     $twilioMode = (string) ($twilio['mode'] ?? 'auto');
     $twilioResolvedMode = app(WhatsAppSender::class)->resolveTwilioMode();
     $twilioUsesApiKey = filled($twilioApiKeySid) && filled($twilioApiKeySecret);
@@ -276,6 +276,29 @@
         </div>
         <div x-show="showDropHint('connection', 'after')" x-cloak
              class="mt-4 h-1 rounded-full bg-emerald-400/80 shadow-[0_0_24px_rgba(52,211,153,0.45)]"></div>
+      </section>
+
+      <section data-settings-section="twilio-templates"
+               data-default-open="true"
+               class="rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur"
+               x-bind:class="sectionStateClasses('twilio-templates')"
+               x-on:dragenter.prevent="setDropTarget('twilio-templates', $event)"
+               x-on:dragover.prevent
+               x-on:drop.prevent="drop('twilio-templates', $event)">
+        <div class="flex items-center justify-between gap-4">
+          <div class="flex items-center gap-3">
+            <x-botones.arrastrar-seccion seccion="twilio-templates"/>
+            <div>
+              <h3 class="text-lg font-semibold">Plantillas de Twilio</h3>
+              <p class="text-sm text-slate-300">Guarda Content SID y elige cuál usa WhatsApp.</p>
+            </div>
+          </div>
+          <x-botones.expandir-contraer abierto="isOpen('twilio-templates')" x-on:click="toggle('twilio-templates')"/>
+        </div>
+
+        <div x-show="isOpen('twilio-templates')" x-cloak class="mt-6">
+          <livewire:twilio-content-template-settings/>
+        </div>
       </section>
 
       <section data-settings-section="reminders"
