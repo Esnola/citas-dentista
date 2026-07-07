@@ -7,6 +7,9 @@ use App\Http\Controllers\AppointmentIndexController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\Webhooks\TwilioWhatsAppStatusController;
+use App\Models\Appointment;
+use App\Models\WhatsAppMessage;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [HomeController::class, 'index'])->name('home');
@@ -37,6 +40,20 @@ Route::middleware('auth')->group(function () {
 
     Route::view('/appointments/create', 'appointments.form')->name('appointments.create');
     Route::view('/appointments/{appointment}/edit', 'appointments.form')->name('appointments.edit');
+
+    Route::post('/appointments/{appointment}/toggle', function (Appointment $appointment, Request $request) {
+        abort_unless($appointment->canBeChanged(), 403);
+        $field = $request->validate(['field' => 'required|in:activo,cita_activa'])['field'];
+        $value = (bool) $request->validate(['value' => 'required|boolean'])['value'];
+        $appointment->update([$field => $value]);
+        if ($field === 'activo' && ! $value) {
+            $appointment->whatsAppMessages()
+                ->where('status', WhatsAppMessage::STATUS_PENDING)
+                ->delete();
+        }
+
+        return response()->json(['ok' => true]);
+    })->name('appointments.toggle');
 
     Route::middleware('admin')->group(function () {
         Route::get('/admin/users', [AdminUserController::class, 'create'])->name('admin.users.create');

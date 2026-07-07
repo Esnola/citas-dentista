@@ -107,13 +107,6 @@ class AppointmentForm extends Component
         if ($this->selectedAppointmentId) {
             $appointment = Appointment::query()->findOrFail($this->selectedAppointmentId);
 
-            if (! $appointment->canBeChanged()) {
-                session()->flash('status', 'Esta cita no se puede modificar. Solo se puede eliminar.');
-                $this->redirect(url()->previous());
-
-                return;
-            }
-
             $appointment->update($payload);
             session()->flash('status', 'Cita actualizada correctamente.');
             $this->redirect($this->returnUrl ?: url()->previous());
@@ -279,7 +272,7 @@ class AppointmentForm extends Component
                 'integer',
                 Rule::exists('clients', 'id'),
             ],
-            'fecha' => ['required', Rule::date()->afterToday()],
+            'fecha' => ['required', 'date', Rule::date()->afterOrEqual('today')],
             'hora' => ['required', 'date_format:H:i'],
             'enviado' => ['boolean'],
             'activo' => ['boolean'],
@@ -290,7 +283,7 @@ class AppointmentForm extends Component
     protected function messages(): array
     {
         return [
-            'fecha.after' => 'La fecha debe ser posterior a hoy.',
+            'fecha.after' => 'La fecha no puede ser anterior a hoy.',
         ];
     }
 
@@ -318,7 +311,7 @@ class AppointmentForm extends Component
 
     private function minimumSelectableDate(): string
     {
-        return now()->addDay()->toDateString();
+        return now()->toDateString();
     }
 
     private function resolveReturnUrl(): string

@@ -3,6 +3,7 @@
     'estado' => null,
     'variant' => 'emerald',
     'locked' => false,
+    'offColor' => 'bg-slate-700',
 ])
 
 @php
@@ -22,7 +23,7 @@
     'cursor-pointer border-white/10 bg-slate-950/40 hover:border-emerald-400/20 hover:bg-emerald-400/10' => ! $isLocked,
 ])>
   <input {{ $attributes->class(['peer sr-only'])->merge(['type' => 'checkbox', 'disabled' => $isLocked]) }}>
-  <span class="h-5 w-9 rounded-full bg-slate-700 transition after:block after:h-4 after:w-4 after:translate-x-0.5 after:translate-y-0.5 after:rounded-full after:bg-white after:transition peer-checked:after:translate-x-4 peer-focus-visible:ring-2 peer-disabled:after:bg-slate-400 {{ $checkedClasses }}"></span>
+  <span class="h-5 w-9 rounded-full transition after:block after:h-4 after:w-4 after:translate-x-0.5 after:translate-y-0.5 after:rounded-full after:bg-white after:transition peer-checked:after:translate-x-4 peer-focus-visible:ring-2 peer-disabled:after:bg-slate-400 {{ $offColor }} {{ $checkedClasses }}"></span>
   @if ($texto || trim($slot->toHtml()) !== '')
     <span class="text-sm {{ $isLocked ? 'text-slate-500' : 'text-slate-200' }}">{{ $texto ?? $slot }}</span>
   @endif

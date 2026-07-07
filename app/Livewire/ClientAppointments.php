@@ -19,6 +19,10 @@ class ClientAppointments extends Component
 
     public string $sort_direction = 'asc';
 
+    public string $filter = 'upcoming';
+
+    public ?string $whatsappFilter = null;
+
     public int $clientId;
 
     public ?int $appointmentPendingDeletionId = null;
@@ -27,6 +31,8 @@ class ClientAppointments extends Component
 
     /** @var array<int, int|string> */
     public array $selectedAppointmentIds = [];
+
+    public bool $selectAll = false;
 
     public bool $bulkDeleteConfirmationOpen = false;
 
@@ -57,14 +63,26 @@ class ClientAppointments extends Component
             if (! in_array($this->sort_direction, ['asc', 'desc'], true)) {
                 $this->sort_direction = 'asc';
             }
-
-            $this->resetPage('appointmentsPage');
         }
+
+        if ($property === 'filter') {
+            if (! in_array($this->filter, ['upcoming', 'past', 'all'], true)) {
+                $this->filter = 'upcoming';
+            }
+        }
+
+        $this->resetPage('appointmentsPage');
     }
 
     public function toggleSortDirection(): void
     {
         $this->sort_direction = $this->sort_direction === 'asc' ? 'desc' : 'asc';
+        $this->resetPage('appointmentsPage');
+    }
+
+    public function toggleWhatsappFilter(string $value): void
+    {
+        $this->whatsappFilter = $this->whatsappFilter === $value ? null : $value;
         $this->resetPage('appointmentsPage');
     }
 
@@ -86,6 +104,8 @@ class ClientAppointments extends Component
         $this->selectedAppointmentIds = array_diff($appointmentIds, $selectedIds) === []
           ? array_values(array_diff($selectedIds, $appointmentIds))
           : array_values(array_unique([...$selectedIds, ...$appointmentIds]));
+
+        $this->selectAll = $appointmentIds !== [] && array_diff($appointmentIds, $this->selectedAppointmentIds) === [];
     }
 
     public function confirmBulkDelete(): void
@@ -105,6 +125,7 @@ class ClientAppointments extends Component
             ->delete();
 
         $this->selectedAppointmentIds = [];
+        $this->selectAll = false;
         $this->bulkDeleteConfirmationOpen = false;
 
         $this->redirectAfterAction(sprintf('%d cita(s) eliminada(s) correctamente.', $deleted));
@@ -133,12 +154,40 @@ class ClientAppointments extends Component
         }
 
         $this->selectedAppointmentIds = [];
+        $this->selectAll = false;
 
         $this->dispatch('toast', message: sprintf(
             '%d cita(s) %s correctamente.',
             $appointmentIds->count(),
             $activo ? 'activada(s)' : 'desactivada(s)'
         ), type: 'success');
+
+        $this->render();
+    }
+
+    public function updateSelectedCitaActiva(bool $citaActiva): void
+    {
+        if ($this->selectedAppointmentIds === []) {
+            return;
+        }
+
+        $appointmentIds = Appointment::query()
+            ->where('client_id', $this->clientId)
+            ->whereKey(array_map('intval', $this->selectedAppointmentIds))
+            ->pluck('id');
+
+        Appointment::query()->whereKey($appointmentIds)->update(['cita_activa' => $citaActiva]);
+
+        $this->selectedAppointmentIds = [];
+        $this->selectAll = false;
+
+        $this->dispatch('toast', message: sprintf(
+            '%d cita(s) %s correctamente.',
+            $appointmentIds->count(),
+            $citaActiva ? 'activada(s)' : 'desactivada(s)'
+        ), type: 'success');
+
+        $this->render();
     }
 
     public function deleteConfirmed(): void
@@ -219,7 +268,7 @@ class ClientAppointments extends Component
             return;
         }
 
-        if (! $appointment->isFuture()) {
+        if (! $appointment->scheduledFor()->isFuture()) {
             $this->dispatch('toast', message: 'Las citas pasadas no pueden enviarse.', type: 'error');
 
             return;
@@ -272,7 +321,7 @@ class ClientAppointments extends Component
 
         $appointment = Appointment::query()->with('client')->findOrFail($this->appointmentPendingResendId);
 
-        if (! $appointment->enviado || ! $appointment->isFuture()) {
+        if (! $appointment->enviado || ! $appointment->scheduledFor()->isFuture()) {
             $this->dispatch('toast', message: 'Esta cita no se puede reenviar.', type: 'error');
 
             return;
@@ -350,11 +399,22 @@ class ClientAppointments extends Component
 
     private function appointmentsQuery(Client $selectedClient): Builder
     {
+        $now = now(config('app.timezone'));
+
         return Appointment::query()
             ->select('appointments.*')
             ->with(['client', 'latestWhatsAppMessage', 'latestRespondedWhatsAppMessage'])
             ->leftJoin('clients', 'clients.id', '=', 'appointments.client_id')
             ->where('appointments.client_id', $selectedClient->id)
+            ->when($this->filter === 'upcoming', fn ($q) => $q
+                ->whereDate('fecha', '>=', $now->toDateString())
+            )
+            ->when($this->filter === 'past', fn ($q) => $q
+                ->whereDate('fecha', '<', $now->toDateString())
+            )
+            ->when($this->whatsappFilter === 'sent', fn ($q) => $q->where('enviado', true))
+            ->when($this->whatsappFilter === 'delivered', fn ($q) => $q->where('entregado', true))
+            ->when($this->whatsappFilter === 'unsent', fn ($q) => $q->where('activo', false))
             ->orderBy('appointments.fecha', $this->sort_direction)
             ->orderBy('appointments.hora', $this->sort_direction);
     }

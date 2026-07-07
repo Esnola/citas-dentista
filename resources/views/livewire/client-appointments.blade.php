@@ -18,15 +18,6 @@
         @endif
       </div>
       <div class="flex flex-wrap items-center gap-2">
-        <x-botones.icono-buton
-                color="indigo"
-                icon="reload"
-                label="Actualizar Datos"
-                texto="Actualizar Datos"
-                wire:click="syncDeliveryStatuses"
-                wire:loading.attr="disabled"
-                wire:target="syncDeliveryStatuses"
-        />
 
         <x-botones.icono-buton
                 color="emerald"
@@ -35,81 +26,102 @@
                 texto="Nueva cita"
                 onclick="window.location.href='{{ route('appointments.create', ['client' => $selectedClient->id]) }}'"
         />
+        <x-botones.icono-buton
+                color="indigo"
+                icon="reload"
+                label="Sincronizar Datos"
+                texto="Sincronizar Datos"
+                wire:click="syncDeliveryStatuses"
+                wire:loading.attr="disabled"
+                wire:target="syncDeliveryStatuses"
+        />
+
       </div>
     </div>
     {{--    DIV FILTROS --}}
-    <div class="mt-4 grid grid-cols-[220px_1fr_auto] items-center justify-between w-full">
+    <div class="mt-12 grid grid-cols-[220px_1fr_auto] items-center justify-between w-full">
       {{--    INICIO BULK ACTIONS--}}
       <div class="flex items-center">
         @if ($showBulkActions && count($selectedAppointmentIds))
-          <flux:dropdown>
-            <flux:button icon="list-bullet" icon:trailing="chevron-down" variant="primary"
-                         class="bg-emerald-600! text-white! hover:bg-emerald-500!"
-                         :disabled="$selectedAppointmentIds === []">
+          <div x-data="{ open: false }" @click.away="open = false" class="relative">
+            <button @click="open = !open"
+                    class="flex items-center gap-2 rounded-2xl border border-emerald-400/30 bg-emerald-700/10 px-4 py-3 text-sm text-emerald-300/70 hover:bg-emerald-500/20 hover:text-emerald-200 transition-all duration-300 cursor-pointer">
+              <x-iconos.whatsapp clase="size-4"/>
               {{ count($selectedAppointmentIds) }} {{ count($selectedAppointmentIds) === 1 ? 'cita seleccionada' : 'citas seleccionadas' }}
-            </flux:button>
-            <flux:menu class="min-w-60 border! border-white/10! bg-slate-900! p-2! shadow-2xl! shadow-slate-950/60!">
-              <flux:menu.item icon="check-circle" wire:click="updateSelectedActiveStatus(true)"
-                              class="cursor-pointer text-emerald-200! transition-colors hover:bg-emerald-500/15! hover:text-emerald-100!">
-                Activar seleccionadas
-              </flux:menu.item>
-              <flux:menu.item icon="pause-circle" wire:click="updateSelectedActiveStatus(false)"
-                              class="cursor-pointer text-amber-200! transition-colors hover:bg-amber-500/15! hover:text-amber-100!">
-                Desactivar seleccionadas
-              </flux:menu.item>
-              <flux:menu.separator class="my-2! bg-white/10!"/>
-              <flux:menu.item icon="trash" wire:click="confirmBulkDelete"
-                              class="cursor-pointer text-red-300! transition-colors hover:bg-red-500/15! hover:text-red-200!">
+              <x-iconos.down clase="size-3"/>
+            </button>
+            <div x-show="open" x-transition
+                 class="absolute left-0 z-50 mt-2 min-w-60 rounded-2xl border border-emerald-400/30 bg-emerald-900 p-2 shadow-2xl shadow-emerald-500/10 backdrop-blur">
+              <button wire:click="updateSelectedActiveStatus(true)"
+                      class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-emerald-200 transition-colors hover:bg-emerald-500/20 hover:text-emerald-100 cursor-pointer">
+                <x-iconos.check clase="size-4"/>
+                Activar Whatsapp
+              </button>
+              <button wire:click="updateSelectedActiveStatus(false)"
+                      class="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm text-amber-200 transition-colors hover:bg-amber-500/20 hover:text-amber-100 cursor-pointer">
+                <x-iconos.inactivo clase="size-4"/>
+                Desactivar Whatsapp
+              </button>
+              <div class="my-2 border-t border-emerald-400/20"></div>
+              <button wire:click="updateSelectedCitaActiva(true)"
+                      class="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm text-emerald-200 transition-colors hover:bg-emerald-500/20 hover:text-emerald-100 cursor-pointer">
+                <x-iconos.usuario-plus clase="size-4"/>
+                Activar cita
+              </button>
+              <button wire:click="updateSelectedCitaActiva(false)"
+                      class="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm text-amber-200 transition-colors hover:bg-amber-500/20 hover:text-amber-100 cursor-pointer">
+                <x-iconos.user-menos clase="size-4"/>
+                Desactivar cita
+              </button>
+              <div class="my-2 border-t border-emerald-400/20"></div>
+              <button wire:click="confirmBulkDelete"
+                      class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-red-300 transition-colors hover:bg-red-500/20 hover:text-red-200 cursor-pointer">
+                <x-iconos.papelera clase="size-4"/>
                 Eliminar seleccionadas
-              </flux:menu.item>
-            </flux:menu>
-          </flux:dropdown>
+              </button>
+            </div>
+          </div>
         @endif
       </div>
       {{--FIN BULK ACTIONS--}}
       <div class="mx-auto">
-        <flux:radio.group variant="segmented" label="Citas"
-                          class="border border-white/10 rounded-2xl gap-1 span-2"
+        <h4 class="text-center text-lg font-bold mb-2">Citas</h4>
+        <flux:radio.group variant="segmented"
+                          wire:model.live="filter"
+                          class="border border-emerald-400/30 rounded-2xl gap-1 span-2"
         >
           <flux:radio value="upcoming"
-                      class="cursor-pointer bg-white/5 hover:bg-emerald-50/60 hover:text-white/60t transition-all duration-300 data-checked:bg-emerald-200/30! data-checked:text-emerald-200!">
+                      class="cursor-pointer bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300/70 transition-all duration-300 data-checked:bg-emerald-500/25! data-checked:text-emerald-200! data-checked:shadow-sm data-checked:shadow-emerald-500/10!">
             <x-iconos.proxima-cita/>
             Próximas
           </flux:radio>
           <flux:radio value="past"
-                      class="cursor-pointer bg-white/5 hover:bg-emerald-50/60 hover:text-white/60t transition-all duration-300 data-checked:bg-emerald-200/30! data-checked:text-emerald-200!">
+                      class="cursor-pointer bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300/70 transition-all duration-300 data-checked:bg-emerald-500/25! data-checked:text-emerald-200! data-checked:shadow-sm data-checked:shadow-emerald-500/10!">
             <x-iconos.calendario-pasado/>
             Pasadas
           </flux:radio>
-          <flux:radio value="inactive"
-                      class="cursor-pointer bg-white/5 hover:bg-emerald-50/60 hover:text-white/60t transition-all duration-300 data-checked:bg-emerald-200/30! data-checked:text-emerald-200!">
-            <x-iconos.down/>
-            Inactivas
-          </flux:radio>
           <flux:radio value="all"
-                      class="cursor-pointer bg-white/5 hover:bg-emerald-50/60 hover:text-white/60t transition-all duration-300 data-checked:bg-emerald-200/30! data-checked:text-emerald-200!">
+                      class="cursor-pointer bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300/70 transition-all duration-300 data-checked:bg-emerald-500/25! data-checked:text-emerald-200! data-checked:shadow-sm data-checked:shadow-emerald-500/10!">
             <x-iconos.todos/>
             Todas
           </flux:radio>
+
         </flux:radio.group>
       </div>
-      <div class="flex flex-col  items-center justify-center gap-2">
+      <div class="flex flex-col items-center justify-center gap-2">
         <flux:label class="text-[12px] font-bold">Whatsapps</flux:label>
         <div class="flex items-center justify-center gap-4">
-          <flux:field class="flex flex-col">
-            <flux:label class="text-xs">Enviadas</flux:label>
-            <x-formularios.toggle :checked="false" disabled/>
-          </flux:field>
-
-          <flux:field class="flex flex-col">
-            <flux:label class="text-xs">Entregadas</flux:label>
-            <x-formularios.toggle :checked="false" disabled/>
-          </flux:field>
-
-          <flux:field class="flex flex-col">
-            <flux:label class="text-xs">Sin Envío</flux:label>
-            <x-formularios.toggle :checked="false" disabled/>
-          </flux:field>
+          @foreach(['sent' => 'Enviados', 'delivered' => 'Entregados', 'unsent' => 'Sin Envío'] as $value => $label)
+            <div wire:click="toggleWhatsappFilter('{{ $value }}')"
+                 class="inline-flex items-center gap-2 rounded-2xl border px-4 py-3 transition-colors cursor-pointer
+                        {{ $whatsappFilter === $value
+                           ? 'border-emerald-400/30 bg-emerald-400/10'
+                           : 'border-white/10 bg-slate-950/40 hover:border-emerald-400/20 hover:bg-emerald-400/10' }}">
+              <span class="h-5 w-9 rounded-full transition after:block after:h-4 after:w-4 after:translate-x-0.5 after:translate-y-0.5 after:rounded-full after:bg-white after:transition
+                           {{ $whatsappFilter === $value ? 'bg-emerald-400 after:translate-x-4' : 'bg-slate-700' }}"></span>
+              <span class="text-xs text-slate-200">{{ $label }}</span>
+            </div>
+          @endforeach
         </div>
       </div>
     </div>
@@ -122,9 +134,9 @@
             <input type="checkbox"
                    wire:key="select-all-appointments"
                    class="size-4 cursor-pointer rounded border-white/20 bg-slate-950/50 text-emerald-500 accent-emerald-500 focus:ring-2 focus:ring-emerald-400/40 focus:ring-offset-0"
-                   @checked($allVisibleAppointmentsSelected)
+                   wire:model.live="selectAll"
                    wire:change="toggleVisibleAppointments(@js($visibleAppointmentIds))"
-                   aria-label="{{ $allVisibleAppointmentsSelected ? 'Deseleccionar todas las citas visibles' : 'Seleccionar todas las citas visibles' }}"
+                   aria-label="{{ $selectAll ? 'Deseleccionar todas las citas visibles' : 'Seleccionar todas las citas visibles' }}"
             >
           </th>
           <th class="px-4 py-3">Cliente</th>
@@ -160,13 +172,13 @@
         @forelse ($appointments as $appointment)
           @php
             $editUrl = route('appointments.edit', $appointment);
-            $isInactive = ! $appointment->cita_activa || $appointment->scheduledFor()->isPast();
+            $isInactive = ! $appointment->isFuture();
           @endphp
           <tr wire:key="appointment-{{ $appointment->id }}"
               role="link" tabindex="0"
               onclick="window.location='{{ $editUrl }}'"
               onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();window.location='{{ $editUrl }}';}else if(event.key==='ArrowDown'){event.preventDefault();this.nextElementSibling?.focus();}else if(event.key==='ArrowUp'){event.preventDefault();this.previousElementSibling?.focus();}"
-              class="cursor-pointer transition-colors hover:bg-white/5 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-400/60 focus-visible:bg-white/5 {{ $isInactive ? 'bg-slate-400/15' : '' }}"
+              class="cursor-pointer transition-colors hover:bg-white/5 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-400/60 focus-visible:bg-white/5 {{ $isInactive ? 'bg-slate-400/15' : '' }} {{ ! $appointment->cita_activa ? 'bg-red-500/5' : '' }}"
 
               @if ($appointment->enviado && $appointment->latestWhatsAppMessage?->provider_message_id)
                 title="Message SID: {{ $appointment->latestWhatsAppMessage?->provider_message_id }}"
@@ -260,10 +272,6 @@
                   default => 'bg-red-500/15 text-red-300 ring-1 ring-inset ring-red-400/30',
 
                 };
-              $responseIcono = match ($displayResponseLabel) {
-                'Confirmada' => 'usuario-plus',
-                default => 'alert',
-                };
               @endphp
               @if ($displayResponseLabel || $appointment->wasRescheduled())
                 <div class="flex flex-col items-center gap-1">
@@ -271,6 +279,8 @@
                     <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold {{ $responseClasses }}">
                      @if($displayResponseLabel!== 'Confirmada')
                         <x-iconos.alert clase="size-4 m-1"/>
+                      @else
+                        <x-iconos.usuario-plus clase="size-4 m-1"/>
                       @endif
                       {{ $displayResponseLabel }}
                       </span>
@@ -290,7 +300,7 @@
               @endif
             </td>
             <td class="px-4 py-3 text-center" onclick="event.stopPropagation()">
-              @if ($appointment->enviado && $appointment->isFuture())
+              @if ($appointment->enviado && $appointment->scheduledFor()->isFuture())
                 <x-botones.icono-buton
                         color="emerald"
                         icon="whatsapp"
@@ -302,23 +312,32 @@
                         wire:target="confirmResend({{ $appointment->id }})"
                 />
               @else
-                <x-formularios.toggle
-                        :estado="$appointment->activo ? 'Sí' : 'No'"
-                        :checked="$appointment->activo"
-                        :locked="! $appointment->isFuture()"
-                        wire:change="updateActiveStatus({{ $appointment->id }}, $event.target.checked)"/>
+                @if($appointment->scheduledFor()->isFuture())
+                  <x-formularios.toggle
+                          :checked="$appointment->activo"
+                          wire:change="updateActiveStatus({{ $appointment->id }}, $event.target.checked)"/>
+                @else
+                  <span class="inline-flex items-center gap-2 rounded-2xl border px-4 py-3 border-white/5 bg-slate-950/25 opacity-80">
+                    <span class="h-5 w-9 rounded-full bg-slate-700 after:block after:h-4 after:w-4 after:translate-x-0.5 after:translate-y-0.5 after:rounded-full after:bg-slate-400"></span>
+                  </span>
+                @endif
               @endif
             </td>
             <td class="px-4 py-3 text-center" onclick="event.stopPropagation()">
-              <x-formularios.toggle
-                      :estado="$appointment->cita_activa ? 'Sí' : 'No'"
-                      :checked="$appointment->cita_activa"
-                      :locked="! $appointment->isFuture()"
-                      wire:change="updateAppointmentActiveStatus({{ $appointment->id }}, $event.target.checked)"/>
+              @if($appointment->isFuture())
+                <x-formularios.toggle
+                        :checked="$appointment->cita_activa"
+                        offColor="bg-red-500"
+                        wire:change="updateAppointmentActiveStatus({{ $appointment->id }}, $event.target.checked)"/>
+              @else
+                <span class="inline-flex items-center gap-2 rounded-2xl border px-4 py-3 border-white/5 bg-slate-950/25 opacity-80">
+                  <span class="h-5 w-9 rounded-full bg-slate-700 after:block after:h-4 after:w-4 after:translate-x-0.5 after:translate-y-0.5 after:rounded-full after:bg-slate-400"></span>
+                </span>
+              @endif
             </td>
             <td class="px-4 py-3 text-right" onclick="event.stopPropagation()">
               <div class="flex justify-end items-center gap-2">
-                @if (! $appointment->enviado && $appointment->activo && $appointment->isFuture())
+                @if (! $appointment->enviado && $appointment->activo && $appointment->scheduledFor()->isFuture())
                   <x-botones.icono-buton
                           color="emerald"
                           icon="whatsapp"

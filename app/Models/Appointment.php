@@ -80,12 +80,12 @@ class Appointment extends Model
 
     public function canBeChanged(): bool
     {
-        return ! $this->scheduledFor()->isPast();
+        return $this->fecha->toDateString() >= now()->toDateString();
     }
 
     public function isFuture(): bool
     {
-        return $this->scheduledFor()->isFuture();
+        return $this->fecha->toDateString() >= now()->toDateString();
     }
 
     public function scheduledFor(): Carbon

@@ -19,33 +19,19 @@ class AppointmentSeeder extends Seeder
 
         $timeSlots = [
             '09:00',
-            '09:15',
             '09:30',
-            '09:45',
             '10:00',
-            '10:15',
             '10:30',
-            '10:45',
             '11:00',
-            '11:15',
             '11:30',
-            '11:45',
             '12:00',
-            '12:15',
             '12:30',
-            '12:45',
             '13:00',
-            '13:15',
             '13:30',
-            '13:45',
             '14:00',
-            '14:15',
             '14:30',
-            '14:45',
             '15:00',
-            '15:15',
             '15:30',
-            '15:45',
             '16:00',
         ];
 
@@ -57,19 +43,46 @@ class AppointmentSeeder extends Seeder
 
         Appointment::query()->delete();
 
+        $pastDates = [
+            now()->subDays(2)->toDateString(),
+            now()->subDay()->toDateString(),
+        ];
+
+        $pastSlots = ['09:00', '10:00'];
         $appointmentIndex = 0;
 
-        foreach ($dates as $date) {
-            $dailyAppointmentIndex = 0;
-
-            foreach ($timeSlots as $time) {
-                for ($slotAppointment = 0; $slotAppointment < 2; $slotAppointment++) {
-                    $client = $clientList[$dailyAppointmentIndex % $clientList->count()];
-
+        foreach ($pastDates as $date) {
+            foreach ($clientList as $client) {
+                for ($i = 0; $i < 2; $i++) {
                     Appointment::query()->create([
                         'client_id' => $client->id,
                         'fecha' => $date,
-                        'hora' => $time,
+                        'hora' => $pastSlots[$i],
+                        'enviado' => true,
+                        'entregado' => true,
+                        'activo' => $appointmentIndex % 11 !== 0,
+                        'cita_activa' => $appointmentIndex % 12 !== 0,
+                    ]);
+
+                    $appointmentIndex++;
+                }
+            }
+        }
+
+        $maxPerDay = 2;
+        $appointmentIndex = 0;
+
+        foreach ($dates as $date) {
+            $slotIndex = 0;
+
+            foreach ($clientList as $client) {
+                $appointmentsForClient = min($maxPerDay, count($timeSlots) - $slotIndex);
+
+                for ($i = 0; $i < $appointmentsForClient; $i++) {
+                    Appointment::query()->create([
+                        'client_id' => $client->id,
+                        'fecha' => $date,
+                        'hora' => $timeSlots[$slotIndex],
                         'enviado' => false,
                         'entregado' => false,
                         'activo' => $appointmentIndex % 11 !== 0,
@@ -77,7 +90,7 @@ class AppointmentSeeder extends Seeder
                     ]);
 
                     $appointmentIndex++;
-                    $dailyAppointmentIndex++;
+                    $slotIndex++;
                 }
             }
         }
