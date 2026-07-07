@@ -1,5 +1,5 @@
 @extends('layouts.app')
 
 @section('content')
-    <livewire:daily-agenda />
+    <livewire:agenda-index />
 @endsection

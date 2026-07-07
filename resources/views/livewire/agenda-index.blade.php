@@ -107,24 +107,8 @@
                               texto="Ver todas las citas"
                               onclick="window.location.href='{{ route('clients.appointments', $appointment->client_id) }}'"
                       />
-                      {{--<x-botones.icono-buton color="blue" icon="lapiz"
-                                             especial2="fill-blue-500/50 size-4 group-hover:fill-blue-500/80"
-                                               label="Editar cita de {{ $appointment->client?->full_name }}"
-                                               onclick="window.location.href='{{ route('clients.appointments', $appointment->client_id) }}'"/>--}}
                     </div>
                   </div>
-{{--                  @if ($incidences)
-                    <div class="flex flex-wrap gap-2">
-                      @foreach ($incidences as $incidence)
-                        <span class="inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold tracking-wide uppercase {{ $incidence['classes'] }}">
-                          @if (isset($incidence['icono']))
-                            <x-iconos.check clase="mr-2 size-4 rounded-3xl text-green-300"/>
-                          @endif
-                          {{ $incidence['label'] }}
-                        </span>
-                      @endforeach
-                    </div>
-                  @endif--}}
                 </div>
               </div>
             @endforeach

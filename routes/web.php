@@ -34,7 +34,7 @@ Route::middleware('auth')->group(function () {
         ->whereNumber('client')
         ->name('clients.appointments');
     Route::get('/appointments', AppointmentIndexController::class)->name('appointments.index');
-    Route::view('/appointments/enviadas', 'appointments.sent')->name('appointments.sent');
+
     Route::view('/appointments/create', 'appointments.form')->name('appointments.create');
     Route::view('/appointments/{appointment}/edit', 'appointments.form')->name('appointments.edit');
 

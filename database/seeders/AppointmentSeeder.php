@@ -4,13 +4,10 @@ namespace Database\Seeders;
 
 use App\Models\Appointment;
 use App\Models\Client;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
 class AppointmentSeeder extends Seeder
 {
-    use WithoutModelEvents;
-
     /**
      * Run the database seeds.
      */
@@ -51,33 +48,23 @@ class AppointmentSeeder extends Seeder
             '15:45',
             '16:00',
         ];
-        $phones = $this->phones(count($timeSlots) * 6);
 
-        $clients = [];
+        $clientList = Client::query()->orderBy('id')->get();
 
-        foreach ($phones as $index => $phone) {
-            $clients[$phone] = Client::query()->firstOrCreate(
-                ['telefono' => Client::normalizePhone($phone)],
-                [
-                    'nombre' => fake()->firstName(),
-                    'apellidos' => fake()->lastName(),
-                ]
-            );
+        if ($clientList->isEmpty()) {
+            return;
         }
 
-        Appointment::query()
-            ->whereIn('client_id', array_map(fn (Client $client): int => $client->id, $clients))
-            ->delete();
+        Appointment::query()->delete();
 
-        $clientList = array_values($clients);
         $appointmentIndex = 0;
 
         foreach ($dates as $date) {
             $dailyAppointmentIndex = 0;
 
             foreach ($timeSlots as $time) {
-                for ($slotAppointment = 0; $slotAppointment < 6; $slotAppointment++) {
-                    $client = $clientList[$dailyAppointmentIndex];
+                for ($slotAppointment = 0; $slotAppointment < 2; $slotAppointment++) {
+                    $client = $clientList[$dailyAppointmentIndex % $clientList->count()];
 
                     Appointment::query()->create([
                         'client_id' => $client->id,
@@ -94,32 +81,5 @@ class AppointmentSeeder extends Seeder
                 }
             }
         }
-    }
-
-    /**
-     * @return list<string>
-     */
-    private function phones(int $count): array
-    {
-        $phones = [
-            '618287914',
-            '659366775',
-            '611234567',
-            /*'622345678',
-            '633456789',
-            '644567890',
-            '655678901',
-            '666789012',
-            '677890123',
-            '688901234',
-            '699012345',*/
-        ];
-
-        return array_merge(
-            $phones,
-            collect(range(1, $count - count($phones)))
-                ->map(fn (int $index): string => sprintf('611%06d', $index))
-                ->all(),
-        );
     }
 }

@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Cache;
 use Livewire\Component;
 use Livewire\WithPagination;
 
-class AppointmentOverview extends Component
+class AppointmentIndex extends Component
 {
     use WithPagination;
 
@@ -45,7 +45,7 @@ class AppointmentOverview extends Component
             ->orderBy('apellidos')
             ->paginate(30, pageName: 'clientsPage');
 
-        return view('livewire.appointment-overview', [
+        return view('livewire.appointment-index', [
             'clients' => $clients,
         ]);
     }

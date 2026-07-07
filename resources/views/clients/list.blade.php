@@ -2,6 +2,6 @@
 
 @section('content')
 
-  @livewire('client-list', ['showAllClients' => true])
+  <livewire:client-list-all />
 
 @endsection

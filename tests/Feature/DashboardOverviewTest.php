@@ -2,7 +2,7 @@
 
 namespace Tests\Feature;
 
-use App\Livewire\DailyAgenda;
+use App\Livewire\AgendaIndex;
 use App\Models\Appointment;
 use App\Models\Client;
 use App\Models\User;
@@ -60,7 +60,7 @@ class DashboardOverviewTest extends TestCase
 
         $this->actingAs($user);
 
-        Livewire::test(DailyAgenda::class)
+        Livewire::test(AgendaIndex::class)
             ->assertSee('Ana Pérez')
             ->assertSee('11:20');
     }
@@ -88,7 +88,7 @@ class DashboardOverviewTest extends TestCase
 
         $this->actingAs($user);
 
-        Livewire::test(DailyAgenda::class)
+        Livewire::test(AgendaIndex::class)
             ->assertSee('Lucía Martín')
             ->assertSee('09:00');
     }
@@ -98,7 +98,7 @@ class DashboardOverviewTest extends TestCase
         $user = User::factory()->create();
         $this->actingAs($user);
 
-        Livewire::test(DailyAgenda::class)
+        Livewire::test(AgendaIndex::class)
             ->assertSee('Hoy')
             ->assertSee('Mañana')
             ->assertSee('En 2 días')
@@ -131,7 +131,7 @@ class DashboardOverviewTest extends TestCase
         $this->actingAs($user);
 
         // Default is today (Monday) — appointment not shown
-        Livewire::test(DailyAgenda::class)
+        Livewire::test(AgendaIndex::class)
             ->assertDontSee('Ana Pérez')
             ->call('selectDate', 2)
             ->assertSee('Ana Pérez');
@@ -173,11 +173,11 @@ class DashboardOverviewTest extends TestCase
         $this->actingAs($user);
 
         // Default view shows today (Saturday)
-        Livewire::test(DailyAgenda::class)
+        Livewire::test(AgendaIndex::class)
             ->assertSee('Lucía Martín');
 
         // Selecting tomorrow (offset 1) skips Sunday → shows Monday
-        Livewire::test(DailyAgenda::class)
+        Livewire::test(AgendaIndex::class)
             ->call('selectDate', 1)
             ->assertSee('lunes');
     }
@@ -190,7 +190,7 @@ class DashboardOverviewTest extends TestCase
 
         $this->actingAs($user);
 
-        Livewire::test(DailyAgenda::class)
+        Livewire::test(AgendaIndex::class)
             ->assertDontSee('domingo');
     }
 
@@ -203,11 +203,11 @@ class DashboardOverviewTest extends TestCase
         $this->actingAs($user);
 
         // Default is today (Saturday) — no warning
-        Livewire::test(DailyAgenda::class)
+        Livewire::test(AgendaIndex::class)
             ->assertDontSee('domingo');
 
         // Selecting tomorrow (offset 1) lands on Sunday — warning shown
-        Livewire::test(DailyAgenda::class)
+        Livewire::test(AgendaIndex::class)
             ->call('selectDate', 1)
             ->assertSee('domingo');
     }
@@ -236,7 +236,7 @@ class DashboardOverviewTest extends TestCase
 
         $this->actingAs($user);
 
-        Livewire::test(DailyAgenda::class)
+        Livewire::test(AgendaIndex::class)
             ->assertSee(route('clients.appointments', $client))
             ->assertSee(route('clients.edit', $client->id));
     }
@@ -265,7 +265,7 @@ class DashboardOverviewTest extends TestCase
 
         $this->actingAs($user);
 
-        Livewire::test(DailyAgenda::class)
+        Livewire::test(AgendaIndex::class)
             ->assertSee('Carlos Ruiz')
             ->assertSee('09:00');
     }
@@ -294,7 +294,7 @@ class DashboardOverviewTest extends TestCase
 
         $this->actingAs($user);
 
-        Livewire::test(DailyAgenda::class)
+        Livewire::test(AgendaIndex::class)
             ->assertSee('Marta López')
             ->assertSee('13:45')
             ->assertSee('Desactivada')

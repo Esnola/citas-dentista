@@ -3,15 +3,12 @@
 namespace App\Livewire;
 
 use App\Models\Client;
-use Illuminate\Pagination\LengthAwarePaginator;
 use Livewire\Component;
 use Livewire\WithPagination;
 
-class ClientList extends Component
+class ClientIndex extends Component
 {
     use WithPagination;
-
-    public bool $showAllClients = false;
 
     public string $filter_nombre = '';
 
@@ -80,25 +77,20 @@ class ClientList extends Component
 
     public function render()
     {
-        $shouldShowClients = $this->showAllClients || $this->hasClientSearch;
+        $clients = Client::query()
+            ->when($this->filter_nombre, fn ($query) => $query->where('nombre', 'like', '%'.$this->filter_nombre.'%'))
+            ->when($this->filter_apellidos, fn ($query) => $query->where('apellidos', 'like', '%'.$this->filter_apellidos.'%'))
+            ->when($this->filter_telefono, fn ($query) => $query->where('telefono', 'like', '%'.$this->filter_telefono.'%'))
+            ->orderBy('nombre', $this->sort_direction)
+            ->orderBy('apellidos', $this->sort_direction)
+            ->paginate(15);
 
-        $clients = $shouldShowClients
-            ? Client::query()
-                ->when($this->filter_nombre, fn ($query) => $query->where('nombre', 'like', '%'.$this->filter_nombre.'%'))
-                ->when($this->filter_apellidos, fn ($query) => $query->where('apellidos', 'like', '%'.$this->filter_apellidos.'%'))
-                ->when($this->filter_telefono, fn ($query) => $query->where('telefono', 'like', '%'.$this->filter_telefono.'%'))
-                ->orderBy('nombre', $this->sort_direction)
-                ->orderBy('apellidos', $this->sort_direction)
-                ->paginate(15)
-            : new LengthAwarePaginator([], 0, 15);
-
-        return view('livewire.client-list', [
+        return view('livewire.client-index', [
             'clients' => $clients,
             'clientPendingDeletion' => $this->clientPendingDeletionId
                 ? Client::query()->find($this->clientPendingDeletionId)
                 : null,
             'hasClientSearch' => $this->hasClientSearch,
-            'showAllClients' => $this->showAllClients,
         ]);
     }
 }

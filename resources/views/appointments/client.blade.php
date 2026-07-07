@@ -1,5 +1,5 @@
 @extends('layouts.app')
 
 @section('content')
-    <livewire:appointment-list :client-id="(int) request()->route('client')" />
+    <livewire:client-appointments :client-id="(int) request()->route('client')" />
 @endsection

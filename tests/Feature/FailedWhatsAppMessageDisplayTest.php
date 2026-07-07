@@ -2,7 +2,7 @@
 
 namespace Tests\Feature;
 
-use App\Livewire\AppointmentList;
+use App\Livewire\ClientAppointments;
 use App\Models\Appointment;
 use App\Models\Client;
 use App\Models\User;
@@ -59,7 +59,7 @@ class FailedWhatsAppMessageDisplayTest extends TestCase
 
         $this->actingAs($user);
 
-        Livewire::test(AppointmentList::class, ['clientId' => $client->id])
+        Livewire::test(ClientAppointments::class, ['clientId' => $client->id])
             ->assertSee('Error de envío')
             ->assertDontSee('En cola');
     }
@@ -99,7 +99,7 @@ class FailedWhatsAppMessageDisplayTest extends TestCase
 
         $this->actingAs($user);
 
-        Livewire::test(AppointmentList::class, ['clientId' => $client->id])
+        Livewire::test(ClientAppointments::class, ['clientId' => $client->id])
             ->set('showAllHistory', true)
             ->assertSee('No entregado')
             ->assertSee('text-green-400');
@@ -143,7 +143,7 @@ class FailedWhatsAppMessageDisplayTest extends TestCase
 
         $this->actingAs($user);
 
-        Livewire::test(AppointmentList::class, ['clientId' => $client->id])
+        Livewire::test(ClientAppointments::class, ['clientId' => $client->id])
             ->assertSee('text-green-400')
             ->assertDontSee('Error de envío');
     }
@@ -246,7 +246,7 @@ class FailedWhatsAppMessageDisplayTest extends TestCase
 
         $this->actingAs($user);
 
-        Livewire::test(AppointmentList::class, ['clientId' => $client->id])
+        Livewire::test(ClientAppointments::class, ['clientId' => $client->id])
             ->set('showAllHistory', true)
             ->assertSee('No entregado');
     }

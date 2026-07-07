@@ -7,7 +7,7 @@ use Carbon\Carbon;
 use Illuminate\View\View;
 use Livewire\Component;
 
-class DailyAgenda extends Component
+class AgendaIndex extends Component
 {
     public int $selectedDateOffset = 0;
 
@@ -21,7 +21,7 @@ class DailyAgenda extends Component
         Carbon::setLocale('es');
         $targetDate = $this->targetDate();
 
-        return view('livewire.daily-agenda', [
+        return view('livewire.agenda-index', [
             'nextAppointments' => Appointment::query()
                 ->with('client')
                 ->whereDate('fecha', $targetDate->toDateString())

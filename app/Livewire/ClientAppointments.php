@@ -13,13 +13,13 @@ use Illuminate\Support\Facades\Cache;
 use Livewire\Component;
 use Livewire\WithPagination;
 
-class AppointmentList extends Component
+class ClientAppointments extends Component
 {
     use WithPagination;
 
     public string $sort_direction = 'asc';
 
-    public ?int $clientId = null;
+    public int $clientId;
 
     public ?int $appointmentPendingDeletionId = null;
 
@@ -42,15 +42,11 @@ class AppointmentList extends Component
         $this->deliveryStatusSyncer = $deliveryStatusSyncer;
     }
 
-    public function mount(?int $clientId = null): void
+    public function mount(int $clientId): void
     {
-        $clientId ??= request()->integer('client');
+        abort_unless(Client::query()->whereKey($clientId)->exists(), 404);
 
-        if ($clientId > 0) {
-            abort_unless(Client::query()->whereKey($clientId)->exists(), 404);
-
-            $this->clientId = $clientId;
-        }
+        $this->clientId = $clientId;
 
         $this->deliveryStatusesSyncedAt = Cache::get('appointment_delivery_statuses_synced_at');
     }
@@ -99,7 +95,7 @@ class AppointmentList extends Component
 
     public function deleteSelected(): void
     {
-        if (! $this->clientId || $this->selectedAppointmentIds === []) {
+        if ($this->selectedAppointmentIds === []) {
             return;
         }
 
@@ -116,7 +112,7 @@ class AppointmentList extends Component
 
     public function updateSelectedActiveStatus(bool $activo): void
     {
-        if (! $this->clientId || $this->selectedAppointmentIds === []) {
+        if ($this->selectedAppointmentIds === []) {
             return;
         }
 
@@ -323,7 +319,7 @@ class AppointmentList extends Component
 
     public function render()
     {
-        $selectedClient = $this->selectedClient();
+        $selectedClient = Client::query()->find($this->clientId);
         $appointmentsQuery = $this->appointmentsQuery($selectedClient);
 
         $appointments = $appointmentsQuery->paginate(30, ['appointments.*'], 'appointmentsPage');
@@ -340,16 +336,7 @@ class AppointmentList extends Component
           ? Appointment::query()->with('client')->find($this->appointmentPendingResendId)
           : null;
 
-        $appointmentsByClient = $selectedClient
-          ? null
-          : $appointments->getCollection()->groupBy(fn (Appointment $a) => $a->client_id)->map(function ($group) {
-              return [
-                  'appointments' => $group->values(),
-                  'pendingCount' => $group->filter(fn (Appointment $a) => $a->cita_activa)->count(),
-              ];
-          });
-
-        return view('livewire.appointment-list', [
+        return view('livewire.client-appointments', [
             'appointments' => $appointments,
             'appointmentsCount' => $appointments->total(),
             'appointmentPendingDeletion' => $appointmentPendingDeletion,
@@ -358,31 +345,25 @@ class AppointmentList extends Component
             'showBulkActions' => true,
             'visibleAppointmentIds' => $visibleAppointmentIds,
             'allVisibleAppointmentsSelected' => $allVisibleAppointmentsSelected,
-            'appointmentsByClient' => $appointmentsByClient,
         ]);
     }
 
-    private function appointmentsQuery(?Client $selectedClient): Builder
+    private function appointmentsQuery(Client $selectedClient): Builder
     {
         return Appointment::query()
             ->select('appointments.*')
             ->with(['client', 'latestWhatsAppMessage', 'latestRespondedWhatsAppMessage'])
             ->leftJoin('clients', 'clients.id', '=', 'appointments.client_id')
-            ->when($selectedClient, fn (Builder $query) => $query->where('appointments.client_id', $selectedClient->id))
+            ->where('appointments.client_id', $selectedClient->id)
             ->orderBy('appointments.fecha', $this->sort_direction)
             ->orderBy('appointments.hora', $this->sort_direction);
     }
 
-    private function selectedClient(): ?Client
-    {
-        return $this->clientId ? Client::query()->find($this->clientId) : null;
-    }
-
     private function redirectAfterAction(string $status): void
     {
-        $client = $this->selectedClient();
+        $client = Client::query()->find($this->clientId);
 
-        if ($client && ! $this->appointmentsQuery($client)->exists()) {
+        if (! $this->appointmentsQuery($client)->exists()) {
             session()->flash('status', 'No hay citas para el cliente '.$client->full_name);
             $this->redirect(route('appointments.index'));
 
@@ -390,6 +371,6 @@ class AppointmentList extends Component
         }
 
         session()->flash('status', $status);
-        $this->redirect($client ? route('clients.appointments', $client) : url()->previous());
+        $this->redirect(route('clients.appointments', $client));
     }
 }

@@ -16,8 +16,6 @@
         <x-botones.icono-buton color="indigo" icon="reload" label="Actualizar datos" texto="Actualizar datos"
                                wire:click="syncDeliveryStatuses" wire:loading.attr="disabled"
                                wire:target="syncDeliveryStatuses"/>
-        <x-botones.icono-buton icon="calendario-filtro" label="Citas enviadas" texto="Citas enviadas"
-                               onclick="window.location.href='{{ route('appointments.sent') }}'"/>
         <x-botones.icono-buton color="emerald" icon="nueva-cita" label="Nueva cita" texto="Nueva cita"
                                onclick="window.location.href='{{ route('appointments.create') }}'"/>
       </div>

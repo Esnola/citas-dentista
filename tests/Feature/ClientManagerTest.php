@@ -3,7 +3,7 @@
 namespace Tests\Feature;
 
 use App\Livewire\ClientForm;
-use App\Livewire\ClientList;
+use App\Livewire\ClientIndex;
 use App\Models\Appointment;
 use App\Models\Client;
 use App\Models\User;
@@ -35,7 +35,7 @@ class ClientManagerTest extends TestCase
             'telefono' => '699999999',
         ]);
 
-        Livewire::test(ClientList::class)
+        Livewire::test(ClientIndex::class)
             ->set('filter_nombre', 'Ana')
             ->assertSee('Ana Pérez')
             ->assertDontSee('Luis Gómez');
@@ -51,7 +51,7 @@ class ClientManagerTest extends TestCase
             'telefono' => '600123123',
         ]);
 
-        $component = Livewire::test(ClientList::class)
+        $component = Livewire::test(ClientIndex::class)
             ->assertSee('Las coincidencias aparecerán aquí')
             ->assertDontSee('Ana Pérez');
 
@@ -78,7 +78,7 @@ class ClientManagerTest extends TestCase
             'telefono' => '600123123',
         ]);
 
-        Livewire::test(ClientList::class)
+        Livewire::test(ClientIndex::class)
             ->set('filter_nombre', 'a')
             ->assertSeeHtmlInOrder([
                 'wire:key="client-'.$ana->id.'"',
@@ -99,7 +99,7 @@ class ClientManagerTest extends TestCase
             'telefono' => '600123123',
         ]);
 
-        Livewire::test(ClientList::class)
+        Livewire::test(ClientIndex::class)
             ->set('filter_nombre', 'Ana')
             ->call('confirmDelete', $client->id)
             ->assertSee('Eliminar cliente')

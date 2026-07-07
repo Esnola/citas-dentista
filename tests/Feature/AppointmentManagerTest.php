@@ -3,8 +3,8 @@
 namespace Tests\Feature;
 
 use App\Livewire\AppointmentForm;
-use App\Livewire\AppointmentList;
-use App\Livewire\AppointmentOverview;
+use App\Livewire\AppointmentIndex;
+use App\Livewire\ClientAppointments;
 use App\Models\Appointment;
 use App\Models\Client;
 use App\Models\User;
@@ -56,17 +56,11 @@ class AppointmentManagerTest extends TestCase
         $this->actingAs($user)
             ->get(route('appointments.index'))
             ->assertOk()
-            ->assertSee('Citas enviadas')
             ->assertDontSee('Todas las citas');
 
         $this->get(route('clients.appointments', $client))
             ->assertOk()
             ->assertDontSeeHtml('data-appointment-navigation');
-
-        $this->get(route('appointments.sent'))
-            ->assertOk()
-            ->assertSeeHtml('data-appointment-navigation="all"')
-            ->assertSee('Todas las citas');
     }
 
     public function test_appointment_list_shows_the_inbound_whatsapp_body_in_the_confir_repro_column(): void
@@ -401,7 +395,7 @@ class AppointmentManagerTest extends TestCase
             'status' => WhatsAppMessage::STATUS_PENDING,
         ]);
 
-        Livewire::test(AppointmentList::class)
+        Livewire::test(ClientAppointments::class, ['clientId' => $client->id])
             ->call('updateActiveStatus', $appointment->id, false)
             ->assertDispatched('toast', fn ($n, $p) => $p['message'] === 'Estado pendiente actualizado.' && $p['type'] === 'success');
 
@@ -429,7 +423,7 @@ class AppointmentManagerTest extends TestCase
             'cita_activa' => true,
         ]);
 
-        Livewire::test(AppointmentList::class, ['clientId' => $client->id])
+        Livewire::test(ClientAppointments::class, ['clientId' => $client->id])
             ->assertSee('Cita activa')
             ->assertSeeHtml('wire:change="updateAppointmentActiveStatus('.$appointment->id.', $event.target.checked)"')
             ->call('updateAppointmentActiveStatus', $appointment->id, false)
@@ -475,7 +469,7 @@ class AppointmentManagerTest extends TestCase
         $this->actingAs($admin);
 
         Livewire::withQueryParams(['client' => $client->id])
-            ->test(AppointmentList::class)
+            ->test(ClientAppointments::class)
             ->assertSee('Enviar WhatsApp')
             ->assertSeeHtml('x-on:reload-appointment-list.window')
             ->assertSeeHtml('appointments/'.$appointment->id.'/edit')
@@ -555,7 +549,7 @@ class AppointmentManagerTest extends TestCase
 
         $this->actingAs($admin);
 
-        $component = Livewire::test(AppointmentList::class, ['clientId' => $client->id])
+        $component = Livewire::test(ClientAppointments::class, ['clientId' => $client->id])
             ->set('dateFilter', 'all')
             ->assertSee('Reenviar')
             ->assertSeeHtml('wire:click="confirmResend('.$appointment->id.')"')
@@ -623,7 +617,7 @@ class AppointmentManagerTest extends TestCase
 
         $this->actingAs($admin);
 
-        $component = Livewire::test(AppointmentList::class, ['clientId' => $client->id])
+        $component = Livewire::test(ClientAppointments::class, ['clientId' => $client->id])
             ->set('dateFilter', 'all')
             ->assertDontSee('Reenviar')
             ->call('confirmResend', $appointment->id)
@@ -674,11 +668,11 @@ class AppointmentManagerTest extends TestCase
             ],
         ]);
 
-        Livewire::test(AppointmentList::class, ['clientId' => $client->id])
+        Livewire::test(ClientAppointments::class, ['clientId' => $client->id])
             ->set('filter_enviado', true)
             ->assertSee('11:30');
 
-        Livewire::test(AppointmentList::class)
+        Livewire::test(ClientAppointments::class, ['clientId' => $client->id])
             ->call('syncDeliveryStatuses')
             ->assertSee('Se actualizaron 1 cita(s) como entregadas.');
 
@@ -721,7 +715,7 @@ class AppointmentManagerTest extends TestCase
             ],
         ]);
 
-        $component = Livewire::test(AppointmentList::class)
+        $component = Livewire::test(ClientAppointments::class, ['clientId' => $client->id])
             ->assertSee('Leer logs');
 
         $message->update([
@@ -774,7 +768,7 @@ class AppointmentManagerTest extends TestCase
             'provider_message_id' => 'SMTOOLTIP123',
         ]);
 
-        Livewire::test(AppointmentList::class)
+        Livewire::test(ClientAppointments::class, ['clientId' => $client->id])
             ->set('filter_entregado', true)
             ->assertSee('23/06/2026 08:05')
             ->assertSee('23/06/2026 08:10')
@@ -808,7 +802,7 @@ class AppointmentManagerTest extends TestCase
 
         Http::fake();
 
-        Livewire::test(AppointmentList::class, ['clientId' => $client->id])
+        Livewire::test(ClientAppointments::class, ['clientId' => $client->id])
             ->set('filter_enviado', true)
             ->assertSee('11:30')
             ->assertDontSee('11:30:45');
@@ -866,7 +860,7 @@ class AppointmentManagerTest extends TestCase
             ]),
         ]);
 
-        Livewire::test(AppointmentList::class)
+        Livewire::test(ClientAppointments::class, ['clientId' => $client->id])
             ->call('syncDeliveryStatuses')
             ->assertSee('Se actualizaron 1 cita(s) como entregadas.')
             ->assertSee('Última actualización: 23/06/2026 12:00');
@@ -877,62 +871,7 @@ class AppointmentManagerTest extends TestCase
         $this->assertSame('2026-06-23 12:00:00', $appointment->whatsapp_read_at?->toDateTimeString());
         Http::assertSent(fn ($request): bool => str_contains($request->url(), '/Messages/SMOLD123.json'));
 
-        Livewire::test(AppointmentList::class)
-            ->assertSee('Última actualización: 23/06/2026 12:00');
-
-        Carbon::setTestNow();
-    }
-
-    public function test_appointment_list_toggles_force_sync_and_show_last_update_time(): void
-    {
-        Carbon::setTestNow('2026-06-23 12:00:00');
-
-        Config::set('whatsapp.twilio.account_sid', 'AC123');
-        Config::set('whatsapp.twilio.auth_token', 'test-token');
-
-        $client = Client::query()->create([
-            'nombre' => 'Ana',
-            'apellidos' => 'Pérez',
-            'telefono' => '+34600111222',
-        ]);
-        $appointment = Appointment::query()->create([
-            'client_id' => $client->id,
-            'fecha' => '2026-06-30',
-            'hora' => '11:30',
-            'enviado' => true,
-            'entregado' => true,
-            'whatsapp_sent_at' => '2026-06-22 11:59:00',
-            'whatsapp_delivered_at' => '2026-06-22 12:00:00',
-            'activo' => true,
-        ]);
-
-        WhatsAppMessage::query()->create([
-            'client_id' => $client->id,
-            'appointment_id' => $appointment->id,
-            'nombre' => 'Ana',
-            'apellidos' => 'Pérez',
-            'telefono' => '+34600111222',
-            'scheduled_for' => now()->subDay()->subMinute(),
-            'message' => 'Recordatorio',
-            'source' => WhatsAppMessage::SOURCE_APPOINTMENT,
-            'status' => WhatsAppMessage::STATUS_SENT,
-            'sent_at' => now()->subDay()->subMinute(),
-            'provider_message_id' => 'SMTOGGLEREAD123',
-            'provider_payload' => [
-                'provider' => 'twilio',
-                'raw' => ['status' => 'delivered'],
-            ],
-        ]);
-
-        Http::fake([
-            'api.twilio.com/*/Messages/SMTOGGLEREAD123.json' => Http::response([
-                'sid' => 'SMTOGGLEREAD123',
-                'status' => 'read',
-            ]),
-        ]);
-
-        Livewire::test(AppointmentList::class)
-            ->set('filter_entregado', true)
+        Livewire::test(ClientAppointments::class, ['clientId' => $client->id])
             ->assertSee('Última actualización: 23/06/2026 12:00');
 
         $this->assertSame('2026-06-23 12:00:00', $appointment->refresh()->whatsapp_read_at?->toDateTimeString());
@@ -959,7 +898,7 @@ class AppointmentManagerTest extends TestCase
             'activo' => true,
         ]);
 
-        Livewire::test(AppointmentOverview::class)
+        Livewire::test(AppointmentIndex::class)
             ->assertDontSee('Enviar ya')
             ->assertSeeHtml('href="'.route('clients.appointments', $client).'"');
 
@@ -1005,11 +944,11 @@ class AppointmentManagerTest extends TestCase
             'activo' => true,
         ]);
 
-        $html = Livewire::test(AppointmentOverview::class)->html();
+        $html = Livewire::test(AppointmentIndex::class)->html();
 
         $this->assertSame(2, substr_count($html, 'wire:key="appointment-client-'));
 
-        Livewire::test(AppointmentOverview::class)
+        Livewire::test(AppointmentIndex::class)
             ->assertSee('Ana Pérez')
             ->assertSee('10:17')
             ->assertDontSee('11:23')
@@ -1036,7 +975,7 @@ class AppointmentManagerTest extends TestCase
         ]);
 
         Livewire::withQueryParams(['client' => $client->id])
-            ->test(AppointmentList::class)
+            ->test(ClientAppointments::class)
             ->assertDontSee('Enviar ya')
             ->call('sendNow', $appointment->id)
             ->assertSee('Las citas no pendientes no pueden enviarse.');
@@ -1083,7 +1022,7 @@ class AppointmentManagerTest extends TestCase
         ]);
 
         Livewire::withQueryParams(['client' => $firstClient->id])
-            ->test(AppointmentList::class)
+            ->test(ClientAppointments::class)
             ->assertSee('Ana Pérez')
             ->assertSee('11:30')
             ->assertSee('12:45')
@@ -1112,7 +1051,7 @@ class AppointmentManagerTest extends TestCase
         }
 
         Livewire::withQueryParams(['client' => $client->id])
-            ->test(AppointmentList::class)
+            ->test(ClientAppointments::class)
             ->assertSet('dateFilter', 'upcoming')
             ->assertDontSee('08:00')
             ->assertSee('09:00')
@@ -1175,7 +1114,7 @@ class AppointmentManagerTest extends TestCase
         ]);
 
         Livewire::withQueryParams(['client' => $client->id])
-            ->test(AppointmentList::class)
+            ->test(ClientAppointments::class)
             ->assertSee('Seleccionar todas las citas visibles')
             ->call('toggleVisibleAppointments', [$firstAppointment->id, $secondAppointment->id])
             ->assertSee('Deseleccionar todas las citas visibles')
@@ -1239,8 +1178,7 @@ class AppointmentManagerTest extends TestCase
             'activo' => true,
         ]);
 
-        $component = Livewire::withQueryParams(['client' => $client->id])
-            ->test(AppointmentList::class)
+        $component = Livewire::test(ClientAppointments::class, ['clientId' => $client->id])
             ->set('selectedAppointmentIds', [...$appointments->pluck('id'), $otherAppointment->id])
             ->assertSee('Activar seleccionadas')
             ->assertSee('Desactivar seleccionadas')
@@ -1277,7 +1215,7 @@ class AppointmentManagerTest extends TestCase
             ]);
         }
 
-        $html = Livewire::test(AppointmentOverview::class)->html();
+        $html = Livewire::test(AppointmentIndex::class)->html();
 
         $this->assertSame(30, substr_count($html, 'wire:key="appointment-client-'));
     }
@@ -1352,7 +1290,7 @@ class AppointmentManagerTest extends TestCase
             'activo' => false,
         ]);
 
-        Livewire::test(AppointmentList::class)
+        Livewire::test(ClientAppointments::class, ['clientId' => $client->id])
             ->assertSee('Pendiente')
             ->assertSee('Supendidas')
             ->assertSee('11:30')
@@ -1394,11 +1332,11 @@ class AppointmentManagerTest extends TestCase
             'activo' => true,
         ]);
 
-        Livewire::test(AppointmentList::class)
+        Livewire::test(ClientAppointments::class, ['clientId' => $client->id])
             ->set('filter_activo', true)
             ->assertSet('filter_enviado', false);
 
-        Livewire::test(AppointmentList::class)
+        Livewire::test(ClientAppointments::class, ['clientId' => $client->id])
             ->set('filter_activo', true)
             ->set('filter_enviado', true)
             ->assertSet('filter_activo', false)
@@ -1425,7 +1363,7 @@ class AppointmentManagerTest extends TestCase
             'activo' => true,
         ]);
 
-        Livewire::test(AppointmentList::class)
+        Livewire::test(ClientAppointments::class, ['clientId' => $client->id])
             ->set('filter_activo', true)
             ->set('filter_enviado', true)
             ->assertSet('filter_activo', false)
@@ -1464,7 +1402,7 @@ class AppointmentManagerTest extends TestCase
             'status' => WhatsAppMessage::STATUS_PENDING,
         ]);
 
-        Livewire::test(AppointmentList::class)
+        Livewire::test(ClientAppointments::class, ['clientId' => $client->id])
             ->call('updateActiveStatus', $appointment->id, false)
             ->assertDispatched('toast', fn ($n, $p) => $p['message'] === 'Estado pendiente actualizado.' && $p['type'] === 'success');
 
@@ -1492,7 +1430,7 @@ class AppointmentManagerTest extends TestCase
             'activo' => true,
         ]);
 
-        Livewire::test(AppointmentList::class)
+        Livewire::test(ClientAppointments::class, ['clientId' => $client->id])
             ->call('updateActiveStatus', $appointment->id, false)
             ->assertDispatched('toast', fn ($n, $p) => $p['message'] === 'Esta cita no se puede modificar. Solo se puede eliminar.' && $p['type'] === 'error');
 
@@ -1519,7 +1457,7 @@ class AppointmentManagerTest extends TestCase
             'activo' => true,
         ]);
 
-        Livewire::test(AppointmentList::class)
+        Livewire::test(ClientAppointments::class, ['clientId' => $client->id])
             ->call('updateActiveStatus', $appointment->id, false)
             ->assertDispatched('toast', fn ($n, $p) => $p['message'] === 'Estado pendiente actualizado.' && $p['type'] === 'success');
 
@@ -1546,7 +1484,7 @@ class AppointmentManagerTest extends TestCase
             'activo' => true,
         ]);
 
-        Livewire::test(AppointmentList::class)
+        Livewire::test(ClientAppointments::class, ['clientId' => $client->id])
             ->set('filter_enviado', true)
             ->assertSeeHtml('bg-slate-900/50 text-slate-400')
             ->assertSeeHtml('aria-label="Eliminar cita"')
@@ -1572,7 +1510,7 @@ class AppointmentManagerTest extends TestCase
             'activo' => true,
         ]);
 
-        Livewire::test(AppointmentList::class)
+        Livewire::test(ClientAppointments::class, ['clientId' => $client->id])
             ->call('confirmDelete', $appointment->id)
             ->assertSee('Eliminar cita')
             ->assertSee('Esta acción no se puede deshacer.')
@@ -1592,45 +1530,6 @@ class AppointmentManagerTest extends TestCase
             ->assertSee('Citas registradas')
             ->assertSee('Nueva cita')
             ->assertDontSee('Buscar cliente');
-    }
-
-    public function test_sent_appointments_page_shows_only_sent_appointments(): void
-    {
-        $user = User::factory()->create();
-
-        $sentClient = Client::query()->create([
-            'nombre' => 'Ana',
-            'apellidos' => 'Enviada',
-            'telefono' => '+34600111222',
-        ]);
-        $pendingClient = Client::query()->create([
-            'nombre' => 'Berto',
-            'apellidos' => 'Pendiente',
-            'telefono' => '+34600113333',
-        ]);
-
-        Appointment::query()->create([
-            'client_id' => $sentClient->id,
-            'fecha' => '2026-06-30',
-            'hora' => '11:30',
-            'enviado' => true,
-            'activo' => true,
-        ]);
-        Appointment::query()->create([
-            'client_id' => $pendingClient->id,
-            'fecha' => '2026-07-01',
-            'hora' => '12:00',
-            'enviado' => false,
-            'activo' => true,
-        ]);
-
-        $this->actingAs($user)
-            ->get(route('appointments.sent'))
-            ->assertOk()
-            ->assertSee('Citas enviadas')
-            ->assertSee('Ana Enviada')
-            ->assertDontSee('Berto Pendiente')
-            ->assertDontSee('Notificaciones');
     }
 
     public function test_appointment_edit_page_loads_selected_appointment(): void
@@ -2166,7 +2065,7 @@ class AppointmentManagerTest extends TestCase
             'activo' => true,
         ]);
 
-        Livewire::test(AppointmentList::class)
+        Livewire::test(ClientAppointments::class, ['clientId' => $client->id])
             ->set('filter_nombre', 'Ana')
             ->assertSee('Ana Pérez')
             ->assertDontSee('Luis Gómez')
@@ -2206,7 +2105,7 @@ class AppointmentManagerTest extends TestCase
             'activo' => true,
         ]);
 
-        Livewire::test(AppointmentList::class)
+        Livewire::test(ClientAppointments::class, ['clientId' => $client->id])
             ->assertSeeHtmlInOrder([
                 'wire:key="appointment-'.$earlyFirstDay->id.'"',
                 'wire:key="appointment-'.$earlyNextDay->id.'"',
@@ -2242,7 +2141,7 @@ class AppointmentManagerTest extends TestCase
             'activo' => true,
         ]);
 
-        Livewire::test(AppointmentList::class)
+        Livewire::test(ClientAppointments::class, ['clientId' => $client->id])
             ->call('sortByColumn', 'cliente')
             ->assertSeeHtmlInOrder([
                 'wire:key="appointment-'.$anaAppointment->id.'"',
@@ -2292,7 +2191,7 @@ class AppointmentManagerTest extends TestCase
             'activo' => false,
         ]);
 
-        Livewire::test(AppointmentList::class)
+        Livewire::test(ClientAppointments::class, ['clientId' => $client->id])
             ->assertSee('09:00')
             ->assertDontSee('11:30')
             ->assertDontSee('12:00')
@@ -2344,7 +2243,7 @@ class AppointmentManagerTest extends TestCase
             'activo' => true,
         ]);
 
-        Livewire::test(AppointmentList::class)
+        Livewire::test(ClientAppointments::class, ['clientId' => $client->id])
             ->assertSee('Entregadas')
             ->set('filter_entregado', true)
             ->assertSee('11:00')
@@ -2371,7 +2270,7 @@ class AppointmentManagerTest extends TestCase
             'activo' => true,
         ]);
 
-        Livewire::test(AppointmentList::class)
+        Livewire::test(ClientAppointments::class, ['clientId' => $client->id])
             ->assertDontSee('Enviado')
             ->assertDontSee('Fecha envío')
             ->assertDontSee('Entregado')
@@ -2397,7 +2296,7 @@ class AppointmentManagerTest extends TestCase
             'activo' => true,
         ]);
 
-        Livewire::test(AppointmentList::class)
+        Livewire::test(ClientAppointments::class, ['clientId' => $client->id])
             ->assertDontSee('Pendiente');
     }
 

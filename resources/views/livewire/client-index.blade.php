@@ -87,7 +87,7 @@
       @empty
         <tr>
           <td class="px-4 py-6 text-slate-400" colspan="4">
-            @if ($showAllClients || $hasClientSearch)
+            @if ($hasClientSearch)
               No hay clientes para esa búsqueda.
             @else
               Las coincidencias aparecerán aquí cuando escribas al menos un carácter.
@@ -99,7 +99,7 @@
     </table>
   </div>
 
-  @if ($showAllClients || $hasClientSearch)
+  @if ($hasClientSearch)
     <div class="mt-4">
       {{ $clients->links('vendor.pagination.tailwind') }}
     </div>
