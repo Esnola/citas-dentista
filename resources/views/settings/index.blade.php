@@ -50,8 +50,7 @@
     </div>
 
     <div x-ref="board"  class="grid gap-4" aria-label="Secciones de ajustes" >
-      <section
-              data-settings-section="overview"
+      <section data-settings-section="overview"
               data-default-open="true"
               class="rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur"
               x-bind:class="sectionStateClasses('overview')"
@@ -124,62 +123,7 @@
              class="mt-4 h-1 rounded-full bg-emerald-400/80 shadow-[0_0_24px_rgba(52,211,153,0.45)]"></div>
       </section>
 
-      <section
-              data-settings-section="sandbox"
-              data-default-open="false"
-              class="rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur"
-              x-bind:class="sectionStateClasses('sandbox')"
-              x-on:dragenter.prevent="setDropTarget('sandbox', $event)"
-              x-on:dragover.prevent
-              x-on:drop.prevent="drop('sandbox', $event)"
-      >
-        <div x-show="showDropHint('sandbox', 'before')" x-cloak
-             class="mb-4 h-1 rounded-full bg-emerald-400/80 shadow-[0_0_24px_rgba(52,211,153,0.45)]"></div>
-        <div class="flex items-center justify-between gap-4">
-          <div class="flex items-center gap-3">
-            <x-botones.arrastrar-seccion seccion="sandbox"/>
-            <div>
-              <h3 class="text-lg font-semibold">Twilio Sandbox</h3>
-              <p class="text-sm text-slate-300">Guía rápida para pruebas antes de usar un remitente real.</p>
-            </div>
-          </div>
-          <x-botones.expandir-contraer abierto="isOpen('sandbox')" x-on:click="toggle('sandbox')"/>
-        </div>
-
-        <div x-show="dragging === 'sandbox'" x-cloak
-             class="mt-4 rounded-2xl border border-emerald-400/20 bg-emerald-500/10 px-4 py-3 text-xs uppercase tracking-[0.28em] text-emerald-100">
-          Suelta para colocar esta sección
-        </div>
-
-        <div x-show="isOpen('sandbox')" x-cloak class="mt-6">
-          <p class="text-sm text-slate-300">
-            Para desarrollo rápido, Twilio suele permitir probar WhatsApp con el sandbox antes de usar un remitente
-            real.
-          </p>
-          <div class="mt-4 space-y-3 text-sm text-slate-200">
-            <div class="rounded-2xl border border-white/10 bg-slate-900/60 p-4">
-              <p class="font-medium">1. Activa el sandbox</p>
-              <p class="mt-1 text-slate-300">Usa el entorno de pruebas de Twilio y asocia tu número siguiendo su
-                configuración.</p>
-            </div>
-            <div class="rounded-2xl border border-white/10 bg-slate-900/60 p-4">
-              <p class="font-medium">2. Configura el remitente</p>
-              <p class="mt-1 text-slate-300">En `.env`, define `TWILIO_WHATSAPP_MODE=sandbox` y
-                `TWILIO_WHATSAPP_FROM=whatsapp:+14155238886` para sandbox. Para producción usa `sender` con tu número
-                real o `service` con `TWILIO_MESSAGING_SERVICE_SID`.</p>
-            </div>
-            <div class="rounded-2xl border border-white/10 bg-slate-900/60 p-4">
-              <p class="font-medium">3. Cambia el driver</p>
-              <p class="mt-1 text-slate-300">Pon `WHATSAPP_DRIVER=twilio` cuando quieras enviar desde Twilio.</p>
-            </div>
-          </div>
-        </div>
-        <div x-show="showDropHint('sandbox', 'after')" x-cloak
-             class="mt-4 h-1 rounded-full bg-emerald-400/80 shadow-[0_0_24px_rgba(52,211,153,0.45)]"></div>
-      </section>
-
-      <section
-              data-settings-section="status"
+      <section data-settings-section="status"
               data-default-open="false"
               class="rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur"
               x-bind:class="sectionStateClasses('status')"
@@ -307,6 +251,38 @@
           <livewire:twilio-content-template-settings/>
         </div>
         <div x-show="showDropHint('twilio-templates', 'after')" x-cloak
+             class="mt-4 h-1 rounded-full bg-emerald-400/80 shadow-[0_0_24px_rgba(52,211,153,0.45)]"></div>
+      </section>
+
+      <section data-settings-section="credentials"
+               data-default-open="true"
+               class="rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur"
+               x-bind:class="sectionStateClasses('credentials')"
+               x-on:dragenter.prevent="setDropTarget('credentials', $event)"
+               x-on:dragover.prevent
+               x-on:drop.prevent="drop('credentials', $event)">
+        <div x-show="showDropHint('credentials', 'before')" x-cloak
+             class="mb-4 h-1 rounded-full bg-emerald-400/80 shadow-[0_0_24px_rgba(52,211,153,0.45)]"></div>
+        <div class="flex items-center justify-between gap-4">
+          <div class="flex items-center gap-3">
+            <x-botones.arrastrar-seccion seccion="credentials"/>
+            <div>
+              <h3 class="text-lg font-semibold">Credenciales Twilio</h3>
+              <p class="text-sm text-slate-300">Modo de envío, remitente y API key.</p>
+            </div>
+          </div>
+          <x-botones.expandir-contraer abierto="isOpen('credentials')" x-on:click="toggle('credentials')"/>
+        </div>
+
+        <div x-show="dragging === 'credentials'" x-cloak
+             class="mt-4 rounded-2xl border border-emerald-400/20 bg-emerald-500/10 px-4 py-3 text-xs uppercase tracking-[0.28em] text-emerald-100">
+          Credenciales en movimiento
+        </div>
+
+        <div x-show="isOpen('credentials')" x-cloak class="mt-6">
+          <livewire:twilio-credential-settings/>
+        </div>
+        <div x-show="showDropHint('credentials', 'after')" x-cloak
              class="mt-4 h-1 rounded-full bg-emerald-400/80 shadow-[0_0_24px_rgba(52,211,153,0.45)]"></div>
       </section>
 

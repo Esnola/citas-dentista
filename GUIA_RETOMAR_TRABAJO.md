@@ -34,6 +34,9 @@ Aplicacion Laravel 13 con Livewire 4, Flux UI y Tailwind CSS 4 para gestionar cl
 | `WhatsAppMessage` | Mensajes WhatsApp. Campos: `status` (pending/sent/failed), `respuesta` (Confirmar/Reprogramar), `responded_at`, `provider_payload`, `metadata`. |
 | `WhatsAppTemplate` | Clase final (no Eloquent). Resuelve plantillas desde config. |
 | `AppointmentReminderPreference` | Preferencias de recordatorio por canal (whatsapp/email) y dias de anticipacion. |
+| `WhatsAppDispatchSettings` | Singleton. `enabled` (toggle envios programados), `hours` (json, horas de envio). |
+| `WhatsAppCredential` | Singleton. Credenciales Twilio en BD: `mode`, `from_number`, `test_recipient`, `api_key_sid` (encrypted), `api_key_secret` (encrypted). Fallback a .env. |
+| `TwilioContentTemplate` | Templates de contenido Twilio en BD. `content_sid`, `seleccionada`, `content_variables`. |
 | `User` | Usuarios. Campo `is_admin` para guard de administracion. |
 | `LoginHistory` | Registro de historial de login de usuarios. |
 
@@ -51,13 +54,16 @@ Aplicacion Laravel 13 con Livewire 4, Flux UI y Tailwind CSS 4 para gestionar cl
 | `AppointmentOverview` | Vista resumen de citas |
 | `DailyAgenda` | Agenda diaria con navegacion por fecha (hoy/manana) |
 | `WhatsAppConnectionTest` | Prueba de conexion WhatsApp en ajustes |
-| `AppointmentReminderSettings` | Configurar tiempos de envio de recordatorios |
+| `AppointmentReminderSettings` | Configurar tiempos de envio, toggle envios programados, horas |
+| `TwilioContentTemplateSettings` | Gestionar templates de contenido Twilio |
+| `TwilioCredentialSettings` | Credenciales Twilio: modo sandbox/sender, API key, remitente |
+| `DispatchBanner` | Banner reactivo: aviso cuando envios automaticos deshabilitados |
 
 ### Comandos Artisan
 
 | Comando | Funcion | Programacion |
 |---|---|---|
-| `whatsapp:dispatch-due` | Encola y envia mensajes WhatsApp pendientes | 09:00, 12:00, 15:00 (sin overlap) |
+| `whatsapp:dispatch-due` | Encola y envia mensajes WhatsApp pendientes. Verifica `WhatsAppDispatchSettings.enabled`. | Cada minuto (con check de enabled + horas en BD) |
 | `whatsapp:sync-delivery-status` | Sincroniza estado de entrega desde Twilio API | Cada minuto (sin overlap) |
 | `whatsapp:backfill-delivery-state` | Backfill de estados de entrega desde mensajes almacenados | Manual |
 
@@ -197,14 +203,22 @@ php artisan test --compact tests/Feature/WhatsAppTwilioDispatchTest.php tests/Fe
 
 ## Pendientes
 
-1. Preparar la plantilla de correo de WhatsApp.
-2. Preparar la plantilla de correo de cita cancelada.
-3. Preparar la plantilla de correo de cita reprogramada.
-4. Preparar la plantilla de correo de cita confirmada.
-5. Preparar la plantilla de correo de cita enviada.
-6. Preparar la plantilla de correo de cita rechazada.
-7. Preparar la plantilla de correo de cita rechazada por el cliente.
-8. Preparar la plantilla de correo de cita rechazada por el dentista.
-9. Preparar para enviar correos de recordatorio de cita.
-10. Preparar para enviar correos de confirmacion de cita.
-11. Los envios marcados como `queued` deberian verificarse periodicamente para confirmar entrega real. El estado `activo` pasa a `false` y `enviado` a `true` en la BD cuando se verifique la correcta entrega al destinatario.
+### WhatsApp
+1. Registrar sender de WhatsApp en Twilio para usar templates custom en español con botones (error 63027 en sandbox).
+2. Resolver error 63112 (WABA deshabilitada) si persiste después de registrar sender.
+
+### Correos
+3. Preparar plantilla de correo de WhatsApp.
+4. Preparar plantilla de correo de cita cancelada.
+5. Preparar plantilla de correo de cita reprogramada.
+6. Preparar plantilla de correo de cita confirmada.
+7. Preparar plantilla de correo de cita enviada.
+8. Preparar plantilla de correo de cita rechazada.
+9. Preparar plantilla de correo de cita rechazada por el cliente.
+10. Preparar plantilla de correo de cita rechazada por el dentista.
+11. Preparar para enviar correos de recordatorio de cita.
+12. Preparar para enviar correos de confirmacion de cita.
+
+### Funcionalidad
+13. Soporte para reprogramar via boton (caso `'reprogram*'` en `resolveAction()`).
+14. Verificar entrega real de envios marcados como `queued` despues de 24h.

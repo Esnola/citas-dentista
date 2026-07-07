@@ -3,6 +3,7 @@
 namespace App\Services\WhatsApp;
 
 use App\Models\Appointment;
+use App\Models\WhatsAppCredential;
 use App\Models\WhatsAppMessage;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
@@ -133,8 +134,9 @@ class AppointmentDeliveryStatusSyncer
         }
 
         $accountSid = trim((string) config('whatsapp.twilio.account_sid', ''));
-        $apiKeySid = trim((string) config('whatsapp.twilio.api_key_sid', ''));
-        $apiKeySecret = trim((string) config('whatsapp.twilio.api_key_secret', ''));
+        $credential = WhatsAppCredential::get();
+        $apiKeySid = trim((string) ($credential->resolveApiKeySid() ?? ''));
+        $apiKeySecret = trim((string) ($credential->resolveApiKeySecret() ?? ''));
         $username = $apiKeySid !== '' && $apiKeySecret !== '' ? $apiKeySid : $accountSid;
         $password = $apiKeySid !== '' && $apiKeySecret !== ''
             ? $apiKeySecret

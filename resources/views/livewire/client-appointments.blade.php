@@ -192,7 +192,7 @@
             </td>
             <td class="px-4 py-3">
               <a href="{{ $editUrl }}" tabindex="-1"
-                 class="inline-flex items-center gap-2 font-medium {{ $isInactive ? 'text-slate-400 hover:text-slate-300' : 'text-emerald-300 hover:text-emerald-200' }}">
+                 class="inline-flex items-center gap-2 font-medium {{ ($isInactive || ! $appointment->cita_activa) ? 'text-slate-400 hover:text-slate-300' : 'text-emerald-300 hover:text-emerald-200' }}">
                 <span>{{ $appointment->client?->nombre }} {{ $appointment->client?->apellidos }}</span>
               </a>
             </td>

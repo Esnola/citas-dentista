@@ -3,6 +3,7 @@
 namespace App\Services\WhatsApp;
 
 use App\Models\TwilioContentTemplate;
+use App\Models\WhatsAppCredential;
 use App\Models\WhatsAppMessage;
 use App\Traits\NormalizesPhone;
 use Carbon\Carbon;
@@ -136,8 +137,9 @@ class WhatsAppSender
     private function sendTwilioRequest(string $recipient, string $body, ?string $mode = null, ?WhatsAppMessage $message = null): array
     {
         $config = config('whatsapp.twilio');
+        $credential = WhatsAppCredential::get();
         $accountSid = $config['account_sid'] ?? null;
-        [$username, $password] = $this->twilioApiCredentials($config);
+        [$username, $password] = $this->twilioApiCredentials($config, $credential);
 
         if (! $accountSid || ! $username || ! $password) {
             throw new RuntimeException('Twilio credentials are not configured.');
@@ -168,8 +170,15 @@ class WhatsAppSender
      * @param  array<string, mixed>  $config
      * @return array{0:?string,1:?string}
      */
-    private function twilioApiCredentials(array $config): array
+    private function twilioApiCredentials(array $config, WhatsAppCredential $credential): array
     {
+        $dbApiKeySid = $credential->resolveApiKeySid();
+        $dbApiKeySecret = $credential->resolveApiKeySecret();
+
+        if (filled($dbApiKeySid) && filled($dbApiKeySecret)) {
+            return [$dbApiKeySid, $dbApiKeySecret];
+        }
+
         if (filled($config['api_key_sid'] ?? null) && filled($config['api_key_secret'] ?? null)) {
             return [$config['api_key_sid'], $config['api_key_secret']];
         }
@@ -196,7 +205,8 @@ class WhatsAppSender
         bool $validateConfiguration = true,
     ): array {
         $config = config('whatsapp.twilio');
-        $from = $config['from'] ?? null;
+        $credential = WhatsAppCredential::get();
+        $from = $credential->resolveFrom() ?: ($config['from'] ?? null);
         $messagingServiceSid = $config['messaging_service_sid'] ?? null;
         $contentSid = $this->twilioContentSid();
         $resolvedMode = $this->resolveTwilioMode($mode);
@@ -243,7 +253,8 @@ class WhatsAppSender
     public function resolveTwilioMode(?string $mode = null): string
     {
         $config = config('whatsapp.twilio');
-        $requestedMode = strtolower(trim($mode ?: (string) ($config['mode'] ?? self::TWILIO_AUTO_MODE)));
+        $credential = WhatsAppCredential::get();
+        $requestedMode = strtolower(trim($mode ?: $credential->resolveMode()));
 
         if (! in_array($requestedMode, $this->twilioModes(), true)) {
             throw new RuntimeException('Unsupported Twilio WhatsApp mode: '.$requestedMode);

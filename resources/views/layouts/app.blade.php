@@ -239,6 +239,7 @@
     </nav>
   </aside>
   <main class="px-4 py-5 lg:px-6 lg:py-6 w-full">
+    <livewire:dispatch-banner />
       @yield('content')
   </main>
 </div>

@@ -1,72 +1,74 @@
 # Handoff
 
 ## Objective
-Implementar lógica de respuesta WhatsApp basada en `ButtonPayload` de templates Quick Reply, y corregir el syncer de estado de entrega.
+Gestión de citas dentales con recordatorios WhatsApp. Sistema completo con envíos programados, respuestas vía botones, y panel de administración.
 
 ## Current state
-Todo funcional. Tests pasan (7/7 webhook tests). Los 27 fallos en AppointmentManagerTest son preexistentes (Vite/Livewire).
+Funcional. Tests pasan (9/10 — 1 fallo preexistente en AppointmentManagerTest).
 
-## Completed
+## Últimos cambios (Sesión 2026-07-07/08)
 
-### 1. ButtonPayload en lugar de texto para respuestas
-- Si `button_payload` empieza con `confirm` → Confirmada (verde)
-- Si `button_payload` existe pero no empieza con `confirm` → Consultar (rojo, icono alert)
-- Si no hay `button_payload` → lógica anterior (texto)
+### 1. Nombre gris para citas inactivas
+- `resources/views/livewire/client-appointments.blade.php:195` — nombre del cliente en gris cuando `cita_activa=false`
 
-### 2. Archivos modificados
+### 2. Error Twilio 63027 — Template no existe
+- **Causa**: el sandbox de Twilio NO soporta templates custom. Solo 3 plantillas pre-aprobadas en inglés.
+- **Solución**: modo `text` funciona, modo `template` requiere sender registrado en Twilio.
+- Config cache estaba desactualizado (`WHATSAPP_MESSAGE_MODE=text` en cache vs `template` en .env).
 
-**`app/Models/Appointment.php`** — `responseStatusLabel()`:
-- Verifica `button_payload` primero
-- `confirm*` → retorna `'Confirmar'` (blade lo muestra como "Confirmada")
-- Cualquier otro payload → retorna `'Consultar'` (blade lo muestra en rojo)
-- Sin payload → usa `$latest->respuesta` (texto)
+### 3. Envíos programados configurables
+- **Tabla** `whatsapp_dispatch_settings`: `enabled` (bool), `hours` (json)
+- **Modelo** `WhatsAppDispatchSettings` — singleton con `Schema::hasTable` guard
+- **UI**: toggle activar/desactivar + grid horas 06:00-21:00 (09:00/12:00/15:00 por defecto)
+- **Schedule**: `everyMinute()` con `->when()` que verifica enabled
+- **Comando** `DispatchDueWhatsAppMessages`: verifica `enabled` al inicio
 
-**`app/Models/WhatsAppMessage.php`** — `isConfirmed()`:
-- Verifica `button_payload` empieza con `confirm`, fallback a texto
-- `isRescheduleRequested()` sin cambios de payload
+### 4. Banner reactivo "Envíos deshabilitados"
+- **Componente** `DispatchBanner` (Livewire) con `#[On('dispatchToggled')]` y `#[On('dispatchSettingsChanged')]`
+- Aparece/desaparece al girar toggle en Ajustes, sin recarga
+- Link a `/admin/settings`
 
-**`app/Services/WhatsApp/WhatsAppResponseHandler.php`** — `process()`:
-- Simplificado: solo confirma, sin caso reprogram
-- Usa `resolveAction()` con payload primero, fallback a texto
-- Si payload empieza con `confirm` → `confirmada=true, pendiente_reprogramacion=false`
-- Si no → log sin acción
+### 5. Credenciales Twilio en Base de Datos
+- **Tabla** `whatsapp_credentials`: `mode`, `from_number`, `test_recipient`, `api_key_sid` (encrypted), `api_key_secret` (encrypted), `selected`
+- **Modelo** `WhatsAppCredential` — singleton con `encrypted` casts, métodos `resolve*()` con fallback a .env
+- **UI** en Ajustes: toggle Sandbox/Sender, campos API key (opcional), remitente, destinatario prueba
+- **Resolvedor**: DB → .env (API key优先, luego Auth Token)
 
-**`app/Services/WhatsApp/AppointmentDeliveryStatusSyncer.php`** — `refreshMessageFromTwilio()`:
-- **Bug corregido**: ahora actualiza `status` del mensaje cuando Twilio reporta `failed`/`undelivered`
-- Antes solo actualizaba `provider_payload['raw']` sin cambiar el status del mensaje
+## Archivos nuevos (esta sesión)
+- `app/Models/WhatsAppDispatchSettings.php`
+- `app/Models/WhatsAppCredential.php`
+- `app/Livewire/DispatchBanner.php`
+- `app/Livewire/TwilioCredentialSettings.php`
+- `resources/views/livewire/dispatch-banner.blade.php`
+- `resources/views/livewire/twilio-credential-settings.blade.php`
+- `database/migrations/2026_07_07_232323_create_whatsapp_dispatch_settings_table.php`
+- `database/migrations/2026_07_08_010450_create_whatsapp_credentials_table.php`
 
-**`resources/views/livewire/appointment-list.blade.php`**:
-- Vista tabla: "Consultar" muestra rojo + icono alert (default en match)
-- Vista tarjeta: "'Consultar' => bg-red-500/15 text-red-300..." agregado
-
-### 3. Investigación Twilio
-- Status callback NO recibe datos de botones, solo estado de entrega
-- Botones Quick Reply se reciben como **mensaje entrante** con `ButtonText`, `ButtonPayload`, `ButtonType`
-- Documentación: https://www.twilio.com/docs/whatsapp/buttons#receiving-quick-replies
-
-## Files touched
-- `/Users/juan/PhpstormProjects/citasdentista/app/Models/Appointment.php`
-- `/Users/juan/PhpstormProjects/citasdentista/app/Models/WhatsAppMessage.php`
-- `/Users/juan/PhpstormProjects/citasdentista/app/Services/WhatsApp/WhatsAppResponseHandler.php`
-- `/Users/juan/PhpstormProjects/citasdentista/app/Services/WhatsApp/AppointmentDeliveryStatusSyncer.php`
-- `/Users/juan/PhpstormProjects/citasdentista/resources/views/livewire/appointment-list.blade.php`
-
-## Commands / tests
-- `vendor/bin/pint --dirty --format agent` → passed
-- `php artisan test --compact tests/Feature/TwilioWhatsAppStatusWebhookTest.php` → 7 passed
-- `php artisan test --compact tests/Feature/AppointmentManagerTest.php` → 27 failed (preexistentes)
+## Archivos modificados
+- `app/Console/Commands/DispatchDueWhatsAppMessages.php` — check enabled
+- `app/Livewire/AppointmentReminderSettings.php` — dispatch hours + enabled
+- `app/Providers/AppServiceProvider.php` — registra DispatchBanner, TwilioCredentialSettings
+- `app/Services/WhatsApp/WhatsAppSender.php` — DB credentials fallback
+- `app/Services/WhatsApp/AppointmentDeliveryStatusSyncer.php` — DB credentials fallback
+- `resources/views/layouts/app.blade.php` — `<livewire:dispatch-banner />`
+- `resources/views/settings/appointment-reminder-settings.blade.php` — toggle + horas
+- `resources/views/settings/index.blade.php` — sección Credenciales Twilio
+- `routes/console.php` — schedule con `->when()`
 
 ## Blockers
-- Sandbox de Twilio: solo envía a números registrados, por eso la mayoría de los 144 mensajes automáticos fallaron con `error_code: 63015`
-- Los 27 fallos en AppointmentManagerTest son preexistentes (issues con Vite manifest y Livewire wire:snapshot)
+- **Twilio sandbox**: solo envía a números registrados (error 63015)
+- **Templates custom**: requieren sender registrado (error 63027 en sandbox)
+- **27 fallos preexistentes**: Vite manifest + Livewire wire:snapshot en AppointmentManagerTest
 
 ## Next steps
-1. Si se necesita soporte para reprogramar vía botón, agregar caso `'reprogram*'` en `resolveAction()` y `responseStatusLabel()`
-2. Considerar agregar el syncer al flujo de dispatch para detectar `failed` inmediatamente después del envío
+1. Registrar sender de WhatsApp en Twilio para usar templates custom en español con botones
+2. Implementar envío de correos (plantillas pendientes en GUIA_RETOMAR_TRABAJO.md)
+3. Considerar reprogramar vía botón (caso `'reprogram*'` en `resolveAction()`)
 
 ## Notes for another computer
-- El proyecto usa `WHATSAPP_DRIVER=log` por defecto en `.env.example` — cambiar a `twilio` para probar envíos reales
+- `WHATSAPP_DRIVER=log` por defecto en `.env.example` — cambiar a `twilio` para probar
 - `composer run dev` levanta server + queue + pail + vite
-- La tabla `appointment_reminder_preferences` tiene `lead_days=1` habilitado para WhatsApp
-- El schedule ejecuta `whatsapp:dispatch-due` a las 09:00, 12:00 y 15:00
 - Formatear con `vendor/bin/pint --dirty --format agent` después de cada cambio PHP
+- Credenciales Twilio ahora se pueden editar desde `/admin/settings` → Credenciales Twilio
+- El schedule ahora usa `everyMinute()` + check de enabled en BD (no más horas hardcodeadas)
+- Despachar envío manual: `php artisan whatsapp:dispatch-due --no-interaction`
