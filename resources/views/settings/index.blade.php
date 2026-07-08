@@ -11,14 +11,9 @@
     $twilioApiKeySid = (string) $credential->resolveApiKeySid();
     $twilioApiKeySecret = (string) $credential->resolveApiKeySecret();
     $twilioFrom = (string) $credential->resolveFrom();
-    $twilioServiceSid = (string) $credential->resolveMessagingServiceSid();
     $twilioContentSid = (string) app(WhatsAppSender::class)->twilioContentSid();
-    $twilioMode = (string) $credential->resolveMode();
-    $twilioResolvedMode = app(WhatsAppSender::class)->resolveTwilioMode();
     $twilioUsesApiKey = filled($twilioApiKeySid) && filled($twilioApiKeySecret);
     $twilioHasCredentials = filled($twilioAccountSid) && ($twilioUsesApiKey || filled($twilioAuthToken));
-    $twilioHasSender = $twilioResolvedMode === 'service' ? filled($twilioServiceSid) : filled($twilioFrom);
-    $twilioUsesTemplate = $credential->resolveMessageMode() === 'template';
     $selectedSenderNumber = $credential->selectedSenderNumber();
   @endphp
 
@@ -119,9 +114,9 @@
           </div>
           <div class="rounded-2xl border border-white/10 bg-slate-900/60 p-4">
             <p class="text-xs uppercase tracking-[0.25em] text-slate-400">Sender</p>
-            <p class="mt-2 font-medium">{{ $selectedSenderNumber?->full_number ?: ($twilioServiceSid ?: 'No configurado') }}</p>
+            <p class="mt-2 font-medium">{{ $selectedSenderNumber?->full_number ?: ($twilioFrom ?: 'No configurado') }}</p>
             <p class="mt-1 text-sm text-slate-300">
-              {{ $selectedSenderNumber ? ($selectedSenderNumber->name ?: 'Sender activo') : ($twilioServiceSid ? 'Messaging Service' : 'Añade un sender o servicio') }}
+              {{ $selectedSenderNumber ? ($selectedSenderNumber->name ?: 'Sender activo') : ($twilioFrom ? 'Sender por defecto del .env' : 'Añade un sender o configura el .env') }}
             </p>
           </div>
           <div class="rounded-2xl border border-white/10 bg-slate-900/60 p-4">

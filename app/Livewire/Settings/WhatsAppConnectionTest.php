@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Settings;
 
+use App\Models\TwilioContentTemplate;
 use App\Models\WhatsAppCredential;
 use App\Services\WhatsApp\WhatsAppSender;
 use App\Traits\NormalizesPhone;
@@ -16,9 +17,13 @@ class WhatsAppConnectionTest extends Component
 
     public string $recipient = '';
 
-    public string $body = 'Mensaje de prueba desde Clínica Dental Eugenia.';
+    public string $body = 'Mensaje de prueba desde ... ';
 
     public string $mode = 'sandbox';
+
+    public string $testType = 'text';
+
+    public string $templateId = '';
 
     public string $status = '';
 
@@ -28,8 +33,9 @@ class WhatsAppConnectionTest extends Component
 
     public function mount(): void
     {
-        $this->recipient = '';
+        $this->recipient = (string) $this->previewCredential()->resolveTestRecipient();
         $this->mode = $this->initialTwilioMode();
+        $this->templateId = (string) (TwilioContentTemplate::selectedOrFirst()?->id ?? '');
     }
 
     #[On('credentialsChanged')]
@@ -38,11 +44,30 @@ class WhatsAppConnectionTest extends Component
         //
     }
 
+    #[On('templateChanged')]
+    public function refreshTemplatePreview(): void
+    {
+        $this->templateId = (string) (TwilioContentTemplate::selectedOrFirst()?->id ?? '');
+    }
+
+    public function updatedTestType(string $value): void
+    {
+        if ($value !== 'template') {
+            $this->templateId = '';
+
+            return;
+        }
+
+        if ($this->templateId === '') {
+            $this->templateId = (string) (TwilioContentTemplate::selectedOrFirst()?->id ?? '');
+        }
+    }
+
     private function initialTwilioMode(): string
     {
-        $configuredMode = strtolower(trim((string) WhatsAppCredential::get()->resolveMode()));
+        $configuredMode = strtolower(trim((string) $this->previewCredential()->resolveMode()));
 
-        return in_array($configuredMode, ['auto', 'sandbox', 'sender', 'service'], true) ? $configuredMode : 'auto';
+        return in_array($configuredMode, ['auto', 'sandbox', 'sender'], true) ? $configuredMode : 'auto';
     }
 
     public function rules(): array
@@ -50,24 +75,37 @@ class WhatsAppConnectionTest extends Component
         return [
             'recipient' => ['required', 'string', 'max:40'],
             'body' => ['required', 'string', 'max:500'],
-            'mode' => ['required', 'in:auto,sandbox,sender,service'],
+            'mode' => ['required', 'in:auto,sandbox,sender'],
+            'testType' => ['required', 'in:text,template'],
+            'templateId' => ['exclude_unless:testType,template', 'required', 'integer', 'exists:twilio_content_templates,id'],
         ];
     }
 
     public function sendSavedRecipient(WhatsAppSender $sender): void
     {
         $credential = WhatsAppCredential::get();
-        $selectedNumber = $credential->selectedSenderNumber();
+        $savedRecipient = $credential->resolveTestRecipient();
 
-        if (! $selectedNumber) {
+        if ($savedRecipient === null || trim($savedRecipient) === '') {
             $this->statusType = 'error';
-            $this->status = 'No hay número de remitente seleccionado. Añade uno en Credenciales Twilio.';
+            $this->status = 'No hay destinatario de prueba guardado. Configura test_recipient en credenciales.';
             $this->details = [];
 
             return;
         }
 
-        $this->recipient = $selectedNumber->full_number;
+        $this->recipient = $savedRecipient;
+        $this->testType = 'text';
+        $this->templateId = '';
+
+        if ($this->recipientIsSenderNumber($this->recipient)) {
+            $this->statusType = 'error';
+            $this->status = 'No puedes enviar una prueba a un número que ya está configurado como remitente.';
+            $this->details = [];
+
+            return;
+        }
+
         $this->sendTest($sender);
     }
 
@@ -75,8 +113,34 @@ class WhatsAppConnectionTest extends Component
     {
         $data = $this->validate();
 
+        if ($this->recipientIsSenderNumber($data['recipient'])) {
+            $this->addError('recipient', 'No puedes enviar una prueba a un número que ya está configurado como remitente.');
+            $this->statusType = 'error';
+            $this->status = 'No puedes enviar una prueba a un número que ya está configurado como remitente.';
+            $this->details = [];
+
+            return;
+        }
+
         try {
-            $result = $sender->sendTestMessage($data['recipient'], $data['body'], $data['mode']);
+            $templateId = $data['testType'] === 'template' ? (int) $data['templateId'] : null;
+
+            if ($data['testType'] === 'template' && ! $templateId) {
+                $this->addError('templateId', 'Selecciona una plantilla para enviar la prueba.');
+                $this->statusType = 'error';
+                $this->status = 'Selecciona una plantilla para enviar la prueba.';
+                $this->details = [];
+
+                return;
+            }
+
+            $result = $sender->sendTestMessage(
+                $data['recipient'],
+                $data['body'],
+                $data['mode'],
+                $data['testType'] === 'template',
+                $templateId,
+            );
 
             $this->statusType = 'success';
             $this->status = 'Prueba enviada correctamente.';
@@ -97,22 +161,25 @@ class WhatsAppConnectionTest extends Component
     {
         return view('settings.whatsapp-connection-test', [
             'previewPayload' => $this->buildPreviewPayload(),
+            'templates' => TwilioContentTemplate::query()->orderBy('nombre')->get(),
         ]);
     }
 
     private function buildPreviewPayload(): array
     {
-        $credential = WhatsAppCredential::get();
+        $credential = $this->previewCredential();
         $selectedNumber = $credential->selectedSenderNumber();
         $recipient = $this->recipient !== '' ? $this->recipient : ($selectedNumber->full_number ?? '');
         $preview = [
-            'driver' => WhatsAppCredential::get()->resolveDriver(),
+            'driver' => $credential->resolveDriver(),
             'mode' => $this->mode,
             'recipient' => $recipient,
             'body' => $this->body,
+            'test_type' => $this->testType,
+            'template_id' => $this->templateId !== '' ? (int) $this->templateId : null,
         ];
 
-        return match (WhatsAppCredential::get()->resolveDriver()) {
+        return match ($credential->resolveDriver()) {
             'twilio' => $this->buildTwilioPreviewPayload($preview),
             'cloud_api' => $this->buildCloudApiPreviewPayload($preview),
             default => $this->buildLogPreviewPayload($preview),
@@ -124,12 +191,15 @@ class WhatsAppConnectionTest extends Component
         $mode = $preview['mode'];
         $sender = new WhatsAppSender;
         $resolvedMode = $sender->resolveTwilioMode($mode);
+        $forceTemplate = ($preview['test_type'] ?? 'text') === 'template';
+        $templateId = $preview['template_id'] ?? null;
 
         return [
             'provider' => 'twilio',
             'mode' => $mode,
+            'test_type' => $preview['test_type'] ?? 'text',
             'resolved_mode' => $resolvedMode,
-            'request' => $sender->buildTwilioPreviewRequest($preview['recipient'], $preview['body'], $mode),
+            'request' => $sender->buildTwilioPreviewRequest($preview['recipient'], $preview['body'], $mode, $forceTemplate, $templateId),
         ];
     }
 
@@ -158,5 +228,33 @@ class WhatsAppConnectionTest extends Component
                 'body' => $preview['body'],
             ],
         ];
+    }
+
+    private function recipientIsSenderNumber(string $recipient): bool
+    {
+        $normalizedRecipient = static::normalizeInternationalPhone($recipient);
+
+        return $this->previewCredential()
+            ->senderNumbers()
+            ->get()
+            ->contains(function ($senderNumber) use ($normalizedRecipient): bool {
+                return static::normalizeInternationalPhone($senderNumber->full_number) === $normalizedRecipient;
+            });
+    }
+
+    private function previewCredential(): WhatsAppCredential
+    {
+        if (WhatsAppCredential::query()->where('selected', true)->exists()) {
+            return WhatsAppCredential::query()->where('selected', true)->firstOrFail();
+        }
+
+        if (WhatsAppCredential::query()->exists()) {
+            return WhatsAppCredential::query()->firstOrFail();
+        }
+
+        return new WhatsAppCredential([
+            'mode' => config('whatsapp.twilio.mode', 'sandbox'),
+            'selected' => false,
+        ]);
     }
 }

@@ -16,9 +16,7 @@ class WhatsAppCredential extends Model
         'message_mode',
         'account_sid',
         'auth_token',
-        'messaging_service_sid',
         'content_sid',
-        'content_variables',
         'test_recipient',
         'timeout',
         'connect_timeout',
@@ -44,7 +42,6 @@ class WhatsAppCredential extends Model
             'api_key_secret' => 'encrypted',
             'auth_token' => 'encrypted',
             'cloud_api_access_token' => 'encrypted',
-            'content_variables' => 'array',
             'connect_timeout' => 'integer',
             'cloud_api_timeout' => 'integer',
             'timeout' => 'integer',
@@ -138,24 +135,9 @@ class WhatsAppCredential extends Model
         return $this->mode ?: config('whatsapp.twilio.mode', 'sandbox');
     }
 
-    public function resolveMessagingServiceSid(): ?string
-    {
-        return $this->nullableStringSetting($this->messaging_service_sid, 'whatsapp.twilio.messaging_service_sid');
-    }
-
     public function resolveContentSid(): ?string
     {
         return $this->nullableStringSetting($this->content_sid, 'whatsapp.twilio.content_sid');
-    }
-
-    /**
-     * @return array<string, string>
-     */
-    public function resolveContentVariables(): array
-    {
-        $variables = $this->content_variables ?? config('whatsapp.twilio.content_variables', []);
-
-        return is_array($variables) ? $variables : [];
     }
 
     public function resolveTestRecipient(): ?string

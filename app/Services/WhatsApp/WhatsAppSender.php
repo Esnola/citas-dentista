@@ -24,8 +24,6 @@ class WhatsAppSender
 
     private const TWILIO_SENDER_MODE = 'sender';
 
-    private const TWILIO_SERVICE_MODE = 'service';
-
     /**
      * @return array{provider:string,message_id:?string,payload:array,raw:array}
      *
@@ -58,10 +56,10 @@ class WhatsAppSender
      *
      * @return array{provider:string,message_id:?string,payload:array,raw:array}
      */
-    public function sendTestMessage(string $recipient, string $body, ?string $mode = null): array
+    public function sendTestMessage(string $recipient, string $body, ?string $mode = null, bool $forceTemplate = false, ?int $templateId = null): array
     {
         return match (WhatsAppCredential::get()->resolveDriver()) {
-            'twilio' => $this->sendTestViaTwilio($recipient, $body, $mode),
+            'twilio' => $this->sendTestViaTwilio($recipient, $body, $mode, $forceTemplate, $templateId),
             'cloud_api' => $this->sendTestViaCloudApi($recipient, $body),
             'log' => $this->sendTestViaLog($recipient, $body),
             default => throw new RuntimeException('Unsupported WhatsApp driver: '.WhatsAppCredential::get()->resolveDriver()),
@@ -126,16 +124,36 @@ class WhatsAppSender
     /**
      * @return array{provider:string,message_id:?string,payload:array,raw:array}
      */
-    private function sendTestViaTwilio(string $recipient, string $body, ?string $mode = null): array
+    private function sendTestViaTwilio(string $recipient, string $body, ?string $mode = null, bool $forceTemplate = false, ?int $templateId = null): array
     {
+        $messageMode = strtolower(trim((string) WhatsAppCredential::get()->resolveMessageMode()));
+        $usesTemplate = $forceTemplate || $messageMode === 'template';
+
+        if ($usesTemplate) {
+            return $this->sendTwilioRequest(
+                $recipient,
+                $body,
+                $mode,
+                $forceTemplate,
+                $templateId,
+                $this->buildFakeTemplateMessage($recipient, $body),
+            );
+        }
+
         return $this->sendTwilioRequest($recipient, $body, $mode);
     }
 
     /**
      * @return array{provider:string,message_id:?string,payload:array,raw:array}
      */
-    private function sendTwilioRequest(string $recipient, string $body, ?string $mode = null, ?WhatsAppMessage $message = null): array
-    {
+    private function sendTwilioRequest(
+        string $recipient,
+        string $body,
+        ?string $mode = null,
+        bool $forceTemplate = false,
+        ?int $templateId = null,
+        ?WhatsAppMessage $message = null,
+    ): array {
         $credential = WhatsAppCredential::get();
         $accountSid = $credential->resolveAccountSid();
         [$username, $password] = $this->twilioApiCredentials($credential);
@@ -144,7 +162,7 @@ class WhatsAppSender
             throw new RuntimeException('Twilio credentials are not configured.');
         }
 
-        [$payload, $requestPayload] = $this->buildTwilioPayload($recipient, $body, $mode, $message);
+        [$payload, $requestPayload] = $this->buildTwilioPayload($recipient, $body, $mode, $message, true, $forceTemplate, $templateId);
 
         $response = Http::baseUrl('https://api.twilio.com')
             ->acceptJson()
@@ -184,9 +202,9 @@ class WhatsAppSender
     /**
      * @return array<string, mixed>
      */
-    public function buildTwilioPreviewRequest(string $recipient, string $body, ?string $mode = null): array
+    public function buildTwilioPreviewRequest(string $recipient, string $body, ?string $mode = null, bool $forceTemplate = false, ?int $templateId = null): array
     {
-        return $this->buildTwilioPayload($recipient, $body, $mode, validateConfiguration: false)[1];
+        return $this->buildTwilioPayload($recipient, $body, $mode, null, false, $forceTemplate, $templateId)[1];
     }
 
     /**
@@ -198,33 +216,30 @@ class WhatsAppSender
         ?string $mode = null,
         ?WhatsAppMessage $message = null,
         bool $validateConfiguration = true,
+        bool $forceTemplate = false,
+        ?int $templateId = null,
     ): array {
         $credential = WhatsAppCredential::get();
         $from = $credential->resolveFrom();
-        $messagingServiceSid = $credential->resolveMessagingServiceSid();
-        $contentSid = $this->twilioContentSid();
+        $template = $this->twilioContentTemplate($templateId);
+        $contentSid = $template?->content_sid ?: $this->twilioContentSid();
         $resolvedMode = $this->resolveTwilioMode($mode);
         $messageMode = strtolower(trim($credential->resolveMessageMode()));
-        $usesTemplate = $messageMode === 'template';
-
-        if ($validateConfiguration && $resolvedMode === self::TWILIO_SERVICE_MODE && ! $messagingServiceSid) {
-            throw new RuntimeException('Twilio Messaging Service SID is not configured.');
-        }
+        $usesTemplate = $forceTemplate || $messageMode === 'template';
 
         if ($validateConfiguration && in_array($resolvedMode, [self::TWILIO_SANDBOX_MODE, self::TWILIO_SENDER_MODE], true) && ! $from) {
             throw new RuntimeException('Twilio WhatsApp sender is not configured.');
         }
 
         if ($validateConfiguration && $usesTemplate && ! $contentSid) {
-            throw new RuntimeException('Twilio Content SID is not configured.');
+            throw new RuntimeException('No hay una plantilla de Twilio seleccionada. Debe existir una fila con seleccionada = 1 en twilio_content_templates, o un TWILIO_CONTENT_SID como respaldo.');
         }
 
-        $contentVariables = $usesTemplate ? $this->twilioContentVariables($message, $body) : [];
+        $contentVariables = $usesTemplate ? $this->twilioContentVariables($message, $template) : [];
 
         $payload = [
             'mode' => $resolvedMode,
-            'from' => $resolvedMode === self::TWILIO_SERVICE_MODE ? null : ($from ? $this->normalizeWhatsAppAddress($from) : null),
-            'messaging_service_sid' => $resolvedMode === self::TWILIO_SERVICE_MODE ? $messagingServiceSid : null,
+            'from' => $from ? $this->normalizeWhatsAppAddress($from) : null,
             'to' => $this->normalizeWhatsAppRecipient($recipient),
             'body' => $body,
             'content_sid' => $usesTemplate ? $contentSid : null,
@@ -233,7 +248,6 @@ class WhatsAppSender
 
         $requestPayload = array_filter([
             'From' => $payload['from'],
-            'MessagingServiceSid' => $payload['messaging_service_sid'],
             'To' => $payload['to'],
             'Body' => $usesTemplate ? null : $payload['body'],
             'ContentSid' => $payload['content_sid'],
@@ -257,10 +271,6 @@ class WhatsAppSender
             return $requestedMode;
         }
 
-        if (filled($credential->resolveMessagingServiceSid())) {
-            return self::TWILIO_SERVICE_MODE;
-        }
-
         $from = (string) ($credential->resolveFrom() ?? '');
 
         if ($from !== '' && $this->normalizeWhatsAppAddress($from) === 'whatsapp:+14155238886') {
@@ -279,32 +289,33 @@ class WhatsAppSender
             self::TWILIO_AUTO_MODE,
             self::TWILIO_SANDBOX_MODE,
             self::TWILIO_SENDER_MODE,
-            self::TWILIO_SERVICE_MODE,
         ];
     }
 
     /**
      * @return array<string, string>
      */
-    private function twilioContentVariables(?WhatsAppMessage $message, string $body): array
+    private function twilioContentVariables(?WhatsAppMessage $message, ?TwilioContentTemplate $template = null): array
     {
         Carbon::setLocale('es');
-        $variables = TwilioContentTemplate::selectedContentVariables()
-            ?? WhatsAppCredential::get()->resolveContentVariables();
+        $template ??= TwilioContentTemplate::selectedOrFirst();
+        $variables = $template?->content_variables ?? [];
 
         if (! is_array($variables)) {
             return [];
         }
 
         $scheduledFor = $message?->appointment?->scheduledFor() ?? $message?->scheduled_for;
+        $fakeScheduledFor = now()->addDay()->setTime(10, 30);
+        $scheduledValue = $scheduledFor ?? $fakeScheduledFor;
         $replacements = [
-            '[NOMBRE]' => (string) ($message?->nombre ?? ''),
-            '[APELLIDOS]' => (string) ($message?->apellidos ?? ''),
-            '[TELEFONO]' => (string) ($message?->telefono ?? ''),
-            '[DIA]' => $scheduledFor?->translatedFormat('l j \d\e F') ?? '',
-            '[FECHA]' => $scheduledFor?->translatedFormat('l j \d\e F') ?? '',
-            '[HORA]' => $scheduledFor?->format('H:i') ?? '',
-            '[MENSAJE]' => $body,
+            '[NOMBRE]' => (string) ($message?->nombre ?? 'Ana'),
+            '[APELLIDOS]' => (string) ($message?->apellidos ?? 'López'),
+            '[TELEFONO]' => (string) ($message?->telefono ?? '+34600123123'),
+            '[DIA]' => $scheduledValue?->translatedFormat('l j \d\e F') ?? '',
+            '[FECHA]' => $scheduledValue?->translatedFormat('l j \d\e F') ?? '',
+            '[HORA]' => $scheduledValue?->format('H:i') ?? '',
+            '[MENSAJE]' => $message?->message ?? 'Mensaje de prueba',
         ];
 
         return collect($variables)
@@ -312,6 +323,17 @@ class WhatsAppSender
                 (string) $key => strtr((string) $value, $replacements),
             ])
             ->all();
+    }
+
+    private function buildFakeTemplateMessage(string $recipient, string $body): WhatsAppMessage
+    {
+        return new WhatsAppMessage([
+            'nombre' => 'Ana',
+            'apellidos' => 'López',
+            'telefono' => $recipient,
+            'scheduled_for' => now()->addDay()->setTime(10, 30),
+            'message' => $body,
+        ]);
     }
 
     /**
@@ -423,6 +445,15 @@ class WhatsAppSender
     {
         return TwilioContentTemplate::selectedContentSid()
             ?: WhatsAppCredential::get()->resolveContentSid();
+    }
+
+    public function twilioContentTemplate(?int $templateId = null): ?TwilioContentTemplate
+    {
+        if ($templateId) {
+            return TwilioContentTemplate::query()->find($templateId);
+        }
+
+        return TwilioContentTemplate::selectedOrFirst();
     }
 
     private function twilioStatusCallbackUrl(): string

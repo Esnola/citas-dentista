@@ -38,6 +38,7 @@ class TwilioContentTemplateSettings extends Component
 
         $this->reset('nombre', 'contentSid', 'variablePreset');
         $this->status = 'Plantilla guardada.';
+        $this->dispatch('templateChanged');
     }
 
     public function selectTemplate(int $templateId): void
@@ -46,6 +47,7 @@ class TwilioContentTemplateSettings extends Component
 
         TwilioContentTemplate::query()->findOrFail($templateId)->select();
         $this->status = 'Plantilla seleccionada.';
+        $this->dispatch('templateChanged');
     }
 
     public function deleteTemplate(int $templateId): void
@@ -56,6 +58,7 @@ class TwilioContentTemplateSettings extends Component
         $template->delete();
 
         $this->status = 'Plantilla eliminada.';
+        $this->dispatch('templateChanged');
     }
 
     public function render()

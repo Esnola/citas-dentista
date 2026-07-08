@@ -27,12 +27,14 @@ class TwilioContentTemplate extends Model
         return static::query()->where('seleccionada', true)->value('content_sid');
     }
 
-    /**
-     * @return array<string, string>|null
-     */
-    public static function selectedContentVariables(): ?array
+    public static function selected(): ?self
     {
-        return static::query()->where('seleccionada', true)->first()?->content_variables;
+        return static::query()->where('seleccionada', true)->first();
+    }
+
+    public static function selectedOrFirst(): ?self
+    {
+        return static::selected() ?? static::query()->first();
     }
 
     public function select(): void

@@ -188,6 +188,7 @@
                                    icono="calendar" icono-clase="size-5" text="Citas" class="sidebar-link"/>
         </div>
 
+        <livewire:dispatch-banner />
 
       </div>
 
@@ -214,6 +215,7 @@
                   x-transition.opacity.duration.300ms
                   class="mt-2 mb-4 grid gap-2 overflow-hidden"
           >
+
             <x-navegacion.aside-link route="admin.users.create" route-is="admin.users.*"
                                      color="orange" text="Usuarios" icono="usuarios" class="sidebar-link"/>
             <x-navegacion.aside-link route="admin.login-history" route-is="admin.login-history" color="rose"
@@ -239,7 +241,6 @@
     </nav>
   </aside>
   <main class="px-4 py-5 lg:px-6 lg:py-6 w-full">
-    <livewire:dispatch-banner />
       @yield('content')
   </main>
 </div>
