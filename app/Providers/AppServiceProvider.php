@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Livewire\AppointmentReminderSettings;
 use App\Livewire\DispatchBanner;
+use App\Livewire\SettingsOverview;
 use App\Livewire\TwilioContentTemplateSettings;
 use App\Livewire\TwilioCredentialSettings;
 use App\Livewire\WhatsAppConnectionTest;
@@ -30,5 +31,6 @@ class AppServiceProvider extends ServiceProvider
         Livewire::component('twilio-content-template-settings', TwilioContentTemplateSettings::class);
         Livewire::component('dispatch-banner', DispatchBanner::class);
         Livewire::component('twilio-credential-settings', TwilioCredentialSettings::class);
+        Livewire::component('settings-overview', SettingsOverview::class);
     }
 }

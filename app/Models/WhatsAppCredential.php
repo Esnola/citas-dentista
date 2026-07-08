@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\Schema;
 
 class WhatsAppCredential extends Model
@@ -11,8 +12,6 @@ class WhatsAppCredential extends Model
 
     protected $fillable = [
         'mode',
-        'from_number',
-        'test_recipient',
         'api_key_sid',
         'api_key_secret',
         'selected',
@@ -25,6 +24,11 @@ class WhatsAppCredential extends Model
             'api_key_secret' => 'encrypted',
             'selected' => 'boolean',
         ];
+    }
+
+    public function senderNumbers(): HasMany
+    {
+        return $this->hasMany(WhatsAppSenderNumber::class, 'whatsapp_credential_id');
     }
 
     public static function get(): static
@@ -45,8 +49,6 @@ class WhatsAppCredential extends Model
         if (! $credential) {
             $credential = static::create([
                 'mode' => config('whatsapp.twilio.mode', 'sandbox'),
-                'from_number' => config('whatsapp.twilio.from'),
-                'test_recipient' => config('whatsapp.twilio.test_recipient'),
                 'selected' => true,
             ]);
         }
@@ -54,9 +56,20 @@ class WhatsAppCredential extends Model
         return $credential;
     }
 
+    public function selectedSenderNumber(): ?WhatsAppSenderNumber
+    {
+        return $this->senderNumbers()->selected()->first();
+    }
+
     public function resolveFrom(): ?string
     {
-        return $this->from_number ?: config('whatsapp.twilio.from');
+        $selected = $this->selectedSenderNumber();
+
+        if ($selected) {
+            return $selected->whatsapp_address;
+        }
+
+        return config('whatsapp.twilio.from');
     }
 
     public function resolveApiKeySid(): ?string
@@ -67,11 +80,6 @@ class WhatsAppCredential extends Model
     public function resolveApiKeySecret(): ?string
     {
         return $this->api_key_secret ?: config('whatsapp.twilio.api_key_secret');
-    }
-
-    public function resolveTestRecipient(): ?string
-    {
-        return $this->test_recipient ?: config('whatsapp.twilio.test_recipient');
     }
 
     public function resolveMode(): string

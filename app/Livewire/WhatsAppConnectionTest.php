@@ -2,6 +2,7 @@
 
 namespace App\Livewire;
 
+use App\Models\WhatsAppCredential;
 use App\Services\WhatsApp\WhatsAppSender;
 use App\Traits\NormalizesPhone;
 use Illuminate\Support\Arr;
@@ -48,17 +49,18 @@ class WhatsAppConnectionTest extends Component
 
     public function sendSavedRecipient(WhatsAppSender $sender): void
     {
-        $savedRecipient = $sender->twilioTestRecipient();
+        $credential = WhatsAppCredential::get();
+        $selectedNumber = $credential->selectedSenderNumber();
 
-        if (! $savedRecipient) {
+        if (! $selectedNumber) {
             $this->statusType = 'error';
-            $this->status = 'Define TWILIO_TEST_RECIPIENT para usar este acceso rápido.';
+            $this->status = 'No hay número de remitente seleccionado. Añade uno en Credenciales Twilio.';
             $this->details = [];
 
             return;
         }
 
-        $this->recipient = $savedRecipient;
+        $this->recipient = $selectedNumber->full_number;
         $this->sendTest($sender);
     }
 
@@ -93,7 +95,9 @@ class WhatsAppConnectionTest extends Component
 
     private function buildPreviewPayload(): array
     {
-        $recipient = $this->recipient !== '' ? $this->recipient : (string) config('whatsapp.twilio.test_recipient', '');
+        $credential = WhatsAppCredential::get();
+        $selectedNumber = $credential->selectedSenderNumber();
+        $recipient = $this->recipient !== '' ? $this->recipient : ($selectedNumber->full_number ?? '');
         $preview = [
             'driver' => config('whatsapp.driver'),
             'mode' => $this->mode,

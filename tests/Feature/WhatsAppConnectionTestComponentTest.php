@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Livewire\WhatsAppConnectionTest;
+use App\Models\WhatsAppCredential;
 use App\Services\WhatsApp\WhatsAppSender;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
@@ -48,8 +49,19 @@ class WhatsAppConnectionTestComponentTest extends TestCase
     {
         config()->set('whatsapp.twilio.mode', 'sandbox');
 
+        $credential = WhatsAppCredential::create([
+            'mode' => 'sandbox',
+            'selected' => true,
+        ]);
+
+        $credential->senderNumbers()->create([
+            'name' => 'Sandbox',
+            'prefix' => '+34',
+            'number' => '600123123',
+            'selected' => true,
+        ]);
+
         $sender = Mockery::mock(WhatsAppSender::class);
-        $sender->shouldReceive('twilioTestRecipient')->once()->andReturn('+34600123123');
         $sender->shouldReceive('sendTestMessage')
             ->once()
             ->with('+34600123123', 'Mensaje de prueba desde Clínica Dental Eugenia.', 'sandbox')

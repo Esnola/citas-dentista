@@ -426,13 +426,6 @@ class WhatsAppSender
         ];
     }
 
-    public function twilioTestRecipient(): ?string
-    {
-        return filled(config('whatsapp.twilio.test_recipient'))
-            ? (string) config('whatsapp.twilio.test_recipient')
-            : null;
-    }
-
     public function twilioContentSid(): ?string
     {
         return TwilioContentTemplate::selectedContentSid()

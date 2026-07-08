@@ -19,8 +19,7 @@
     $twilioHasCredentials = filled($twilioAccountSid) && ($twilioUsesApiKey || filled($twilioAuthToken));
     $twilioHasSender = $twilioResolvedMode === 'service' ? filled($twilioServiceSid) : filled($twilioFrom);
     $twilioUsesTemplate = config('whatsapp.message_mode') === 'template';
-    $twilioTestRecipient = (string) ($twilio['test_recipient'] ?? '');
-    $sandboxActive = $twilioFrom === 'whatsapp:+14155238886';
+    $selectedSenderNumber = \App\Models\WhatsAppCredential::get()->selectedSenderNumber();
   @endphp
 
   <div x-data="settingsBoard()"
@@ -78,46 +77,7 @@
         </div>
 
         <div x-show="isOpen('overview')" x-cloak class="mt-6">
-          <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            <div class="rounded-2xl border border-white/10 bg-slate-900/60 p-4">
-              <p class="text-xs uppercase tracking-[0.25em] text-slate-400">Driver</p>
-              <p class="mt-2 font-medium">{{ $driver }}</p>
-              <p class="mt-1 text-sm text-slate-300">
-                @if ($driver === 'twilio')
-                  Twilio WhatsApp
-                @elseif ($driver === 'cloud_api')
-                  Meta WhatsApp Cloud API
-                @else
-                  Modo local / registro
-                @endif
-              </p>
-            </div>
-
-            <div class="rounded-2xl border border-white/10 bg-slate-900/60 p-4">
-              <p class="text-xs uppercase tracking-[0.25em] text-slate-400">Plantilla por defecto</p>
-              <p class="mt-2 font-medium">{{ config('whatsapp.default_template') }}</p>
-              <p class="mt-1 text-sm text-slate-300">{{ config('whatsapp.default_message') ?? config('whatsapp.templates.' . config('whatsapp.default_template') . '.message') }}</p>
-            </div>
-
-            <div class="rounded-2xl border border-white/10 bg-slate-900/60 p-4">
-              <p class="text-xs uppercase tracking-[0.25em] text-slate-400">Twilio</p>
-              <p class="mt-2 font-medium">{{ $twilioHasCredentials ? 'Credenciales listas' : 'Credenciales pendientes' }}</p>
-              <p class="mt-1 text-sm text-slate-300">
-                {{ $twilioHasSender ? 'Canal configurado' : 'Falta el canal de envío' }}
-                @if ($twilioUsesTemplate)
-                  · {{ $twilioContentSid ? 'plantilla configurada' : 'falta Content SID' }}
-                @endif
-              </p>
-            </div>
-
-            <div class="rounded-2xl border border-white/10 bg-slate-900/60 p-4">
-              <p class="text-xs uppercase tracking-[0.25em] text-slate-400">Modo Twilio</p>
-              <p class="mt-2 font-medium">{{ $twilioMode }} → {{ $twilioResolvedMode }}</p>
-              <p class="mt-1 text-sm text-slate-300">
-                {{ $sandboxActive ? 'Sandbox detectado por el remitente' : 'El envío real usará el modo resuelto' }}
-              </p>
-            </div>
-          </div>
+          <livewire:settings-overview/>
         </div>
         <div x-show="showDropHint('overview', 'after')" x-cloak
              class="mt-4 h-1 rounded-full bg-emerald-400/80 shadow-[0_0_24px_rgba(52,211,153,0.45)]"></div>
@@ -138,7 +98,7 @@
             <x-botones.arrastrar-seccion seccion="status"/>
             <div>
               <h3 class="text-lg font-semibold">Estado actual</h3>
-              <p class="text-sm text-slate-300">Credenciales, sender y destino de prueba.</p>
+              <p class="text-sm text-slate-300">Credenciales, sender y estado de conexión.</p>
             </div>
           </div>
 
@@ -159,9 +119,9 @@
           </div>
           <div class="rounded-2xl border border-white/10 bg-slate-900/60 p-4">
             <p class="text-xs uppercase tracking-[0.25em] text-slate-400">Sender</p>
-            <p class="mt-2 font-medium">{{ $twilioFrom ?: $twilioServiceSid ?: 'No configurado' }}</p>
+            <p class="mt-2 font-medium">{{ $selectedSenderNumber?->full_number ?: ($twilioServiceSid ?: 'No configurado') }}</p>
             <p class="mt-1 text-sm text-slate-300">
-              {{ $twilioFrom ? 'Sender directo' : ($twilioServiceSid ? 'Messaging Service' : 'Añade un sender o servicio') }}
+              {{ $selectedSenderNumber ? ($selectedSenderNumber->name ?: 'Sender activo') : ($twilioServiceSid ? 'Messaging Service' : 'Añade un sender o servicio') }}
             </p>
           </div>
           <div class="rounded-2xl border border-white/10 bg-slate-900/60 p-4">
@@ -173,11 +133,6 @@
             <p class="text-xs uppercase tracking-[0.25em] text-slate-400">API Key</p>
             <p class="mt-2 font-medium">{{ $twilioUsesApiKey ? Str::mask($twilioApiKeySid, '*', 4) : 'No configurada' }}</p>
             <p class="mt-1 text-sm text-slate-300">{{ $twilioUsesApiKey ? 'Usada para conectar con la API REST' : 'Se usará Account SID + Auth Token' }}</p>
-          </div>
-          <div class="rounded-2xl border border-white/10 bg-slate-900/60 p-4">
-            <p class="text-xs uppercase tracking-[0.25em] text-slate-400">Destino de prueba</p>
-            <p class="mt-2 font-medium">{{ $twilioTestRecipient ?: 'No configurado' }}</p>
-            <p class="mt-1 text-sm text-slate-300">Sirve para el botón rápido de envío desde el panel.</p>
           </div>
           <div class="rounded-2xl border border-white/10 bg-slate-900/60 p-4">
             <p class="text-xs uppercase tracking-[0.25em] text-slate-400">Content SID</p>
