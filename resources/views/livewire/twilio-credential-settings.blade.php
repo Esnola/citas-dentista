@@ -38,7 +38,7 @@
                 <p class="mt-1 text-xs text-slate-400">URL donde Twilio envía el estado de entrega del mensaje.</p>
 
                 <div class="mt-4">
-                    <flux:input wire:model="status_callback_url" label="TWILIO_STATUS_CALLBACK_URL" placeholder="https://ejemplo.com/webhooks/twilio/whatsapp-status" />
+                    <flux:input wire:model="status_callback_url" label="CALLBACK URL" placeholder="https://ejemplo.com/webhooks/twilio/whatsapp-status" />
                     <flux:error name="status_callback_url" />
                 </div>
             </div>
@@ -110,10 +110,17 @@
                         <flux:input wire:model="newName" label="Nombre (identificador)" placeholder="Ej: Consulting Room" />
                         <div>
                             <label class="text-xs text-slate-400">Prefijo</label>
-                            <select wire:model="newPrefix" class="w-full rounded-xl border border-white/10 bg-slate-950/40 px-3 py-2.5 text-sm text-slate-200 focus:border-emerald-400 focus:outline-none">
-                                <option value="+1">+1 USA/Canadá</option>
-                                <option value="+34">+34 España</option>
-                            </select>
+                            <input type="text" wire:model="newPrefix" list="prefix-options" placeholder="+1" class="w-full rounded-xl border border-white/10 bg-slate-950/40 px-3 py-2.5 text-sm text-slate-200 focus:border-emerald-400 focus:outline-none" />
+                            <datalist id="prefix-options">
+                                <option value="+1">USA/Canadá</option>
+                                <option value="+34">España</option>
+                                <option value="+52">México</option>
+                                <option value="+54">Argentina</option>
+                                <option value="+56">Chile</option>
+                                <option value="+57">Colombia</option>
+                                <option value="+51">Perú</option>
+                                <option value="+44">Reino Unido</option>
+                            </datalist>
                         </div>
                         <flux:input wire:model="newNumber" label="Número" placeholder="600000000" />
                         <flux:error name="newNumber" />

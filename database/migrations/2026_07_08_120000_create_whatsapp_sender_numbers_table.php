@@ -12,7 +12,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('whatsapp_credential_id')->constrained('whatsapp_credentials')->cascadeOnDelete();
             $table->string('name', 100)->nullable();
-            $table->string('prefix', 5)->default('+34');
+            $table->string('prefix', 5)->default('+1');
             $table->string('number', 20);
             $table->boolean('selected')->default(false);
             $table->timestamps();

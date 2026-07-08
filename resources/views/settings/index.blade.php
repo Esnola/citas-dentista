@@ -68,7 +68,7 @@
               <p class="text-sm text-slate-300">Estado general de WhatsApp, plantillas y sandbox.</p>
             </div>
           </div>
-          <x-botones.expandir-contraer abierto="isOpen('overview')" x-on:click="toggle('overview')"/>
+          <x-botones.expandir-contraer abierto="isOpen('overview')" seccion="overview"/>
         </div>
 
         <div x-show="dragging === 'overview'" x-cloak
@@ -102,7 +102,7 @@
             </div>
           </div>
 
-          <x-botones.expandir-contraer abierto="isOpen('status')" x-on:click="toggle('status')"/>
+          <x-botones.expandir-contraer abierto="isOpen('status')" seccion="status"/>
         </div>
 
         <div x-show="dragging === 'status'" x-cloak
@@ -162,7 +162,7 @@
               <p class="text-sm text-slate-300">Panel de envío real y vista previa del payload.</p>
             </div>
           </div>
-          <x-botones.expandir-contraer abierto="isOpen('connection')" x-on:click="toggle('connection')"/>
+          <x-botones.expandir-contraer abierto="isOpen('connection')" seccion="connection"/>
         </div>
 
         <div x-show="dragging === 'connection'" x-cloak
@@ -194,7 +194,7 @@
               <p class="text-sm text-slate-300">Guarda Content SID y elige cuál usa WhatsApp.</p>
             </div>
           </div>
-          <x-botones.expandir-contraer abierto="isOpen('twilio-templates')" x-on:click="toggle('twilio-templates')"/>
+          <x-botones.expandir-contraer abierto="isOpen('twilio-templates')" seccion="twilio-templates"/>
         </div>
 
         <div x-show="dragging === 'twilio-templates'" x-cloak
@@ -226,7 +226,7 @@
               <p class="text-sm text-slate-300">Modo de envío, remitente y API key.</p>
             </div>
           </div>
-          <x-botones.expandir-contraer abierto="isOpen('credentials')" x-on:click="toggle('credentials')"/>
+          <x-botones.expandir-contraer abierto="isOpen('credentials')" seccion="credentials"/>
         </div>
 
         <div x-show="dragging === 'credentials'" x-cloak
@@ -259,7 +259,7 @@
               <p class="text-sm text-slate-300">Selecciona WhatsApp y email 1, 2, 3 días o una semana antes.</p>
             </div>
           </div>
-          <x-botones.expandir-contraer abierto="isOpen('reminders')" x-on:click="toggle('reminders')"/>
+          <x-botones.expandir-contraer abierto="isOpen('reminders')" seccion="reminders"/>
         </div>
 
         <div x-show="dragging === 'reminders'" x-cloak

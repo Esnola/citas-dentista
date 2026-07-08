@@ -14,6 +14,7 @@ class WhatsAppCredential extends Model
         'mode',
         'api_key_sid',
         'api_key_secret',
+        'status_callback_url',
         'selected',
     ];
 
@@ -85,5 +86,14 @@ class WhatsAppCredential extends Model
     public function resolveMode(): string
     {
         return $this->mode ?: config('whatsapp.twilio.mode', 'sandbox');
+    }
+
+    public function resolveStatusCallbackUrl(): string
+    {
+        $configuredUrl = trim((string) ($this->status_callback_url ?? ''));
+
+        return $configuredUrl !== ''
+            ? $configuredUrl
+            : (string) config('whatsapp.twilio.status_callback_url', '');
     }
 }

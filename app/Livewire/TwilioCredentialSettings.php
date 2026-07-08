@@ -22,7 +22,7 @@ class TwilioCredentialSettings extends Component
 
     public string $newName = '';
 
-    public string $newPrefix = '+34';
+    public string $newPrefix = '+1';
 
     public string $newNumber = '';
 
@@ -33,7 +33,7 @@ class TwilioCredentialSettings extends Component
         $this->mode = $credential->mode;
         $this->api_key_sid = $credential->api_key_sid ?? '';
         $this->api_key_secret = $credential->api_key_secret ?? '';
-        $this->status_callback_url = (string) config('whatsapp.twilio.status_callback_url', '');
+        $this->status_callback_url = $credential->resolveStatusCallbackUrl();
         $this->loadSenderNumbers();
     }
 
@@ -69,7 +69,7 @@ class TwilioCredentialSettings extends Component
 
         $data = $this->validate([
             'newName' => ['nullable', 'string', 'max:100'],
-            'newPrefix' => ['required', 'string', 'in:+34,+1,+52,+54,+57,+56,+51,+44'],
+            'newPrefix' => ['required', 'string', 'regex:/^\+\d{1,4}$/'],
             'newNumber' => ['required', 'string', 'digits_between:6,15'],
         ]);
 
@@ -84,7 +84,7 @@ class TwilioCredentialSettings extends Component
         ]);
 
         $this->newName = '';
-        $this->newPrefix = '+34';
+        $this->newPrefix = '+1';
         $this->newNumber = '';
         $this->loadSenderNumbers();
 
@@ -152,8 +152,7 @@ class TwilioCredentialSettings extends Component
             $credential->update($updateData);
         }
 
-        // Save status_callback_url to .env or config (stored in env currently)
-        // This is a runtime config value, not persisted to DB
+        $credential->update(['status_callback_url' => $data['status_callback_url'] ?: null]);
 
         $this->status = 'Credenciales guardadas correctamente.';
         $this->dispatch('credentialsChanged');

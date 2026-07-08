@@ -434,7 +434,7 @@ class WhatsAppSender
 
     private function twilioStatusCallbackUrl(): string
     {
-        $configuredUrl = trim((string) config('whatsapp.twilio.status_callback_url', ''));
+        $configuredUrl = WhatsAppCredential::get()->resolveStatusCallbackUrl();
 
         return $configuredUrl !== ''
             ? $configuredUrl

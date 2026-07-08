@@ -13,6 +13,7 @@ return new class extends Migration
             $table->string('nombre');
             $table->string('content_sid', 34)->unique();
             $table->boolean('seleccionada')->default(false)->index();
+            $table->json('content_variables')->nullable();
             $table->timestamps();
         });
     }

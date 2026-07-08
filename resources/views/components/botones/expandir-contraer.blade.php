@@ -1,10 +1,11 @@
-@props(['abierto' => 'false'])
+@props(['abierto' => 'false', 'seccion' => null])
 
 <button
+        type="button"
         {{ $attributes->merge([
-            'type' => 'button',
             'class' => 'group inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium uppercase tracking-[0.25em] transition-colors',
         ]) }}
+        @if($seccion) x-on:click="toggle('{{ $seccion }}')" @endif
         x-bind:aria-expanded="({{ $abierto }}).toString()"
         x-bind:class="{{ $abierto }}
         ? 'border-yellow-400/20 bg-yellow-400/10 text-yellow-300 hover:bg-yellow-400/15'

@@ -16,7 +16,7 @@ class DispatchBanner extends Component
     }
 
     #[On('dispatchToggled')]
-    public function onToggle(array $params): void
+    public function onToggle($params = []): void
     {
         $this->enabled = (bool) ($params['value'] ?? true);
     }

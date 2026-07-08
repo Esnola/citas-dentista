@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Webhooks;
 
 use App\Http\Controllers\Controller;
+use App\Models\WhatsAppCredential;
 use App\Models\WhatsAppMessage;
 use App\Services\WhatsApp\AppointmentDeliveryStatusSyncer;
 use App\Services\WhatsApp\WhatsAppResponseHandler;
@@ -153,7 +154,7 @@ class TwilioWhatsAppStatusController extends Controller
     {
         $authToken = (string) config('whatsapp.twilio.auth_token', '');
         $signature = (string) $request->header('X-Twilio-Signature', '');
-        $callbackUrl = trim((string) config('whatsapp.twilio.status_callback_url', ''));
+        $callbackUrl = WhatsAppCredential::get()->resolveStatusCallbackUrl();
 
         if ($authToken === '' || $signature === '') {
             return true;
