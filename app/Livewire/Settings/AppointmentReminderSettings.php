@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Livewire;
+namespace App\Livewire\Settings;
 
 use App\Models\AppointmentReminderPreference;
 use App\Models\WhatsAppDispatchSettings;

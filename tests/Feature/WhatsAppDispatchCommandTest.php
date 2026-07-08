@@ -6,6 +6,7 @@ use App\Models\Appointment;
 use App\Models\AppointmentReminderPreference;
 use App\Models\Client;
 use App\Models\User;
+use App\Models\WhatsAppDispatchSettings;
 use App\Models\WhatsAppMessage;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -67,7 +68,14 @@ class WhatsAppDispatchCommandTest extends TestCase
 
     public function test_active_unsent_due_appointments_are_queued_sent_and_marked_as_sent(): void
     {
-        Carbon::setTestNow('2026-06-23 12:00:00');
+        Carbon::setTestNow('2026-06-22 12:00:00');
+
+        AppointmentReminderPreference::saveSelections([
+            AppointmentReminderPreference::CHANNEL_WHATSAPP => [1],
+            AppointmentReminderPreference::CHANNEL_EMAIL => [],
+        ]);
+
+        WhatsAppDispatchSettings::get();
 
         $client = Client::query()->create([
             'nombre' => 'Ana',
@@ -143,6 +151,8 @@ class WhatsAppDispatchCommandTest extends TestCase
     public function test_active_appointments_are_queued_for_selected_whatsapp_lead_days(): void
     {
         Carbon::setTestNow('2026-06-22 12:00:00');
+
+        WhatsAppDispatchSettings::get();
 
         AppointmentReminderPreference::saveSelections([
             AppointmentReminderPreference::CHANNEL_WHATSAPP => [1, 2, 7],

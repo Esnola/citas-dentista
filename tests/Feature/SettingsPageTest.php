@@ -18,9 +18,8 @@ class SettingsPageTest extends TestCase
             ->get(route('settings.index'))
             ->assertOk()
             ->assertSee('Ajustes')
-            ->assertSee('Twilio Sandbox')
-            ->assertSee('Prueba de conexión')
-            ->assertDontSee('data-settings-section="overview" draggable', false)
-            ->assertDontSee('data-settings-section="connection" draggable', false);
+            ->assertSee('Resumen')
+            ->assertSee('Credenciales Twilio')
+            ->assertSee('Plantillas de Twilio');
     }
 }

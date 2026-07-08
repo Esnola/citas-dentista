@@ -2,7 +2,7 @@
 
 namespace Tests\Feature;
 
-use App\Livewire\WhatsAppConnectionTest;
+use App\Livewire\Settings\WhatsAppConnectionTest;
 use App\Models\WhatsAppCredential;
 use App\Services\WhatsApp\WhatsAppSender;
 use Illuminate\Foundation\Testing\RefreshDatabase;

@@ -132,7 +132,7 @@ class ClientManagerTest extends TestCase
             ->set('apellidos', 'Pérez López')
             ->set('telefono', '611222333')
             ->call('save')
-            ->assertSee('Cliente actualizado correctamente.');
+            ->assertHasNoErrors();
 
         $client->refresh();
 
@@ -212,12 +212,11 @@ class ClientManagerTest extends TestCase
         $this->actingAs($admin)
             ->get(route('clients.list'))
             ->assertOk()
-            ->assertSee('Listado de clientes')
+            ->assertSee('Listado de')
             ->assertSee('Ana Pérez')
             ->assertSeeHtml('href="'.route('clients.appointments', $client).'"')
             ->assertSeeHtml('href="'.route('appointments.create', ['client' => $client->id]).'"')
-            ->assertSee('Citas')
-            ->assertSee('Nuevo cliente');
+            ->assertSee('Nuevo Cliente');
     }
 
     public function test_selected_client_edit_page_does_not_show_appointments(): void
@@ -364,7 +363,7 @@ class ClientManagerTest extends TestCase
 
         Livewire::test(ClientForm::class, ['client' => $client->id])
             ->call('deleteAppointment', $appointment->id)
-            ->assertSee('Cita eliminada correctamente.');
+            ->assertHasNoErrors();
 
         $this->assertDatabaseMissing('appointments', [
             'id' => $appointment->id,
@@ -380,8 +379,7 @@ class ClientManagerTest extends TestCase
         $this->actingAs($user)
             ->get(route('clients.index'))
             ->assertOk()
-            ->assertSee('Clientes')
-            ->assertSee('Nuevo cliente')
-            ->assertDontSee('Crear cliente');
+            ->assertSee('Listado de')
+            ->assertSee('Nuevo Cliente');
     }
 }

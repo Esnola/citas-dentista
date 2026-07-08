@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Livewire;
+namespace App\Livewire\Settings;
 
 use App\Models\WhatsAppCredential;
 use App\Services\WhatsApp\WhatsAppSender;
@@ -15,7 +15,7 @@ class SettingsOverview extends Component
         $credential = WhatsAppCredential::get();
         $sender = app(WhatsAppSender::class);
 
-        return view('livewire.settings-overview', [
+        return view('settings.settings-overview', [
             'driver' => config('whatsapp.driver'),
             'credential' => $credential,
             'resolvedMode' => $sender->resolveTwilioMode(),

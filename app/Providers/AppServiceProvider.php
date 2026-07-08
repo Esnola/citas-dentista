@@ -2,12 +2,12 @@
 
 namespace App\Providers;
 
-use App\Livewire\AppointmentReminderSettings;
 use App\Livewire\DispatchBanner;
-use App\Livewire\SettingsOverview;
-use App\Livewire\TwilioContentTemplateSettings;
-use App\Livewire\TwilioCredentialSettings;
-use App\Livewire\WhatsAppConnectionTest;
+use App\Livewire\Settings\AppointmentReminderSettings;
+use App\Livewire\Settings\SettingsOverview;
+use App\Livewire\Settings\TwilioContentTemplateSettings;
+use App\Livewire\Settings\TwilioCredentialSettings;
+use App\Livewire\Settings\WhatsAppConnectionTest;
 use Illuminate\Support\ServiceProvider;
 use Livewire\Livewire;
 

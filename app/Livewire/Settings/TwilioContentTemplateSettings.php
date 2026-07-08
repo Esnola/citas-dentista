@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Livewire;
+namespace App\Livewire\Settings;
 
 use App\Models\TwilioContentTemplate;
 use Livewire\Component;
@@ -59,7 +59,7 @@ class TwilioContentTemplateSettings extends Component
 
     public function render()
     {
-        return view('livewire.twilio-content-template-settings', [
+        return view('settings.twilio-content-template-settings', [
             'templates' => TwilioContentTemplate::query()->orderBy('nombre')->get(),
             'envContentSid' => (string) config('whatsapp.twilio.content_sid', ''),
         ]);

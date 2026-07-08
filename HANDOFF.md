@@ -4,71 +4,132 @@
 Gestión de citas dentales con recordatorios WhatsApp. Sistema completo con envíos programados, respuestas vía botones, y panel de administración.
 
 ## Current state
-Funcional. Tests pasan (9/10 — 1 fallo preexistente en AppointmentManagerTest).
+Funcional. Tests: **103 passed / 44 failed** (faltan arreglar tests — ver pendientes abajo).
 
-## Últimos cambios (Sesión 2026-07-07/08)
+## Últimos cambios (Sesión 2026-07-08)
 
-### 1. Nombre gris para citas inactivas
-- `resources/views/livewire/client-appointments.blade.php:195` — nombre del cliente en gris cuando `cita_activa=false`
+### 1. Reorganización de archivos Settings
+- **Livewire** movidos a `app/Livewire/Settings/` (5 componentes):
+  - `SettingsOverview`, `WhatsAppConnectionTest`, `TwilioContentTemplateSettings`, `TwilioCredentialSettings`, `AppointmentReminderSettings`
+- **Blade views** movidos a `resources/views/settings/` (4 archivos + index que ya estaba)
+- Namespaces y `view()` paths actualizados en cada componente
+- `AppServiceProvider.php` actualizado con nuevos namespaces
+- Tests de settings actualizados con nuevos imports
 
-### 2. Error Twilio 63027 — Template no existe
-- **Causa**: el sandbox de Twilio NO soporta templates custom. Solo 3 plantillas pre-aprobadas en inglés.
-- **Solución**: modo `text` funciona, modo `template` requiere sender registrado en Twilio.
-- Config cache estaba desactualizado (`WHATSAPP_MESSAGE_MODE=text` en cache vs `template` en .env).
+### 2. Fix DispatchBanner BindingResolutionException
+- `onToggle($params = [])` — parámetro obligatorio sin type hint causaba BindingResolutionException
 
-### 3. Envíos programados configurables
-- **Tabla** `whatsapp_dispatch_settings`: `enabled` (bool), `hours` (json)
-- **Modelo** `WhatsAppDispatchSettings` — singleton con `Schema::hasTable` guard
-- **UI**: toggle activar/desactivar + grid horas 06:00-21:00 (09:00/12:00/15:00 por defecto)
-- **Schedule**: `everyMinute()` con `->when()` que verifica enabled
-- **Comando** `DispatchDueWhatsAppMessages`: verifica `enabled` al inicio
+### 3. status_callback_url guardado en BD
+- **Migración**: columna `status_callback_url` agregada a `whatsapp_credentials`
+- **Modelo**: `resolveStatusCallbackUrl()` — DB → config fallback
+- **Componente**: `mount()` lee de DB, `save()` persiste
+- **WhatsAppSender**: usa resolver del modelo
+- **TwilioWhatsAppStatusController**: usa resolver del modelo
+- Migración redundante `drop_from_number` corregida con `hasColumn()` guard
 
-### 4. Banner reactivo "Envíos deshabilitados"
-- **Componente** `DispatchBanner` (Livewire) con `#[On('dispatchToggled')]` y `#[On('dispatchSettingsChanged')]`
-- Aparece/desaparece al girar toggle en Ajustes, sin recarga
-- Link a `/admin/settings`
+### 4. Migraciones limpiadas (18 → 12)
+- **Consolidados** en CREATE: `appointments` (fecha_original, hora_original, reprogramada), `twilio_content_templates` (content_variables)
+- **Eliminados**: add_original_schedule_fields, backfill_original_schedule_fields, add_reprogramada, add_content_variables, seed_sender_numbers_from_from_number
 
-### 5. Credenciales Twilio en Base de Datos
-- **Tabla** `whatsapp_credentials`: `mode`, `from_number`, `test_recipient`, `api_key_sid` (encrypted), `api_key_secret` (encrypted), `selected`
-- **Modelo** `WhatsAppCredential` — singleton con `encrypted` casts, métodos `resolve*()` con fallback a .env
-- **UI** en Ajustes: toggle Sandbox/Sender, campos API key (opcional), remitente, destinatario prueba
-- **Resolvedor**: DB → .env (API key优先, luego Auth Token)
+### 5. Prefijo remitente: +1 por defecto + input libre
+- Default prefix cambiado de +34 a +1
+- `<select>` reemplazado por `<input>` con `<datalist>` para sugerencias
+- Validación cambiada de `in:+34,+1,...` a `regex:/^\+\d{1,4}$/`
+- Migración `whatsapp_sender_numbers` actualizada
 
-## Archivos nuevos (esta sesión)
-- `app/Models/WhatsAppDispatchSettings.php`
-- `app/Models/WhatsAppCredential.php`
-- `app/Livewire/DispatchBanner.php`
-- `app/Livewire/TwilioCredentialSettings.php`
-- `resources/views/livewire/dispatch-banner.blade.php`
-- `resources/views/livewire/twilio-credential-settings.blade.php`
-- `database/migrations/2026_07_07_232323_create_whatsapp_dispatch_settings_table.php`
-- `database/migrations/2026_07_08_010450_create_whatsapp_credentials_table.php`
+### 6. Botones Expandir/Contraer arreglados
+- `$attributes->merge()` no pasaba `x-on:click` de Alpine correctamente
+- Componente reescrito: recibe prop `seccion` y genera `x-on:click` internamente
+- 6 secciones actualizadas en `settings/index.blade.php`
 
-## Archivos modificados
-- `app/Console/Commands/DispatchDueWhatsAppMessages.php` — check enabled
-- `app/Livewire/AppointmentReminderSettings.php` — dispatch hours + enabled
-- `app/Providers/AppServiceProvider.php` — registra DispatchBanner, TwilioCredentialSettings
-- `app/Services/WhatsApp/WhatsAppSender.php` — DB credentials fallback
-- `app/Services/WhatsApp/AppointmentDeliveryStatusSyncer.php` — DB credentials fallback
-- `resources/views/layouts/app.blade.php` — `<livewire:dispatch-banner />`
-- `resources/views/settings/appointment-reminder-settings.blade.php` — toggle + horas
-- `resources/views/settings/index.blade.php` — sección Credenciales Twilio
-- `routes/console.php` — schedule con `->when()`
+## Pendiente: Tests fallidos (44)
+
+### Eliminar (tests obsoletos/irrelevantes)
+- Ninguno pendiente (ya se eliminaron AdminSecurityTest, DatabaseSeederTest, AppointmentSeederTest, HomeRedirectTest)
+
+### Corregir en otra máquina
+Los 44 fallos restantes son de tests que dependen de cambios internos en componentes Livewire. Categorías:
+
+**AppointmentManagerTest (~20 fallos)**:
+- `PublicPropertyNotFoundException` — propiedades `$dateFilter`, `$filter_enviado`, `$filter_entregado`, `$filter_activo` ya no existen en `ClientAppointments`
+- `ViewException` — `ClientAppointments` requiere `clientId` obligatorio
+- `Undefined variable $client` — líneas 1293, 2144
+- Assertions desactualizadas (texto de botones, mensajes de estado)
+
+**ClientManagerTest (1 fallo)**:
+- `test_client_list_searches_after_one_character` — `assertSee('Las coincidencias aparecerán aquí')` falla porque el texto está en un bloque `@forelse/@empty` que no se renderiza cuando hay clientes
+
+**WhatsAppDispatchCommandTest (1 fallo)**:
+- `test_active_appointments_are_queued_for_selected_whatsapp_lead_days` — necesita ajuste de fechas o preferencias
+
+**WhatsAppTwilioDispatchTest (1 fallo)**:
+- `test_due_messages_can_be_sent_with_a_twilio_content_template` — HTTP request no registrado, posible issue con credential fallback
+
+**ClientMessageSchedulerTest (1 fallo)**:
+- `Undefined array key "Body"` — template mode envía ContentSid en vez de Body
+
+**DashboardOverviewTest (1 fallo)**:
+- `assertSee('Desactivada')` — texto ya no existe en la vista
+
+**FailedWhatsAppMessageDisplayTest (3 fallos)**:
+- `assertSee('Error de envío')` — texto cambiado
+- `PublicPropertyNotFoundException $showAllHistory` — propiedad eliminada de `ClientAppointments`
+
+**AppointmentReminderSettingsTest (0 fallos)** — ya arreglado
+
+### Para arreglarlos:
+1. Leer `ClientAppointments.php` y alinear tests con propiedades actuales
+2. Buscar textos actuales en vistas para actualizar assertions
+3. Verificar que `WhatsAppSender` resuelve credenciales correctamente en modo template
+4. Revisar `ClientMessageScheduler` para entender cambio de Body → ContentSid
+
+## Archivos modificados en esta sesión
+- `app/Livewire/Settings/SettingsOverview.php` (nuevo path + namespace)
+- `app/Livewire/Settings/WhatsAppConnectionTest.php` (nuevo path + namespace)
+- `app/Livewire/Settings/TwilioContentTemplateSettings.php` (nuevo path + namespace)
+- `app/Livewire/Settings/TwilioCredentialSettings.php` (nuevo path + namespace + fixes)
+- `app/Livewire/Settings/AppointmentReminderSettings.php` (nuevo path + namespace)
+- `app/Livewire/DispatchBanner.php` (fix $params)
+- `app/Models/WhatsAppCredential.php` (status_callback_url + resolver)
+- `app/Services/WhatsApp/WhatsAppSender.php` (DB credential resolver)
+- `app/Http/Controllers/Webhooks/TwilioWhatsAppStatusController.php` (DB credential resolver)
+- `app/Providers/AppServiceProvider.php` (nuevos imports)
+- `resources/views/settings/index.blade.php` (expandir-contraer fixes)
+- `resources/views/components/botones/expandir-contraer.blade.php` (seccion prop)
+- `resources/views/settings/settings-overview.blade.php` (movido)
+- `resources/views/settings/whatsapp-connection-test.blade.php` (movido)
+- `resources/views/settings/twilio-content-template-settings.blade.php` (movido)
+- `resources/views/settings/twilio-credential-settings.blade.php` (movido)
+- `resources/views/settings/appointment-reminder-settings.blade.php` (ya estaba)
+- `database/migrations/2026_06_23_000003_create_appointments_table.php` (consolidado)
+- `database/migrations/2026_07_06_000000_create_twilio_content_templates_table.php` (consolidado)
+- `database/migrations/2026_07_08_010450_create_whatsapp_credentials_table.php` (status_callback_url)
+- `database/migrations/2026_07_08_120000_create_whatsapp_sender_numbers_table.php` (default +1)
+- `database/migrations/2026_07_08_120001_drop_from_number_test_recipient_from_whatsapp_credentials.php` (hasColumn guard)
+- `tests/Feature/SettingsPageTest.php` (assertions actualizadas)
+- `tests/Feature/AppointmentReminderSettingsTest.php` (admin user)
+- `tests/Feature/ClientManagerTest.php` (assertions actualizadas)
+- `tests/Feature/WhatsAppConnectionTestComponentTest.php` (import actualizado)
+- `tests/Feature/TwilioContentTemplateSettingsTest.php` (import actualizado)
+- `tests/Feature/AppointmentReminderSettingsTest.php` (import actualizado)
+- `tests/Feature/WhatsAppDispatchCommandTest.php` (dispatch settings setup)
 
 ## Blockers
 - **Twilio sandbox**: solo envía a números registrados (error 63015)
 - **Templates custom**: requieren sender registrado (error 63027 en sandbox)
-- **27 fallos preexistentes**: Vite manifest + Livewire wire:snapshot en AppointmentManagerTest
 
 ## Next steps
-1. Registrar sender de WhatsApp en Twilio para usar templates custom en español con botones
-2. Implementar envío de correos (plantillas pendientes en GUIA_RETOMAR_TRABAJO.md)
-3. Considerar reprogramar vía botón (caso `'reprogram*'` en `resolveAction()`)
+1. Arreglar los 44 tests fallidos (ver sección pendiente arriba)
+2. Registrar sender de WhatsApp en Twilio para usar templates custom en español con botones
+3. Implementar envío de correos (plantillas pendientes en GUIA_RETOMAR_TRABAJO.md)
+4. Considerar reprogramar vía botón (caso `'reprogram*'` en `resolveAction()`)
 
 ## Notes for another computer
 - `WHATSAPP_DRIVER=log` por defecto en `.env.example` — cambiar a `twilio` para probar
 - `composer run dev` levanta server + queue + pail + vite
 - Formatear con `vendor/bin/pint --dirty --format agent` después de cada cambio PHP
 - Credenciales Twilio ahora se pueden editar desde `/admin/settings` → Credenciales Twilio
-- El schedule ahora usa `everyMinute()` + check de enabled en BD (no más horas hardcodeadas)
+- El schedule ahora usa `everyMinute()` + check de enabled en BD
 - Despachar envío manual: `php artisan whatsapp:dispatch-due --no-interaction`
+- Migraciones: 12 archivos (consolidados los add_xxx en CREATE)
+- Tests: 103 passed / 44 failed — ver sección "Pendiente" para detalles

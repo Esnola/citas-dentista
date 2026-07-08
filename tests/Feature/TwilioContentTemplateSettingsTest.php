@@ -2,7 +2,7 @@
 
 namespace Tests\Feature;
 
-use App\Livewire\TwilioContentTemplateSettings;
+use App\Livewire\Settings\TwilioContentTemplateSettings;
 use App\Models\TwilioContentTemplate;
 use App\Models\User;
 use App\Services\WhatsApp\WhatsAppSender;

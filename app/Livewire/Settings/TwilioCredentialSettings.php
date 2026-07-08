@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Livewire;
+namespace App\Livewire\Settings;
 
 use App\Models\WhatsAppCredential;
 use App\Models\WhatsAppSenderNumber;
@@ -160,7 +160,7 @@ class TwilioCredentialSettings extends Component
 
     public function render()
     {
-        return view('livewire.twilio-credential-settings', [
+        return view('settings.twilio-credential-settings', [
             'credential' => WhatsAppCredential::get(),
         ]);
     }

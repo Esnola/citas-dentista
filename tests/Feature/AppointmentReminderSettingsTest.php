@@ -2,7 +2,7 @@
 
 namespace Tests\Feature;
 
-use App\Livewire\AppointmentReminderSettings;
+use App\Livewire\Settings\AppointmentReminderSettings;
 use App\Models\AppointmentReminderPreference;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -39,9 +39,9 @@ class AppointmentReminderSettingsTest extends TestCase
 
     public function test_settings_page_shows_reminder_selection(): void
     {
-        $user = User::factory()->create();
+        $admin = User::factory()->create(['is_admin' => true]);
 
-        $this->actingAs($user)
+        $this->actingAs($admin)
             ->get(route('settings.index'))
             ->assertOk()
             ->assertSee('Recordatorios')

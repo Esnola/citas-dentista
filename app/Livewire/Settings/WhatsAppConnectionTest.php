@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Livewire;
+namespace App\Livewire\Settings;
 
 use App\Models\WhatsAppCredential;
 use App\Services\WhatsApp\WhatsAppSender;
@@ -88,7 +88,7 @@ class WhatsAppConnectionTest extends Component
 
     public function render()
     {
-        return view('livewire.whatsapp-connection-test', [
+        return view('settings.whatsapp-connection-test', [
             'previewPayload' => $this->buildPreviewPayload(),
         ]);
     }
