@@ -1,6 +1,4 @@
-PRAGMA foreign_keys=OFF;
-BEGIN TRANSACTION;
-CREATE TABLE IF NOT EXISTS "appointment_reminder_preferences" ("id" integer primary key autoincrement not null, "channel" varchar not null, "lead_days" integer not null, "enabled" tinyint(1) not null default '0', "created_at" datetime, "updated_at" datetime);
+
 INSERT INTO appointment_reminder_preferences VALUES(1,'whatsapp',1,1,'2026-07-08 08:16:39','2026-07-08 08:16:39');
 INSERT INTO appointment_reminder_preferences VALUES(2,'whatsapp',2,0,'2026-07-08 08:16:39','2026-07-08 08:16:39');
 INSERT INTO appointment_reminder_preferences VALUES(3,'whatsapp',3,0,'2026-07-08 08:16:39','2026-07-08 08:16:39');
@@ -8,8 +6,7 @@ INSERT INTO appointment_reminder_preferences VALUES(4,'whatsapp',7,0,'2026-07-08
 INSERT INTO appointment_reminder_preferences VALUES(5,'email',1,0,'2026-07-08 08:16:39','2026-07-08 08:16:39');
 INSERT INTO appointment_reminder_preferences VALUES(6,'email',2,0,'2026-07-08 08:16:39','2026-07-08 08:16:39');
 INSERT INTO appointment_reminder_preferences VALUES(7,'email',3,0,'2026-07-08 08:16:39','2026-07-08 08:16:39');
-INSERT INTO appointment_reminder_preferences VALUES(8,'email',7,0,'2026-07-08 08:16:39','2026-07-08 08:16:39');
-CREATE TABLE IF NOT EXISTS "twilio_content_templates" ("id" integer primary key autoincrement not null, "nombre" varchar not null, "content_sid" varchar not null, "seleccionada" tinyint(1) not null default '0', "created_at" datetime, "updated_at" datetime, "content_variables" text);
+INSERT INTO appointment_reminder_preferences VALUES(8,'email',7,0,'2026-07-08 08:16:39','2026-07-08
 INSERT INTO twilio_content_templates VALUES(1,'Dos Botones Nuevo','HX3e116fa6be92c8ef9db84b65c383d5bc',1,'2026-07-08 02:37:44','2026-07-08 02:37:44','{"1":"[NOMBRE]","2":"[DIA]","3":"[HORA]"}');
 INSERT INTO twilio_content_templates VALUES(2,'Dos botones Antiguo','HXdea6aee77629b70b2ca3298e0e2ec5f2',0,'2026-07-08 02:37:44','2026-07-08 02:37:44','{"1":"[NOMBRE]","2":"[DIA]","3":"[HORA]"}');
 INSERT INTO twilio_content_templates VALUES(3,'Confirmar Texto con Emoji','HX28712cac47e020331237e0dfb9228aaf',0,'2026-07-08 02:37:44','2026-07-08 02:37:44','{"1":"[NOMBRE]","2":"[DIA]","3":"[HORA]"}');

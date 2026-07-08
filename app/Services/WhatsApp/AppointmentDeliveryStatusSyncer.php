@@ -133,14 +133,14 @@ class AppointmentDeliveryStatusSyncer
             return $message;
         }
 
-        $accountSid = trim((string) config('whatsapp.twilio.account_sid', ''));
         $credential = WhatsAppCredential::get();
+        $accountSid = trim((string) ($credential->resolveAccountSid() ?? ''));
         $apiKeySid = trim((string) ($credential->resolveApiKeySid() ?? ''));
         $apiKeySecret = trim((string) ($credential->resolveApiKeySecret() ?? ''));
         $username = $apiKeySid !== '' && $apiKeySecret !== '' ? $apiKeySid : $accountSid;
         $password = $apiKeySid !== '' && $apiKeySecret !== ''
             ? $apiKeySecret
-            : trim((string) config('whatsapp.twilio.auth_token', ''));
+            : trim((string) ($credential->resolveAuthToken() ?? ''));
         $providerMessageId = trim((string) $message->provider_message_id);
 
         if ($accountSid === '' || $username === '' || $password === '' || $providerMessageId === '') {
@@ -152,8 +152,8 @@ class AppointmentDeliveryStatusSyncer
                 ->acceptJson()
                 ->withBasicAuth($username, $password)
                 ->retry([100, 500, 1000])
-                ->timeout((int) config('whatsapp.twilio.timeout', 15))
-                ->connectTimeout((int) config('whatsapp.twilio.connect_timeout', 10))
+                ->timeout($credential->resolveTimeout())
+                ->connectTimeout($credential->resolveConnectTimeout())
                 ->get('/2010-04-01/Accounts/'.$accountSid.'/Messages/'.$providerMessageId.'.json')
                 ->throw()
                 ->json();

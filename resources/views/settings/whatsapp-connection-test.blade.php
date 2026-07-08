@@ -7,7 +7,7 @@
       </p>
     </div>
     <div class="rounded-2xl border border-white/10 bg-slate-900/60 px-4 py-3 text-xs uppercase tracking-[0.25em] text-slate-300">
-      Sandbox-friendly
+      Ajustes guardados en BD
     </div>
   </div>
 
@@ -72,10 +72,10 @@
     <div class="rounded-2xl border border-white/10 bg-slate-900/50 p-4 text-sm text-slate-300">
       <p class="font-medium text-slate-200">Notas de prueba</p>
       <ul class="mt-2 space-y-1">
-        <li>• `Sandbox` usa el sender de pruebas configurado en `TWILIO_WHATSAPP_FROM`.</li>
-        <li>• `Número real` usa el remitente de producción que configures en Twilio.</li>
-        <li>• `Messaging Service` envía usando `TWILIO_MESSAGING_SERVICE_SID`.</li>
-        <li>• En modo plantilla se usa el Content SID elegido en Ajustes; `TWILIO_CONTENT_SID` queda como respaldo.</li>
+        <li>• `Sandbox` usa el sender guardado en credenciales, y si no existe cae al `.env`.</li>
+        <li>• `Número real` usa el remitente guardado en credenciales, y si no existe cae al `.env`.</li>
+        <li>• `Messaging Service` usa el SID guardado en credenciales, y si no existe cae al `.env`.</li>
+        <li>• En modo plantilla se usa el Content SID elegido en Ajustes; el `.env` queda como respaldo.</li>
         <li>• Si usas un número local, se normaliza a formato internacional.</li>
       </ul>
     </div>

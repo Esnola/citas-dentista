@@ -2,6 +2,8 @@
 
 namespace App\Traits;
 
+use App\Models\WhatsAppCredential;
+
 trait NormalizesPhone
 {
     public static function normalizePhone(string $phone): string
@@ -13,7 +15,7 @@ trait NormalizesPhone
             return '';
         }
 
-        $countryCode = preg_replace('/\D+/', '', (string) config('whatsapp.default_country_code', '+34')) ?? '34';
+        $countryCode = preg_replace('/\D+/', '', (string) WhatsAppCredential::get()->resolveDefaultCountryCode()) ?? '34';
 
         if (str_starts_with($digits, $countryCode)) {
             return substr($digits, strlen($countryCode));
@@ -30,7 +32,7 @@ trait NormalizesPhone
             return $normalized;
         }
 
-        return (string) config('whatsapp.default_country_code', '+34').$normalized;
+        return WhatsAppCredential::get()->resolveDefaultCountryCode().$normalized;
     }
 
     public static function normalizeWhatsAppAddress(string $address): string

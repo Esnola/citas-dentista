@@ -40,7 +40,9 @@ class TwilioCredentialSettings extends Component
     private function loadSenderNumbers(): void
     {
         $credential = WhatsAppCredential::get();
-        $this->senderNumbers = $credential->senderNumbers
+        $this->senderNumbers = $credential->senderNumbers()
+            ->orderBy('id')
+            ->get()
             ->map(fn (WhatsAppSenderNumber $n) => [
                 'id' => $n->id,
                 'name' => $n->name ?? '',

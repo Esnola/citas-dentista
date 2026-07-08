@@ -6,6 +6,7 @@ use App\Models\WhatsAppCredential;
 use App\Services\WhatsApp\WhatsAppSender;
 use App\Traits\NormalizesPhone;
 use Illuminate\Support\Arr;
+use Livewire\Attributes\On;
 use Livewire\Component;
 use Throwable;
 
@@ -31,9 +32,15 @@ class WhatsAppConnectionTest extends Component
         $this->mode = $this->initialTwilioMode();
     }
 
+    #[On('credentialsChanged')]
+    public function refreshPreview(): void
+    {
+        //
+    }
+
     private function initialTwilioMode(): string
     {
-        $configuredMode = strtolower(trim((string) config('whatsapp.twilio.mode', 'auto')));
+        $configuredMode = strtolower(trim((string) WhatsAppCredential::get()->resolveMode()));
 
         return in_array($configuredMode, ['auto', 'sandbox', 'sender', 'service'], true) ? $configuredMode : 'auto';
     }
@@ -99,13 +106,13 @@ class WhatsAppConnectionTest extends Component
         $selectedNumber = $credential->selectedSenderNumber();
         $recipient = $this->recipient !== '' ? $this->recipient : ($selectedNumber->full_number ?? '');
         $preview = [
-            'driver' => config('whatsapp.driver'),
+            'driver' => WhatsAppCredential::get()->resolveDriver(),
             'mode' => $this->mode,
             'recipient' => $recipient,
             'body' => $this->body,
         ];
 
-        return match (config('whatsapp.driver')) {
+        return match (WhatsAppCredential::get()->resolveDriver()) {
             'twilio' => $this->buildTwilioPreviewPayload($preview),
             'cloud_api' => $this->buildCloudApiPreviewPayload($preview),
             default => $this->buildLogPreviewPayload($preview),

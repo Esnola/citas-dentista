@@ -152,7 +152,7 @@ class TwilioWhatsAppStatusController extends Controller
 
     private function isValidTwilioRequest(Request $request): bool
     {
-        $authToken = (string) config('whatsapp.twilio.auth_token', '');
+        $authToken = (string) (WhatsAppCredential::get()->resolveAuthToken() ?? '');
         $signature = (string) $request->header('X-Twilio-Signature', '');
         $callbackUrl = WhatsAppCredential::get()->resolveStatusCallbackUrl();
 

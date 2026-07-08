@@ -4,22 +4,22 @@
 
 @section('content')
   @php
-    $driver = config('whatsapp.driver');
-    $twilio = config('whatsapp.twilio', []);
-    $twilioAccountSid = (string) ($twilio['account_sid'] ?? '');
-    $twilioAuthToken = (string) ($twilio['auth_token'] ?? '');
-    $twilioApiKeySid = (string) ($twilio['api_key_sid'] ?? '');
-    $twilioApiKeySecret = (string) ($twilio['api_key_secret'] ?? '');
-    $twilioFrom = (string) ($twilio['from'] ?? '');
-    $twilioServiceSid = (string) ($twilio['messaging_service_sid'] ?? '');
+    $credential = \App\Models\WhatsAppCredential::get();
+    $driver = $credential->resolveDriver();
+    $twilioAccountSid = (string) $credential->resolveAccountSid();
+    $twilioAuthToken = (string) $credential->resolveAuthToken();
+    $twilioApiKeySid = (string) $credential->resolveApiKeySid();
+    $twilioApiKeySecret = (string) $credential->resolveApiKeySecret();
+    $twilioFrom = (string) $credential->resolveFrom();
+    $twilioServiceSid = (string) $credential->resolveMessagingServiceSid();
     $twilioContentSid = (string) app(WhatsAppSender::class)->twilioContentSid();
-    $twilioMode = (string) ($twilio['mode'] ?? 'auto');
+    $twilioMode = (string) $credential->resolveMode();
     $twilioResolvedMode = app(WhatsAppSender::class)->resolveTwilioMode();
     $twilioUsesApiKey = filled($twilioApiKeySid) && filled($twilioApiKeySecret);
     $twilioHasCredentials = filled($twilioAccountSid) && ($twilioUsesApiKey || filled($twilioAuthToken));
     $twilioHasSender = $twilioResolvedMode === 'service' ? filled($twilioServiceSid) : filled($twilioFrom);
-    $twilioUsesTemplate = config('whatsapp.message_mode') === 'template';
-    $selectedSenderNumber = \App\Models\WhatsAppCredential::get()->selectedSenderNumber();
+    $twilioUsesTemplate = $credential->resolveMessageMode() === 'template';
+    $selectedSenderNumber = $credential->selectedSenderNumber();
   @endphp
 
   <div x-data="settingsBoard()"
@@ -137,7 +137,7 @@
           <div class="rounded-2xl border border-white/10 bg-slate-900/60 p-4">
             <p class="text-xs uppercase tracking-[0.25em] text-slate-400">Content SID</p>
             <p class="mt-2 font-medium">{{ $twilioContentSid ? Str::mask($twilioContentSid, '*', 4) : 'No configurado' }}</p>
-            <p class="mt-1 text-sm text-slate-300">Necesario cuando `WHATSAPP_MESSAGE_MODE=template`.</p>
+            <p class="mt-1 text-sm text-slate-300">Necesario cuando el modo está en plantilla.</p>
           </div>
         </div>
         <div x-show="showDropHint('status', 'after')" x-cloak

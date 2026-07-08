@@ -16,11 +16,11 @@ class SettingsOverview extends Component
         $sender = app(WhatsAppSender::class);
 
         return view('settings.settings-overview', [
-            'driver' => config('whatsapp.driver'),
+            'driver' => $credential->resolveDriver(),
             'credential' => $credential,
             'resolvedMode' => $sender->resolveTwilioMode(),
             'twilioContentSid' => $sender->twilioContentSid(),
-            'twilioUsesTemplate' => config('whatsapp.message_mode') === 'template',
+            'twilioUsesTemplate' => $credential->resolveMessageMode() === 'template',
         ]);
     }
 }

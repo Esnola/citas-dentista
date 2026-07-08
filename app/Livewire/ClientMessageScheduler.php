@@ -147,7 +147,7 @@ class ClientMessageScheduler extends Component
                     'scheduled_for' => Carbon::parse(
                         ($this->scheduled_date ?: now()->toDateString()).' '.($this->scheduled_time ?: now()->format('H:i'))
                     ),
-                ], $this->template_key ?: config('whatsapp.default_template'))
+                ], $this->template_key ?: WhatsAppTemplate::defaultKey())
                 : 'Selecciona un cliente para generar su cita.',
             'minimumSelectableDate' => now()->addDay()->toDateString(),
         ]);

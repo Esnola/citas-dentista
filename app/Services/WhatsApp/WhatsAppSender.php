@@ -34,11 +34,11 @@ class WhatsAppSender
     public function send(WhatsAppMessage $message): array
     {
         try {
-            return match (config('whatsapp.driver')) {
+            return match (WhatsAppCredential::get()->resolveDriver()) {
                 'twilio' => $this->sendViaTwilio($message),
                 'cloud_api' => $this->sendViaCloudApi($message),
                 'log' => $this->sendViaLog($message),
-                default => throw new RuntimeException('Unsupported WhatsApp driver: '.config('whatsapp.driver')),
+                default => throw new RuntimeException('Unsupported WhatsApp driver: '.WhatsAppCredential::get()->resolveDriver()),
             };
         } catch (Throwable $throwable) {
             Log::channel('whatsapp_error')->error('WhatsApp send failed', [
@@ -60,11 +60,11 @@ class WhatsAppSender
      */
     public function sendTestMessage(string $recipient, string $body, ?string $mode = null): array
     {
-        return match (config('whatsapp.driver')) {
+        return match (WhatsAppCredential::get()->resolveDriver()) {
             'twilio' => $this->sendTestViaTwilio($recipient, $body, $mode),
             'cloud_api' => $this->sendTestViaCloudApi($recipient, $body),
             'log' => $this->sendTestViaLog($recipient, $body),
-            default => throw new RuntimeException('Unsupported WhatsApp driver: '.config('whatsapp.driver')),
+            default => throw new RuntimeException('Unsupported WhatsApp driver: '.WhatsAppCredential::get()->resolveDriver()),
         };
     }
 
@@ -136,10 +136,9 @@ class WhatsAppSender
      */
     private function sendTwilioRequest(string $recipient, string $body, ?string $mode = null, ?WhatsAppMessage $message = null): array
     {
-        $config = config('whatsapp.twilio');
         $credential = WhatsAppCredential::get();
-        $accountSid = $config['account_sid'] ?? null;
-        [$username, $password] = $this->twilioApiCredentials($config, $credential);
+        $accountSid = $credential->resolveAccountSid();
+        [$username, $password] = $this->twilioApiCredentials($credential);
 
         if (! $accountSid || ! $username || ! $password) {
             throw new RuntimeException('Twilio credentials are not configured.');
@@ -152,8 +151,8 @@ class WhatsAppSender
             ->asForm()
             ->withBasicAuth($username, $password)
             ->retry([100, 500, 1000])
-            ->timeout((int) ($config['timeout'] ?? 15))
-            ->connectTimeout((int) ($config['connect_timeout'] ?? 10))
+            ->timeout($credential->resolveTimeout())
+            ->connectTimeout($credential->resolveConnectTimeout())
             ->post('/2010-04-01/Accounts/'.$accountSid.'/Messages.json', $requestPayload)
             ->throw()
             ->json();
@@ -167,23 +166,19 @@ class WhatsAppSender
     }
 
     /**
-     * @param  array<string, mixed>  $config
      * @return array{0:?string,1:?string}
      */
-    private function twilioApiCredentials(array $config, WhatsAppCredential $credential): array
+    private function twilioApiCredentials(WhatsAppCredential $credential): array
     {
         $dbApiKeySid = $credential->resolveApiKeySid();
         $dbApiKeySecret = $credential->resolveApiKeySecret();
 
+        // Primero intenta API Key/Secret; si no existen, cae a Account SID/Auth Token.
         if (filled($dbApiKeySid) && filled($dbApiKeySecret)) {
             return [$dbApiKeySid, $dbApiKeySecret];
         }
 
-        if (filled($config['api_key_sid'] ?? null) && filled($config['api_key_secret'] ?? null)) {
-            return [$config['api_key_sid'], $config['api_key_secret']];
-        }
-
-        return [$config['account_sid'] ?? null, $config['auth_token'] ?? null];
+        return [$credential->resolveAccountSid(), $credential->resolveAuthToken()];
     }
 
     /**
@@ -204,13 +199,12 @@ class WhatsAppSender
         ?WhatsAppMessage $message = null,
         bool $validateConfiguration = true,
     ): array {
-        $config = config('whatsapp.twilio');
         $credential = WhatsAppCredential::get();
-        $from = $credential->resolveFrom() ?: ($config['from'] ?? null);
-        $messagingServiceSid = $config['messaging_service_sid'] ?? null;
+        $from = $credential->resolveFrom();
+        $messagingServiceSid = $credential->resolveMessagingServiceSid();
         $contentSid = $this->twilioContentSid();
         $resolvedMode = $this->resolveTwilioMode($mode);
-        $messageMode = strtolower(trim((string) config('whatsapp.message_mode', 'text')));
+        $messageMode = strtolower(trim($credential->resolveMessageMode()));
         $usesTemplate = $messageMode === 'template';
 
         if ($validateConfiguration && $resolvedMode === self::TWILIO_SERVICE_MODE && ! $messagingServiceSid) {
@@ -252,7 +246,6 @@ class WhatsAppSender
 
     public function resolveTwilioMode(?string $mode = null): string
     {
-        $config = config('whatsapp.twilio');
         $credential = WhatsAppCredential::get();
         $requestedMode = strtolower(trim($mode ?: $credential->resolveMode()));
 
@@ -264,11 +257,11 @@ class WhatsAppSender
             return $requestedMode;
         }
 
-        if (filled($config['messaging_service_sid'] ?? null)) {
+        if (filled($credential->resolveMessagingServiceSid())) {
             return self::TWILIO_SERVICE_MODE;
         }
 
-        $from = (string) ($config['from'] ?? '');
+        $from = (string) ($credential->resolveFrom() ?? '');
 
         if ($from !== '' && $this->normalizeWhatsAppAddress($from) === 'whatsapp:+14155238886') {
             return self::TWILIO_SANDBOX_MODE;
@@ -297,7 +290,7 @@ class WhatsAppSender
     {
         Carbon::setLocale('es');
         $variables = TwilioContentTemplate::selectedContentVariables()
-            ?? config('whatsapp.twilio.content_variables', []);
+            ?? WhatsAppCredential::get()->resolveContentVariables();
 
         if (! is_array($variables)) {
             return [];
@@ -340,9 +333,9 @@ class WhatsAppSender
      */
     private function sendViaCloudApi(WhatsAppMessage $message): array
     {
-        $config = config('whatsapp.cloud_api');
-        $phoneNumberId = $config['phone_number_id'] ?? null;
-        $accessToken = $config['access_token'] ?? null;
+        $credential = WhatsAppCredential::get();
+        $phoneNumberId = $credential->resolveCloudApiPhoneNumberId();
+        $accessToken = $credential->resolveCloudApiAccessToken();
 
         if (! $phoneNumberId || ! $accessToken) {
             throw new RuntimeException('WhatsApp Cloud API credentials are not configured.');
@@ -350,13 +343,13 @@ class WhatsAppSender
 
         $payload = $this->buildTextPayload($message);
 
-        $response = Http::baseUrl(rtrim((string) ($config['base_url'] ?? 'https://graph.facebook.com'), '/'))
+        $response = Http::baseUrl(rtrim($credential->resolveCloudApiBaseUrl(), '/'))
             ->acceptJson()
             ->asJson()
             ->withToken($accessToken)
-            ->timeout((int) ($config['timeout'] ?? 15))
-            ->connectTimeout(10)
-            ->post(sprintf('/%s/%s/messages', $config['version'] ?? 'v22.0', $phoneNumberId), $payload)
+            ->timeout($credential->resolveCloudApiTimeout())
+            ->connectTimeout($credential->resolveConnectTimeout())
+            ->post(sprintf('/%s/%s/messages', $credential->resolveCloudApiVersion(), $phoneNumberId), $payload)
             ->throw()
             ->json();
 
@@ -375,9 +368,9 @@ class WhatsAppSender
      */
     private function sendTestViaCloudApi(string $recipient, string $body): array
     {
-        $config = config('whatsapp.cloud_api');
-        $phoneNumberId = $config['phone_number_id'] ?? null;
-        $accessToken = $config['access_token'] ?? null;
+        $credential = WhatsAppCredential::get();
+        $phoneNumberId = $credential->resolveCloudApiPhoneNumberId();
+        $accessToken = $credential->resolveCloudApiAccessToken();
 
         if (! $phoneNumberId || ! $accessToken) {
             throw new RuntimeException('WhatsApp Cloud API credentials are not configured.');
@@ -393,13 +386,13 @@ class WhatsAppSender
             ],
         ];
 
-        $response = Http::baseUrl(rtrim((string) ($config['base_url'] ?? 'https://graph.facebook.com'), '/'))
+        $response = Http::baseUrl(rtrim($credential->resolveCloudApiBaseUrl(), '/'))
             ->acceptJson()
             ->asJson()
             ->withToken($accessToken)
-            ->timeout((int) ($config['timeout'] ?? 15))
-            ->connectTimeout(10)
-            ->post(sprintf('/%s/%s/messages', $config['version'] ?? 'v22.0', $phoneNumberId), $payload)
+            ->timeout($credential->resolveCloudApiTimeout())
+            ->connectTimeout($credential->resolveConnectTimeout())
+            ->post(sprintf('/%s/%s/messages', $credential->resolveCloudApiVersion(), $phoneNumberId), $payload)
             ->throw()
             ->json();
 
@@ -429,7 +422,7 @@ class WhatsAppSender
     public function twilioContentSid(): ?string
     {
         return TwilioContentTemplate::selectedContentSid()
-            ?: config('whatsapp.twilio.content_sid');
+            ?: WhatsAppCredential::get()->resolveContentSid();
     }
 
     private function twilioStatusCallbackUrl(): string

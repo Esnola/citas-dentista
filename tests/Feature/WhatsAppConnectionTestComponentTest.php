@@ -122,6 +122,72 @@ class WhatsAppConnectionTestComponentTest extends TestCase
             ->assertSee('whatsapp:+34600123123');
     }
 
+    public function test_settings_connection_form_refreshes_preview_from_when_selected_sender_changes(): void
+    {
+        $credential = WhatsAppCredential::create([
+            'mode' => 'sandbox',
+            'selected' => true,
+        ]);
+
+        $first = $credential->senderNumbers()->create([
+            'name' => 'Primero',
+            'prefix' => '+34',
+            'number' => '600111111',
+            'selected' => true,
+        ]);
+
+        $second = $credential->senderNumbers()->create([
+            'name' => 'Segundo',
+            'prefix' => '+34',
+            'number' => '600222222',
+            'selected' => false,
+        ]);
+
+        $component = Livewire::test(WhatsAppConnectionTest::class)
+            ->set('mode', 'sandbox')
+            ->set('recipient', '600123123');
+
+        $credential->senderNumbers()->update(['selected' => false]);
+        $credential->senderNumbers()->where('id', $second->id)->update(['selected' => true]);
+
+        $component
+            ->dispatch('credentialsChanged')
+            ->assertSee($second->whatsapp_address)
+            ->assertDontSee($first->whatsapp_address);
+    }
+
+    public function test_sender_numbers_keep_the_same_order_when_selection_changes(): void
+    {
+        $credential = WhatsAppCredential::create([
+            'mode' => 'sandbox',
+            'selected' => true,
+        ]);
+
+        $first = $credential->senderNumbers()->create([
+            'name' => 'Primero',
+            'prefix' => '+34',
+            'number' => '600111111',
+            'selected' => true,
+        ]);
+
+        $second = $credential->senderNumbers()->create([
+            'name' => 'Segundo',
+            'prefix' => '+34',
+            'number' => '600222222',
+            'selected' => false,
+        ]);
+
+        $initialOrder = $credential->senderNumbers()->orderBy('id')->pluck('id')->all();
+
+        $credential->senderNumbers()->update(['selected' => false]);
+        $credential->senderNumbers()->where('id', $second->id)->update(['selected' => true]);
+
+        $updatedOrder = $credential->senderNumbers()->orderBy('id')->pluck('id')->all();
+
+        $this->assertSame([$first->id, $second->id], $initialOrder);
+        $this->assertSame([$first->id, $second->id], $updatedOrder);
+    }
+
     public function test_settings_connection_form_shows_twilio_template_payload_preview(): void
     {
         config()->set('whatsapp.driver', 'twilio');

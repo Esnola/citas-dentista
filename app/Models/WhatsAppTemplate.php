@@ -8,13 +8,15 @@ final class WhatsAppTemplate
 {
     public static function catalog(): Collection
     {
+        $credential = WhatsAppCredential::get();
+
         return collect(config('whatsapp.templates', []))
-            ->map(function (array $template, string $key): array {
+            ->map(function (array $template, string $key) use ($credential): array {
                 return [
                     'key' => $key,
                     'label' => $template['label'] ?? $key,
                     'message' => $template['message'] ?? '',
-                    'is_default' => $key === config('whatsapp.default_template'),
+                    'is_default' => $key === $credential->resolveDefaultTemplateKey(),
                     'is_active' => true,
                     'sort_order' => 0,
                 ];
@@ -37,7 +39,7 @@ final class WhatsAppTemplate
     public static function resolve(?string $key = null): array
     {
         $catalog = self::catalog();
-        $defaultKey = config('whatsapp.default_template');
+        $defaultKey = WhatsAppCredential::get()->resolveDefaultTemplateKey();
 
         $template = $key ? $catalog->firstWhere('key', $key) : null;
         $template ??= $catalog->firstWhere('key', $defaultKey);
@@ -79,6 +81,6 @@ final class WhatsAppTemplate
             return $fallback['key'];
         }
 
-        return config('whatsapp.default_template');
+        return WhatsAppCredential::get()->resolveDefaultTemplateKey();
     }
 }

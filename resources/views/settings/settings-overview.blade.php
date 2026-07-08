@@ -19,8 +19,8 @@
 
   <div class="rounded-2xl border border-white/10 bg-slate-900/60 p-4">
     <p class="text-xs uppercase tracking-[0.25em] text-slate-400">Plantilla por defecto</p>
-    <p class="mt-2 font-medium">{{ config('whatsapp.default_template') }}</p>
-    <p class="mt-1 text-sm text-slate-300">{{ config('whatsapp.default_message') ?? config('whatsapp.templates.' . config('whatsapp.default_template') . '.message') }}</p>
+    <p class="mt-2 font-medium">{{ $credential->resolveDefaultTemplateKey() }}</p>
+    <p class="mt-1 text-sm text-slate-300">{{ $credential->resolveDefaultMessage() }}</p>
   </div>
 
   <div class="rounded-2xl border border-white/10 bg-slate-900/60 p-4">

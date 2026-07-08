@@ -3,6 +3,7 @@
 namespace App\Livewire\Settings;
 
 use App\Models\TwilioContentTemplate;
+use App\Models\WhatsAppCredential;
 use Livewire\Component;
 
 class TwilioContentTemplateSettings extends Component
@@ -61,7 +62,7 @@ class TwilioContentTemplateSettings extends Component
     {
         return view('settings.twilio-content-template-settings', [
             'templates' => TwilioContentTemplate::query()->orderBy('nombre')->get(),
-            'envContentSid' => (string) config('whatsapp.twilio.content_sid', ''),
+            'envContentSid' => (string) WhatsAppCredential::get()->resolveContentSid(),
         ]);
     }
 
