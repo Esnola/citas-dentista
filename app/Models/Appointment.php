@@ -196,31 +196,21 @@
       ]);
     }
     
-    public function responseStatusLabel(): ?string
+    public function queBoton(): ?string
     {
       $latestInbound = $this->latestInboundAfterLastSent();
-      
+      $salida= null;
       if ($latestInbound) {
-        $buttonPayload = strtolower(trim((string)data_get($latestInbound->provider_payload, 'inbound.button_payload', '')));
-        
-        if ($buttonPayload !== '') {
-          return str_starts_with($buttonPayload, 'confirm') ? 'Confirmar' : 'Consultar';
+          $salida = strtolower(trim((string)data_get($latestInbound->provider_payload, 'inbound.button_payload', '')));
         }
         
-        $respuesta = strtolower(trim((string)$latestInbound->respuesta));
-        
-        if (in_array($respuesta, ['confirmar', 'confirmar cita'], true)) {
-          return 'Confirmar';
-        }
-        
-        return 'Consultar';
+     if(str_starts_with($salida, 'confirm')) {
+       return 'confirmada';
+     }
+      if(str_starts_with($salida, 'cambiar')) {
+        return 'cambiar';
       }
-      
-      return match (true) {
-        $this->confirmada => 'Confirmada',
-        $this->pendiente_reprogramacion => 'Reprogramar',
-        default => null,
-      };
+      return null;
     }
     
     public function esCitaConfirmada(): bool

@@ -172,13 +172,20 @@
         @forelse ($appointments as $appointment)
           @php
             $editUrl = route('appointments.edit', $appointment);
-            $isInactive = ! $appointment->isFuture();
+            $esPasado = ! $appointment->isFuture();
+            $esActiva = $appointment->cita_activa;
+            $rowClasses = ['cursor-pointer transition-colors hover:bg-white/5 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-400/60 focus-visible:bg-white/5',
+           'bg-slate-400/15' => $esPasado,
+           'bg-red-500/5' => ! $esActiva
+           ];
           @endphp
           <tr wire:key="appointment-{{ $appointment->id }}"
               role="link" tabindex="0"
               onclick="window.location='{{ $editUrl }}'"
               onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();window.location='{{ $editUrl }}';}else if(event.key==='ArrowDown'){event.preventDefault();this.nextElementSibling?.focus();}else if(event.key==='ArrowUp'){event.preventDefault();this.previousElementSibling?.focus();}"
-              class="cursor-pointer transition-colors hover:bg-white/5 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-400/60 focus-visible:bg-white/5 {{ $isInactive ? 'bg-slate-400/15' : '' }} {{ ! $appointment->cita_activa ? 'bg-red-500/5' : '' }}"
+              class="cursor-pointer transition-colors hover:bg-white/5 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-400/60 focus-visible:bg-white/5 {{ $esPasado ? 'bg-slate-400/15' : '' }}
+              {{ ! $esActiva ? 'bg-red-500/5' : '' }}"
+
 
               @if ($appointment->enviado && $appointment->latestWhatsAppMessage?->provider_message_id)
                 title="Message SID: {{ $appointment->latestWhatsAppMessage?->provider_message_id }}"
@@ -192,7 +199,7 @@
             </td>
             <td class="px-4 py-3">
               <a href="{{ $editUrl }}" tabindex="-1"
-                 class="inline-flex items-center gap-2 font-medium {{ ($isInactive || ! $appointment->cita_activa) ? 'text-slate-400 hover:text-slate-300' : 'text-emerald-300 hover:text-emerald-200' }}">
+                 class="inline-flex items-center gap-2 font-medium {{ ($esPasado || ! $esActiva) ? 'text-slate-400 hover:text-slate-300' : 'text-emerald-300 hover:text-emerald-200' }}">
                 <span>{{ $appointment->client?->nombre }} {{ $appointment->client?->apellidos }}</span>
               </a>
             </td>
@@ -262,22 +269,37 @@
             <td class="px-4 py-3 text-center text-xs">
               @php
                 $esConfirmada = $appointment->esCitaConfirmada();
-                $displayResponseLabel = match ($esConfirmada) {
-                  true => 'Confirmada',
-                   default =>  $appointment->responseStatusLabel(),
-                };
+                $retorno = $appointment->queBoton();
+                $tieneMensaje = $appointment->hasTextResponse() ;
+
+
+                if($retorno === 'confirmada'){
+                    $icono =  'usuario-plus';
+                    $displayResponseLabel = 'Confirmada';
+                    $responseClasses = 'bg-emerald-500/15 text-emerald-300 border border-emerald-400/30';
+                    }
+                elseif($retorno === 'cambiar'){
+                  $icono = 'alert';
+                  $displayResponseLabel = 'Reprogramar';
+                  $responseClasses = 'bg-red-500/15 text-red-300 border border-red-400/30';
+                }elseif($tieneMensaje){
+                    $icono =  'ojo';
+                    $displayResponseLabel = 'Leer Mensaje';
+                    $responseClasses = 'bg-amber-500/15 text-amber-300 border border-amber-400/30';
+                }else{
+                  $icono = '';
+                  $displayResponseLabel =  '';
+                  $responseClasses = '';
+                }
+
                 $respondedAt = $appointment->latestInboundAfterLastSent()?->responded_at;
-                $responseClasses = match ($esConfirmada) {
-                   true => 'bg-emerald-500/15 text-emerald-300 border border-emerald-400/30',
-                   false => 'bg-red-500/15 text-red-300 border border-red-400/30'
-                };
-               $icono = $appointment->hasTextResponse() ? 'ojo' : ($esConfirmada ? 'usuario-plus' : 'alert');
               @endphp
+
               @if ($displayResponseLabel || $appointment->wasRescheduled())
                 <div class="flex flex-col items-center gap-1">
                     <span class="inline-flex items-center rounded-full gap-2 px-2 py-0.5 text-xs font-semibold border {{ $responseClasses }}">
                        <x-dynamic-component :component="'iconos.' . $icono" class="size-6 "/>
-                      {{ $displayResponseLabel }}
+                     {{$displayResponseLabel}}
                       </span>
 
                   @if ($appointment->wasRescheduled())
@@ -321,7 +343,7 @@
             <td class="px-4 py-3 text-center" onclick="event.stopPropagation()">
               @if($appointment->isFuture())
                 <x-formularios.toggle
-                        :checked="$appointment->cita_activa"
+                        :checked="$esActiva"
                         offColor="bg-red-500"
                         wire:change="updateAppointmentActiveStatus({{ $appointment->id }}, $event.target.checked)"/>
               @else
@@ -330,40 +352,7 @@
                 </span>
               @endif
             </td>
-            <td class="px-4 py-3 text-right" onclick="event.stopPropagation()">
-              <div class="flex justify-end items-center gap-2">
-                @if (! $appointment->enviado && $appointment->activo && $appointment->scheduledFor()->isFuture())
-                  <x-botones.icono-buton
-                          color="emerald"
-                          icon="whatsapp"
-                          label="Enviar WhatsApp"
-                          wire:click="sendNow({{ $appointment->id }})"
-                          wire:loading.attr="disabled"
-                          wire:target="sendNow({{ $appointment->id }})"
-                  />
-                @endif
-                <x-botones.icono-buton
-                        color="blue"
-                        icon="lapiz"
-                        label="Editar cita"
-                        onclick="window.location='{{ $editUrl }}'"
-                />
-                <x-botones.icono-buton
-                        color="red"
-                        icon="papelera"
-                        label="Eliminar cita"
-                        wire:click="confirmDelete({{ $appointment->id }})"
-                />
-                @if ($appointment->whatsAppMessages()->count() > 0)
-                  <x-botones.icono-buton
-                          color="emerald"
-                          icon="historial"
-                          label="Historial"
-                          wire:click="openHistory({{ $appointment->id }})"
-                  />
-                @endif
-              </div>
-            </td>
+            <x-tabla.botones-maniobra :appointment="$appointment" :editUrl="$editUrl"/>
           </tr>
         @empty
           <tr>
@@ -382,6 +371,7 @@
   </div>
 
   {{-- MODAL DE CONFIRMACION BORRADO --}}
+
   @if ($appointmentPendingDeletion)
     <x-modales.confirmacion x-data="{ modalOpen: true }" x-trap.noscroll="modalOpen"
                             x-on:keydown.escape.window="$wire.cancelDelete()" titulo="Eliminar cita">
@@ -434,96 +424,7 @@
       </x-slot:actions>
     </x-modales.confirmacion>
   @endif
-
   {{-- MODAL HISTORIAL DE COMUNICACIONES --}}
-  @if ($historyAppointment)
-    <div x-data="{ modalOpen: true }" x-trap.noscroll="modalOpen"
-         x-on:keydown.escape.window="$wire.closeHistory()"
-         class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
-         x-show="modalOpen" x-transition.opacity>
-      <div class="relative mx-4 w-full max-w-2xl max-h-[80vh] overflow-hidden rounded-2xl border border-white/10 bg-slate-900 shadow-2xl"
-           x-show="modalOpen" x-transition.scale.95>
-        <div class="flex items-center justify-between border-b border-white/10 px-6 py-4">
-          <div>
-            <h3 class="text-lg font-semibold text-white">Historial de comunicaciones</h3>
-            <p class="text-sm text-slate-400">
-              {{ $historyAppointment->client?->full_name }} —
-              {{ $historyAppointment->fecha?->format('d/m/Y') }} {{ Str::substr($historyAppointment->hora, 0, 5) }}
-            </p>
-          </div>
-          <button wire:click="closeHistory"
-                  class="rounded-lg p-1 text-slate-400 hover:text-white transition-colors cursor-pointer">
-            <svg class="size-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
-            </svg>
-          </button>
-        </div>
-        <div class="overflow-y-auto p-6 space-y-3" style="max-height: calc(80vh - 80px)">
-          @forelse ($historyAppointment->whatsAppMessages as $msg)
-            @php $isInbound = $msg->direction === 'inbound';
-            $laClase= $isInbound
-                    ? 'bg-whatsapp border border-emerald-500/20'
-                    : 'bg-slate-800/60 border border-white/10'
+  <x-modales.historia-whatsapp  :historyAppointment="$historyAppointment" wire:key="history-modal-{{ $historyAppointment?->id }}"/>
 
-            @endphp
-            <div class="flex {{ !$isInbound ? 'justify-end' : 'justify-start' }}">
-              <div class="max-w-[75%] px-4 py-3 {{ $laClase }}">
-                <div class="flex items-center gap-2 mb-1">
-                  <span class="text-[10px] font-semibold {{ $isInbound ? 'text-emerald-700' : 'text-slate-400' }}">
-                    {{ $isInbound ? 'Recibido' : $msg->sent_at?->format('d/m/Y H:i:s') }}
-                  </span>
-                  <span class="text-[10px] text-slate-800">
-                    {{ $msg->sent_at?->format('d/m/Y H:i:s') }}
-                  </span>
-                </div>
-                @if ($isInbound && $msg->respuesta)
-                  <div class="mt-1 flex items-center gap-1">
-                    @php
-                      $btnPayload = strtolower(trim((string) data_get($msg->provider_payload, 'inbound.button_payload', '')));
-                      $isConfirm = str_starts_with($btnPayload, 'confirm');
-                       $laClase = match(true) {
-                        $btnPayload && $isConfirm => ['clase' => 'cita-confirmada', 'texto' => 'Confirmada', 'icono' => 'usuario-plus'],
-                        $btnPayload && !$isConfirm => ['clase' => 'cambiar-cita', 'texto' => 'Cambiar cita', 'icono' => 'alert'],
-                        default => ['clase' => 'text-slate-600', 'texto' =>null, 'icono' => null],
-                        }
-                    @endphp
-                    <span class="inline-flex items-center rounded-full px-2 py-0.5 text-sm
-                        {{ $laClase['clase'] }}">
-                      @if ($laClase['icono'])
-                        <x-dynamic-component :component="'iconos.' . $laClase['icono']" class="size-2 mr-1"/>
-                      @endif
-                      {{ $laClase['texto'] ??  $msg->respuesta }}
-                    </span>
-                  </div>
-                @endif
-                @if (! $isInbound)
-                  @php $delivery = $msg->deliveryStatus(); @endphp
-                  <div class="mt-1 flex items-center gap-1">
-
-                    @if ($delivery === 'read')
-                      <x-iconos.doble-check clase="size-4 text-green-400"/>
-                      <span class="text-[10px] text-slate-500">Leído</span>
-                    @elseif ($delivery === 'delivered')
-                      <x-iconos.doble-check clase="size-4 text-slate-400"/>
-                      <span class="text-[10px] text-slate-500">Entregado</span>
-                    @elseif ($msg->status === 'sent')
-                      <x-iconos.whatsapp clase="size-4 text-slate-500"/>
-                      <span class="text-[10px] text-slate-500">Enviado</span>
-                    @elseif ($msg->status === 'failed')
-                      <x-iconos.alert clase="size-4 text-red-400"/>
-                      <span class="text-[10px] text-slate-500">Fallido</span>
-                    @endif
-                  </div>
-                @endif
-              </div>
-            </div>
-          @empty
-            <div class="py-8 text-center text-slate-500">
-              No hay mensajes registrados para esta cita.
-            </div>
-          @endforelse
-        </div>
-      </div>
-    </div>
-  @endif
 </div>
