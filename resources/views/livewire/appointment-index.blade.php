@@ -76,7 +76,7 @@
            class="group rounded-2xl border border-white/10 p-4 backdrop-blur transition-colors hover:border-white/50 hover:bg-white/5 hover:scale-105 shadow hover:shadow-2xs">
           <div class="flex items-start justify-between gap-2">
             <div>
-              <span class="font-medium text-emerald-300">{{ $client->full_name }}</span>
+              <span class="font-medium text-sm text-emerald-300">{{ $client->full_name }}</span>
               <div class="mt-1 flex items-center gap-1 text-xs text-slate-400">
                 <x-iconos.telefono-mesa/>
                 {{ $client->telefono }}

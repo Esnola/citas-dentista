@@ -118,7 +118,7 @@ class WhatsAppSender
      */
     private function sendViaTwilio(WhatsAppMessage $message): array
     {
-        return $this->sendTwilioRequest($message->telefono, $message->message, message: $message);
+        return $this->sendTwilioRequest($message->telefono, $message->message, forceTemplate: true, message: $message);
     }
 
     /**
@@ -126,10 +126,7 @@ class WhatsAppSender
      */
     private function sendTestViaTwilio(string $recipient, string $body, ?string $mode = null, bool $forceTemplate = false, ?int $templateId = null): array
     {
-        $messageMode = strtolower(trim((string) WhatsAppCredential::get()->resolveMessageMode()));
-        $usesTemplate = $forceTemplate || $messageMode === 'template';
-
-        if ($usesTemplate) {
+        if ($forceTemplate) {
             return $this->sendTwilioRequest(
                 $recipient,
                 $body,
@@ -224,8 +221,7 @@ class WhatsAppSender
         $template = $this->twilioContentTemplate($templateId);
         $contentSid = $template?->content_sid ?: $this->twilioContentSid();
         $resolvedMode = $this->resolveTwilioMode($mode);
-        $messageMode = strtolower(trim($credential->resolveMessageMode()));
-        $usesTemplate = $forceTemplate || $messageMode === 'template';
+        $usesTemplate = $forceTemplate;
 
         if ($validateConfiguration && in_array($resolvedMode, [self::TWILIO_SANDBOX_MODE, self::TWILIO_SENDER_MODE], true) && ! $from) {
             throw new RuntimeException('Twilio WhatsApp sender is not configured.');
@@ -233,6 +229,12 @@ class WhatsAppSender
 
         if ($validateConfiguration && $usesTemplate && ! $contentSid) {
             throw new RuntimeException('No hay una plantilla de Twilio seleccionada. Debe existir una fila con seleccionada = 1 en twilio_content_templates, o un TWILIO_CONTENT_SID como respaldo.');
+        }
+
+        $body = trim($body);
+
+        if ($validateConfiguration && ! $usesTemplate && $body === '') {
+            throw new RuntimeException('El mensaje de texto no puede estar vacío.');
         }
 
         $contentVariables = $usesTemplate ? $this->twilioContentVariables($message, $template) : [];

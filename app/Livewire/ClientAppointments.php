@@ -38,6 +38,8 @@ class ClientAppointments extends Component
 
     public ?string $deliveryStatusesSyncedAt = null;
 
+    public ?Appointment $historyAppointment = null;
+
     private AppointmentImmediateSender $immediateSender;
 
     private AppointmentDeliveryStatusSyncer $deliveryStatusSyncer;
@@ -346,6 +348,18 @@ class ClientAppointments extends Component
         $this->dispatch('toast', message: $result['message'], type: str_contains($result['message'], 'correctamente') ? 'success' : 'error');
     }
 
+    public function openHistory(int $appointmentId): void
+    {
+        $this->historyAppointment = Appointment::query()
+            ->with(['whatsAppMessages' => fn ($q) => $q->orderBy('sent_at', 'asc')->orderBy('id', 'asc')])
+            ->findOrFail($appointmentId);
+    }
+
+    public function closeHistory(): void
+    {
+        $this->historyAppointment = null;
+    }
+
     public function syncDeliveryStatuses(): void
     {
         $updated = $this->deliveryStatusSyncer->syncAll($this->clientId, force: true);
@@ -359,6 +373,13 @@ class ClientAppointments extends Component
         }
 
         $this->dispatch('toast', message: 'Todos los registros de citas y demás datos están actualizados.', type: 'success');
+    }
+
+    public function autoSync(): void
+    {
+        $this->deliveryStatusSyncer->syncAll($this->clientId, force: true);
+        $this->deliveryStatusesSyncedAt = now(config('app.timezone'))->format('H:i - d/m/Y');
+        Cache::forever('appointment_delivery_statuses_synced_at', $this->deliveryStatusesSyncedAt);
     }
 
     private function queuePageReloadAfterWhatsAppSend(): void

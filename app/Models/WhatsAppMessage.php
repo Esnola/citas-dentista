@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class WhatsAppMessage extends Model
 {
@@ -27,6 +28,10 @@ class WhatsAppMessage extends Model
 
     public const SOURCE_APPOINTMENT = 'appointment';
 
+    public const DIRECTION_OUTBOUND = 'outbound';
+
+    public const DIRECTION_INBOUND = 'inbound';
+
     public const RESPUESTA_CONFIRMAR = 'Confirmar';
 
     public const RESPUESTA_REPROGRAMAR = 'Reprogramar';
@@ -35,6 +40,7 @@ class WhatsAppMessage extends Model
         'user_id',
         'client_id',
         'appointment_id',
+        'parent_id',
         'nombre',
         'apellidos',
         'telefono',
@@ -42,6 +48,7 @@ class WhatsAppMessage extends Model
         'message',
         'source',
         'status',
+        'direction',
         'sent_at',
         'last_error',
         'provider_message_id',
@@ -75,6 +82,16 @@ class WhatsAppMessage extends Model
     public function appointment(): BelongsTo
     {
         return $this->belongsTo(Appointment::class);
+    }
+
+    public function parent(): BelongsTo
+    {
+        return $this->belongsTo(WhatsAppMessage::class, 'parent_id');
+    }
+
+    public function replies(): HasMany
+    {
+        return $this->hasMany(WhatsAppMessage::class, 'parent_id');
     }
 
     public function getFullNameAttribute(): string
@@ -119,6 +136,16 @@ class WhatsAppMessage extends Model
     public function scopeDue($query)
     {
         return $query->pending()->where('scheduled_for', '<=', now());
+    }
+
+    public function scopeOutbound($query)
+    {
+        return $query->where('direction', self::DIRECTION_OUTBOUND);
+    }
+
+    public function scopeInbound($query)
+    {
+        return $query->where('direction', self::DIRECTION_INBOUND);
     }
 
     public function isRead(): bool
@@ -186,12 +213,22 @@ class WhatsAppMessage extends Model
             return str_starts_with($buttonPayload, 'confirm');
         }
 
-        return $this->respuesta === self::RESPUESTA_CONFIRMAR;
+        $respuesta = strtolower(trim((string) $this->respuesta));
+
+        return in_array($respuesta, ['confirmar', 'confirmar cita'], true);
     }
 
     public function isRescheduleRequested(): bool
     {
-        return $this->respuesta === self::RESPUESTA_REPROGRAMAR;
+        $buttonPayload = strtolower(trim((string) data_get($this->provider_payload, 'inbound.button_payload', '')));
+
+        if ($buttonPayload !== '') {
+            return str_starts_with($buttonPayload, 'reprogram') || str_starts_with($buttonPayload, 'cambiar');
+        }
+
+        $respuesta = strtolower(trim((string) $this->respuesta));
+
+        return in_array($respuesta, ['reprogramar', 'reprogramar cita', 'cambiar', 'cambiar cita'], true);
     }
 
     public function responseValue(): ?string

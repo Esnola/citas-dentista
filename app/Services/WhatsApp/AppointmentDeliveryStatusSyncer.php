@@ -8,6 +8,7 @@ use App\Models\WhatsAppMessage;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use Throwable;
 
@@ -18,6 +19,8 @@ class AppointmentDeliveryStatusSyncer
         if (! $this->canSync()) {
             return 0;
         }
+
+        $this->syncInboundResponses($clientId);
 
         $messages = WhatsAppMessage::query()
             ->whereNotNull('appointment_id')
@@ -58,6 +61,16 @@ class AppointmentDeliveryStatusSyncer
 
         if ($ids->isEmpty()) {
             return 0;
+        }
+
+        $clientIds = Appointment::query()
+            ->whereIn('id', $ids)
+            ->pluck('client_id')
+            ->unique()
+            ->values();
+
+        foreach ($clientIds as $clientId) {
+            $this->syncInboundResponses($clientId);
         }
 
         $messages = WhatsAppMessage::query()
@@ -106,6 +119,189 @@ class AppointmentDeliveryStatusSyncer
         ]);
 
         return $this->sync([$message->appointment_id]);
+    }
+
+    /**
+     * Query Twilio API for inbound messages and recover responses the webhook missed.
+     */
+    public function syncInboundResponses(?int $clientId = null): int
+    {
+        if (! $this->canSync()) {
+            return 0;
+        }
+
+        $credential = WhatsAppCredential::get();
+        $accountSid = trim((string) ($credential->resolveAccountSid() ?? ''));
+        [$username, $password] = $this->twilioApiCredentials($credential);
+
+        if ($accountSid === '' || $username === '' || $password === '') {
+            return 0;
+        }
+
+        $sentMessages = WhatsAppMessage::query()
+            ->where('direction', WhatsAppMessage::DIRECTION_OUTBOUND)
+            ->where('status', WhatsAppMessage::STATUS_SENT)
+            ->whereNotNull('provider_message_id')
+            ->when($clientId, fn ($query) => $query->where('client_id', $clientId))
+            ->get();
+
+        if ($sentMessages->isEmpty()) {
+            return 0;
+        }
+
+        $phoneGroups = $sentMessages->groupBy('telefono');
+        $recovered = 0;
+
+        foreach ($phoneGroups as $phone => $phoneMessages) {
+            $twilioPhone = $phoneMessages->first()->twilioPhone();
+
+            if ($twilioPhone === '') {
+                continue;
+            }
+
+            $inboundMessages = $this->fetchInboundFromTwilio(
+                $accountSid, $username, $password,
+                $credential, $twilioPhone
+            );
+
+            if ($inboundMessages->isEmpty()) {
+                continue;
+            }
+
+            $recovered += $this->matchInboundToOutbound($phoneMessages, $inboundMessages);
+        }
+
+        return $recovered;
+    }
+
+    private function twilioApiCredentials(WhatsAppCredential $credential): array
+    {
+        $apiKeySid = trim((string) ($credential->resolveApiKeySid() ?? ''));
+        $apiKeySecret = trim((string) ($credential->resolveApiKeySecret() ?? ''));
+
+        if ($apiKeySid !== '' && $apiKeySecret !== '') {
+            return [$apiKeySid, $apiKeySecret];
+        }
+
+        return [
+            $credential->resolveAccountSid(),
+            $credential->resolveAuthToken(),
+        ];
+    }
+
+    /**
+     * @return Collection<int, array{sid:string,body:string,from:string,to:string,date_sent:string,direction:string}>
+     */
+    private function fetchInboundFromTwilio(
+        string $accountSid,
+        string $username,
+        string $password,
+        WhatsAppCredential $credential,
+        string $twilioPhone,
+    ): Collection {
+        try {
+            $response = Http::baseUrl('https://api.twilio.com')
+                ->acceptJson()
+                ->withBasicAuth($username, $password)
+                ->retry([100, 500, 1000])
+                ->timeout($credential->resolveTimeout())
+                ->connectTimeout($credential->resolveConnectTimeout())
+                ->get('/2010-04-01/Accounts/'.$accountSid.'/Messages.json', [
+                    'From' => $twilioPhone,
+                    'Direction' => 'inbound',
+                    'PageSize' => 50,
+                ])
+                ->throw()
+                ->json();
+
+            $messages = data_get($response, 'messages', []);
+
+            return collect($messages)->filter(fn (array $msg): bool => strtolower(trim((string) data_get($msg, 'direction', ''))) !== 'outbound-api');
+        } catch (Throwable $e) {
+            Log::warning('Failed to fetch inbound messages from Twilio.', [
+                'error' => $e->getMessage(),
+                'phone' => $twilioPhone,
+            ]);
+
+            return collect();
+        }
+    }
+
+    /**
+     * Match inbound Twilio messages to outgoing WhatsAppMessages without a response.
+     *
+     * @param  Collection<int, WhatsAppMessage>  $outboundMessages
+     * @param  Collection<int, array{sid:string,body:string,from:string,to:string,date_sent:string,direction:string}>  $inboundMessages
+     */
+    private function matchInboundToOutbound(Collection $outboundMessages, Collection $inboundMessages): int
+    {
+        $recovered = 0;
+        $sorted = $outboundMessages->sortBy('sent_at')->values();
+
+        $existingSids = WhatsAppMessage::query()
+            ->where('direction', WhatsAppMessage::DIRECTION_INBOUND)
+            ->whereNotNull('provider_message_id')
+            ->pluck('provider_message_id')
+            ->flip();
+
+        foreach ($inboundMessages as $inbound) {
+            $inboundDate = Carbon::parse(data_get($inbound, 'date_sent', ''))->timezone(config('app.timezone'));
+            $body = trim((string) data_get($inbound, 'body', ''));
+            $inboundSid = trim((string) data_get($inbound, 'sid', ''));
+
+            if ($body === '' || $inboundSid === '') {
+                continue;
+            }
+
+            if ($existingSids->has($inboundSid)) {
+                continue;
+            }
+
+            $parentSid = trim((string) data_get($inbound, 'in_reply_to', ''));
+
+            $matched = null;
+
+            if ($parentSid !== '') {
+                $matched = $sorted->first(
+                    fn (WhatsAppMessage $msg): bool => $msg->provider_message_id === $parentSid
+                );
+            }
+
+            if (! $matched) {
+                $matched = $sorted->filter(
+                    fn (WhatsAppMessage $msg): bool => $msg->sent_at !== null
+                        && $msg->sent_at->lte($inboundDate)
+                        && $inboundDate->diffInSeconds($msg->sent_at) < 86400
+                )->sortByDesc(fn (WhatsAppMessage $msg): int => $msg->sent_at->timestamp)->first();
+            }
+
+            if (! $matched) {
+                continue;
+            }
+
+            $inboundPayload = [
+                'direction' => strtolower(trim((string) data_get($inbound, 'direction', ''))),
+                'status' => 'received',
+                'body' => $body,
+                'button_text' => null,
+                'button_payload' => null,
+                'response_text' => $body,
+                'message_sid' => $inboundSid,
+                'parent_message_sid' => $parentSid ?: null,
+                'conversation_sid' => null,
+                'profile_name' => '',
+                'received_at' => $inboundDate->toDateTimeString(),
+                'source' => 'twilio_api_sync',
+            ];
+
+            WhatsAppResponseHandler::process($matched, $body, $inboundPayload);
+
+            $existingSids->put($inboundSid, true);
+
+            $recovered++;
+        }
+
+        return $recovered;
     }
 
     /**
@@ -250,42 +446,22 @@ class AppointmentDeliveryStatusSyncer
             $newDeliveredAt = $this->latestTimestamp(collect([$appointment->whatsapp_delivered_at, $deliveredAt]));
             $newReadAt = $this->latestTimestamp(collect([$appointment->whatsapp_read_at, $readAt]));
 
-            // Check for responses and update appointment accordingly
-            $hasConfirmation = $appointmentMessages->contains(
-                fn (WhatsAppMessage $m): bool => $m->isConfirmed() && ! $appointment->confirmada
-            );
-            $hasReschedule = $appointmentMessages->contains(
-                fn (WhatsAppMessage $m): bool => $m->isRescheduleRequested() && ! $appointment->pendiente_reprogramacion
-            );
-
             $dirty = $newEnviado !== $appointment->enviado
                 || $newActivo !== $appointment->activo
                 || $this->timestampDiffers($appointment->whatsapp_sent_at, $newSentAt)
                 || $newEntregado !== $appointment->entregado
                 || $this->timestampDiffers($appointment->whatsapp_delivered_at, $newDeliveredAt)
-                || $this->timestampDiffers($appointment->whatsapp_read_at, $newReadAt)
-                || $hasConfirmation
-                || $hasReschedule;
+                || $this->timestampDiffers($appointment->whatsapp_read_at, $newReadAt);
 
             if ($dirty) {
-                $updateData = [
+                $appointment->update([
                     'enviado' => $newEnviado,
                     'activo' => $newActivo,
                     'whatsapp_sent_at' => $newSentAt,
                     'entregado' => $newEntregado,
                     'whatsapp_delivered_at' => $newDeliveredAt,
                     'whatsapp_read_at' => $newReadAt,
-                ];
-
-                if ($hasConfirmation) {
-                    $updateData['confirmada'] = true;
-                }
-
-                if ($hasReschedule) {
-                    $updateData['pendiente_reprogramacion'] = true;
-                }
-
-                $appointment->update($updateData);
+                ]);
 
                 $updated++;
             }

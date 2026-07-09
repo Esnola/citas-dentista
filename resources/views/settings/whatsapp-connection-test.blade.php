@@ -1,7 +1,27 @@
 <div class="rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur">
 
   @if ($status)
-    <div @class([
+    <div
+      wire:key="whatsapp-test-status-{{ $statusNonce }}"
+      x-data="{
+          visible: false,
+          timeout: null,
+          init() {
+              this.$nextTick(() => {
+                  this.visible = true;
+                  clearTimeout(this.timeout);
+                  this.timeout = setTimeout(() => this.visible = false, 12000);
+              });
+          },
+      }"
+      x-show="visible"
+      x-transition:enter="transition ease-out duration-300"
+      x-transition:enter-start="translate-x-full opacity-0"
+      x-transition:enter-end="translate-x-0 opacity-100"
+      x-transition:leave="transition ease-in duration-300"
+      x-transition:leave-start="translate-x-0 opacity-100"
+      x-transition:leave-end="translate-x-full opacity-0"
+      @class([
         'mt-4 rounded-2xl border px-4 py-3 text-sm',
         'border-emerald-400/30 bg-emerald-500/10 text-emerald-200' => $statusType === 'success',
         'border-rose-400/30 bg-rose-500/10 text-rose-200' => $statusType === 'error',

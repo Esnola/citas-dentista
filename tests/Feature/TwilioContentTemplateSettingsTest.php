@@ -48,8 +48,7 @@ class TwilioContentTemplateSettingsTest extends TestCase
                 ['1' => '[DIA]', '2' => '[HORA]'],
                 $second->content_variables,
             );
-            config()->set('whatsapp.message_mode', 'template');
-            $preview = app(WhatsAppSender::class)->buildTwilioPreviewRequest('600123123', 'Prueba');
+            $preview = app(WhatsAppSender::class)->buildTwilioPreviewRequest('600123123', 'Prueba', forceTemplate: true);
 
             $this->assertSame(
                 $secondSid,

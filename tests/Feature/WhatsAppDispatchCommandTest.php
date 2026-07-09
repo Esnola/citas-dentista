@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Appointment;
 use App\Models\AppointmentReminderPreference;
 use App\Models\Client;
+use App\Models\TwilioContentTemplate;
 use App\Models\User;
 use App\Models\WhatsAppDispatchSettings;
 use App\Models\WhatsAppMessage;
@@ -99,6 +100,7 @@ class WhatsAppDispatchCommandTest extends TestCase
         Config::set('whatsapp.twilio.mode', 'sandbox');
         Config::set('whatsapp.twilio.from', 'whatsapp:+14155238886');
         Config::set('whatsapp.default_country_code', '+34');
+        $this->createSelectedTwilioTemplate();
 
         Http::fake([
             'api.twilio.com/*/Messages.json' => Http::response([
@@ -171,6 +173,7 @@ class WhatsAppDispatchCommandTest extends TestCase
             'hora' => '11:45',
             'enviado' => false,
             'activo' => true,
+            'cita_activa' => true,
         ]);
 
         Config::set('whatsapp.driver', 'log');
@@ -313,5 +316,19 @@ class WhatsAppDispatchCommandTest extends TestCase
         $this->assertSame('2026-06-23 08:12:00', $appointment->whatsapp_read_at?->toDateTimeString());
 
         Carbon::setTestNow();
+    }
+
+    private function createSelectedTwilioTemplate(): void
+    {
+        TwilioContentTemplate::query()->create([
+            'nombre' => 'Recordatorio',
+            'content_sid' => 'HX'.str_repeat('9', 32),
+            'content_variables' => [
+                '1' => '[NOMBRE]',
+                '2' => '[DIA]',
+                '3' => '[HORA]',
+            ],
+            'seleccionada' => true,
+        ]);
     }
 }

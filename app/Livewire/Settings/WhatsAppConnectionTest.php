@@ -29,6 +29,8 @@ class WhatsAppConnectionTest extends Component
 
     public string $statusType = 'neutral';
 
+    public int $statusNonce = 0;
+
     public array $details = [];
 
     public function mount(): void
@@ -87,8 +89,7 @@ class WhatsAppConnectionTest extends Component
         $savedRecipient = $credential->resolveTestRecipient();
 
         if ($savedRecipient === null || trim($savedRecipient) === '') {
-            $this->statusType = 'error';
-            $this->status = 'No hay destinatario de prueba guardado. Configura test_recipient en credenciales.';
+            $this->setStatus('error', 'No hay destinatario de prueba guardado. Configura test_recipient en credenciales.');
             $this->details = [];
 
             return;
@@ -99,8 +100,7 @@ class WhatsAppConnectionTest extends Component
         $this->templateId = '';
 
         if ($this->recipientIsSenderNumber($this->recipient)) {
-            $this->statusType = 'error';
-            $this->status = 'No puedes enviar una prueba a un número que ya está configurado como remitente.';
+            $this->setStatus('error', 'No puedes enviar una prueba a un número que ya está configurado como remitente.');
             $this->details = [];
 
             return;
@@ -115,8 +115,7 @@ class WhatsAppConnectionTest extends Component
 
         if ($this->recipientIsSenderNumber($data['recipient'])) {
             $this->addError('recipient', 'No puedes enviar una prueba a un número que ya está configurado como remitente.');
-            $this->statusType = 'error';
-            $this->status = 'No puedes enviar una prueba a un número que ya está configurado como remitente.';
+            $this->setStatus('error', 'No puedes enviar una prueba a un número que ya está configurado como remitente.');
             $this->details = [];
 
             return;
@@ -127,8 +126,7 @@ class WhatsAppConnectionTest extends Component
 
             if ($data['testType'] === 'template' && ! $templateId) {
                 $this->addError('templateId', 'Selecciona una plantilla para enviar la prueba.');
-                $this->statusType = 'error';
-                $this->status = 'Selecciona una plantilla para enviar la prueba.';
+                $this->setStatus('error', 'Selecciona una plantilla para enviar la prueba.');
                 $this->details = [];
 
                 return;
@@ -142,8 +140,7 @@ class WhatsAppConnectionTest extends Component
                 $templateId,
             );
 
-            $this->statusType = 'success';
-            $this->status = 'Prueba enviada correctamente.';
+            $this->setStatus('success', 'Prueba enviada correctamente.');
             $this->details = [
                 'provider' => $result['provider'],
                 'message_id' => $result['message_id'],
@@ -151,8 +148,7 @@ class WhatsAppConnectionTest extends Component
                 'mode' => Arr::get($result, 'payload.mode', $data['mode']),
             ];
         } catch (Throwable $throwable) {
-            $this->statusType = 'error';
-            $this->status = $throwable->getMessage();
+            $this->setStatus('error', $throwable->getMessage());
             $this->details = [];
         }
     }
@@ -256,5 +252,12 @@ class WhatsAppConnectionTest extends Component
             'mode' => config('whatsapp.twilio.mode', 'sandbox'),
             'selected' => false,
         ]);
+    }
+
+    private function setStatus(string $type, string $message): void
+    {
+        $this->statusType = $type;
+        $this->status = $message;
+        $this->statusNonce++;
     }
 }

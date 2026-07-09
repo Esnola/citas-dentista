@@ -20,7 +20,7 @@ class SettingsOverview extends Component
             'credential' => $credential,
             'resolvedMode' => $sender->resolveTwilioMode(),
             'twilioContentSid' => $sender->twilioContentSid(),
-            'twilioUsesTemplate' => $credential->resolveMessageMode() === 'template',
+            'twilioUsesTemplate' => $credential->resolveDriver() === 'twilio',
         ]);
     }
 }
