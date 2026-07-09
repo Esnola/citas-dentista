@@ -1,10 +1,10 @@
-@php use App\Services\WhatsApp\WhatsAppSender; @endphp
+@php use App\Models\WhatsAppCredential;use App\Services\WhatsApp\WhatsAppSender; @endphp
 @php use Illuminate\Support\Str; @endphp
 @extends('layouts.app')
 
 @section('content')
   @php
-    $credential = \App\Models\WhatsAppCredential::get();
+    $credential = WhatsAppCredential::get();
     $driver = $credential->resolveDriver();
     $twilioAccountSid = (string) $credential->resolveAccountSid();
     $twilioAuthToken = (string) $credential->resolveAuthToken();
@@ -18,8 +18,8 @@
   @endphp
 
   <div x-data="settingsBoard()"
-          x-init="init()"
-          class="grid gap-4" >
+       x-init="init()"
+       class="grid gap-4">
 
     <div class="rounded-3xl border border-white/10 bg-white/5 p-8 backdrop-blur">
       <div class="flex flex-wrap items-start justify-between gap-4">
@@ -43,19 +43,20 @@
       </div>
     </div>
 
-    <div x-ref="board"  class="grid gap-4" aria-label="Secciones de ajustes" >
+    <div x-ref="board" class="grid gap-4" aria-label="Secciones de ajustes">
       <section data-settings-section="overview"
-              data-default-open="true"
-              class="rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur"
-              x-bind:class="sectionStateClasses('overview')"
-              x-on:dragenter.prevent="setDropTarget('overview', $event)"
-              x-on:dragover.prevent
-              x-on:drop.prevent="drop('overview', $event)"
-              x-show="isVisible('overview')"
+               data-default-open="true"
+               class="rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur"
+               x-bind:class="sectionStateClasses('overview')"
+               x-on:dragenter.prevent="setDropTarget('overview', $event)"
+               x-on:dragover.prevent
+               x-on:drop.prevent="drop('overview', $event)"
+               x-show="isVisible('overview')"
       >
         <div x-show="showDropHint('overview', 'before')" x-cloak
              class="mb-4 h-1 rounded-full bg-emerald-400/80 shadow-[0_0_24px_rgba(52,211,153,0.45)]"></div>
-        <div class="flex items-center justify-between gap-4">
+        <div class="flex cursor-pointer items-center justify-between gap-4"
+             x-on:click="toggle('overview')">
           <div class="flex items-center gap-3">
             <x-botones.arrastrar-seccion seccion="overview"/>
             <div>
@@ -79,16 +80,17 @@
       </section>
 
       <section data-settings-section="status"
-              data-default-open="false"
-              class="rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur"
-              x-bind:class="sectionStateClasses('status')"
-              x-on:dragenter.prevent="setDropTarget('status', $event)"
-              x-on:dragover.prevent
-              x-on:drop.prevent="drop('status', $event)" >
+               data-default-open="false"
+               class="rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur"
+               x-bind:class="sectionStateClasses('status')"
+               x-on:dragenter.prevent="setDropTarget('status', $event)"
+               x-on:dragover.prevent
+               x-on:drop.prevent="drop('status', $event)">
 
         <div x-show="showDropHint('status', 'before')" x-cloak
              class="mb-4 h-1 rounded-full bg-emerald-400/80 shadow-[0_0_24px_rgba(52,211,153,0.45)]"></div>
-        <div class="flex items-center justify-between gap-4">
+        <div class="flex cursor-pointer items-center justify-between gap-4"
+             x-on:click="toggle('status')">
           <div class="flex items-center gap-3">
             <x-botones.arrastrar-seccion seccion="status"/>
             <div>
@@ -149,7 +151,8 @@
       >
         <div x-show="showDropHint('connection', 'before')" x-cloak
              class="mb-4 h-1 rounded-full bg-emerald-400/80 shadow-[0_0_24px_rgba(52,211,153,0.45)]"></div>
-        <div class="flex items-center justify-between gap-4">
+        <div class="flex cursor-pointer items-center justify-between gap-4"
+             x-on:click="toggle('connection')">
           <div class="flex items-center gap-3">
             <x-botones.arrastrar-seccion seccion="connection"/>
             <div>
@@ -181,7 +184,8 @@
                x-on:drop.prevent="drop('twilio-templates', $event)">
         <div x-show="showDropHint('twilio-templates', 'before')" x-cloak
              class="mb-4 h-1 rounded-full bg-emerald-400/80 shadow-[0_0_24px_rgba(52,211,153,0.45)]"></div>
-        <div class="flex items-center justify-between gap-4">
+        <div class="flex cursor-pointer items-center justify-between gap-4"
+             x-on:click="toggle('twilio-templates')">
           <div class="flex items-center gap-3">
             <x-botones.arrastrar-seccion seccion="twilio-templates"/>
             <div>
@@ -213,7 +217,8 @@
                x-on:drop.prevent="drop('credentials', $event)">
         <div x-show="showDropHint('credentials', 'before')" x-cloak
              class="mb-4 h-1 rounded-full bg-emerald-400/80 shadow-[0_0_24px_rgba(52,211,153,0.45)]"></div>
-        <div class="flex items-center justify-between gap-4">
+        <div class="flex cursor-pointer items-center justify-between gap-4"
+             x-on:click="toggle('credentials')">
           <div class="flex items-center gap-3">
             <x-botones.arrastrar-seccion seccion="credentials"/>
             <div>
@@ -246,7 +251,8 @@
       >
         <div x-show="showDropHint('reminders', 'before')" x-cloak
              class="mb-4 h-1 rounded-full bg-emerald-400/80 shadow-[0_0_24px_rgba(52,211,153,0.45)]"></div>
-        <div class="flex items-center justify-between gap-4">
+        <div class="flex cursor-pointer items-center justify-between gap-4"
+             x-on:click="toggle('reminders')">
           <div class="flex items-center gap-3">
             <x-botones.arrastrar-seccion seccion="reminders"/>
             <div>

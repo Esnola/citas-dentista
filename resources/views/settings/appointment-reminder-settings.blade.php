@@ -49,8 +49,8 @@
 
       <div class="mt-4 rounded-2xl border border-white/10 bg-slate-900/50 p-4">
         <x-formularios.toggle
-                wire:model="dispatchEnabled"
-                wire:change="$dispatch('dispatchToggled', { value: dispatchEnabled })"
+                wire:model.live="dispatchEnabled"
+                wire:change="$dispatch('dispatchToggled', { value: $event.target.checked })"
                 texto="Envío Automático" />
 
         <div class="mt-4" wire:ignore.self>

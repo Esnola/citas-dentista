@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Livewire\DispatchBanner;
 use App\Livewire\Settings\AppointmentReminderSettings;
 use App\Models\AppointmentReminderPreference;
 use App\Models\User;
@@ -48,5 +49,14 @@ class AppointmentReminderSettingsTest extends TestCase
             ->assertSee('1 día antes')
             ->assertSee('1 semana antes')
             ->assertSee('Guardar');
+    }
+
+    public function test_dispatch_banner_reacts_to_dispatch_toggle_event(): void
+    {
+        Livewire::test(DispatchBanner::class)
+            ->call('onToggle', ['value' => false])
+            ->assertSee('Los envíos automáticos de WhatsApp están deshabilitados')
+            ->call('onToggle', ['value' => true])
+            ->assertDontSee('Los envíos automáticos de WhatsApp están deshabilitados');
     }
 }
