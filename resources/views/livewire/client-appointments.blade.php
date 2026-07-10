@@ -203,8 +203,21 @@
                 <span>{{ $appointment->client?->nombre }} {{ $appointment->client?->apellidos }}</span>
               </a>
             </td>
-            <td class="px-4 py-3 text-center text-xs">{{ucwords($appointment->fecha?->translatedFormat('l, d - F - Y'))}}</td>
-            <td class="px-4 py-3 text-center text-xs">{{ Str::substr($appointment->hora, 0, 5) }}</td>
+            <td class="px-4 py-3 text-center text-xs">
+              <div class="flex flex-col items-center gap-1">
+                <span>{{ ucwords($appointment->fecha?->translatedFormat('l, d - F - Y')) }}</span>
+                @if ($appointment->changes_count > 0)
+                  <span class="inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold text-amber-300 ring-1 ring-inset ring-amber-400/30"
+                        title="Esta cita ha cambiado de fecha u hora {{ $appointment->changes_count }} {{ $appointment->changes_count === 1 ? 'vez' : 'veces' }}">
+                    <x-iconos.ajustes clase="size-3.5"/>
+                    {{ $appointment->changes_count }} {{ $appointment->changes_count === 1 ? 'reprogramación' : 'reprogramaciones' }}
+                  </span>
+                @endif
+              </div>
+            </td>
+            <td class="px-4 py-3 text-center text-xs">
+              <span class="{{ $appointment->changes_count > 0 ? 'font-semibold text-amber-200' : '' }}">{{ Str::substr($appointment->hora, 0, 5) }}</span>
+            </td>
             <td class="px-4 py-3 text-center">
               <div class="relative flex flex-col items-center justify-center gap-1">
                 @if($appointment->enviado)
@@ -278,7 +291,7 @@
                     }
                 elseif($retorno === 'cambiar'){
                   $icono = 'alert';
-                  $displayResponseLabel = 'Reprogramar';
+                  $displayResponseLabel = 'Cambiar Cita';
                   $responseClasses = 'bg-red-500/15 text-red-300 border border-red-400/30';
                 }elseif($tieneMensaje){
                     $icono =  'ojo';
@@ -301,7 +314,7 @@
                             wire:loading.attr="disabled"
                             wire:target="openHistory({{ $appointment->id }})"
                             class="inline-flex items-center rounded-full gap-2 px-2 py-0.5 text-xs font-semibold transition-colors hover:bg-white/10 cursor-pointer {{ $responseClasses }}"
-                            aria-label="Ver historial de comunicaciones de esta cita"
+                            aria-label="Ver historial de esta cita"
                             title="Ver historial">
                       <x-dynamic-component :component="'iconos.' . $icono" class="size-6 "/>
                       {{ $displayResponseLabel }}
@@ -311,7 +324,7 @@
                   @if ($appointment->wasRescheduled())
                     <span class="flex items-center gap-2 rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold text-amber-300 ring-1 ring-inset ring-amber-400/30">
                       <x-iconos.ajustes clase="size-5"/>
-                      Reprogramada
+                      Reprogramada · {{ $appointment->changes_count }}
                     </span>
                   @endif
                   @if ($respondedAt)

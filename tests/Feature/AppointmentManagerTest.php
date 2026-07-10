@@ -1992,6 +1992,15 @@ class AppointmentManagerTest extends TestCase
         $this->assertSame('2026-07-01', $appointment->fecha->toDateString());
         $this->assertSame('10:00', $appointment->hora);
 
+        $change = $appointment->changes()->firstOrFail();
+        $this->assertSame('2026-06-30', $change->fecha_anterior->toDateString());
+        $this->assertSame('11:30', $change->hora_anterior);
+        $this->assertSame('2026-07-01', $change->fecha_nueva->toDateString());
+        $this->assertSame('10:00', $change->hora_nueva);
+
+        Livewire::test(ClientAppointments::class, ['clientId' => $client->id])
+            ->assertSee('1 reprogramación');
+
         Carbon::setTestNow();
     }
 

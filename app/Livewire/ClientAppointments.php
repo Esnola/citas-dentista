@@ -352,7 +352,10 @@ class ClientAppointments extends Component
     public function openHistory(int $appointmentId): void
     {
         $this->historyAppointment = Appointment::query()
-            ->with(['whatsAppMessages' => fn ($q) => $q->orderBy('sent_at', 'asc')->orderBy('id', 'asc')])
+            ->with([
+                'changes',
+                'whatsAppMessages' => fn ($q) => $q->orderBy('sent_at', 'asc')->orderBy('id', 'asc'),
+            ])
             ->findOrFail($appointmentId);
     }
 
@@ -425,6 +428,7 @@ class ClientAppointments extends Component
 
         return Appointment::query()
             ->select('appointments.*')
+            ->withCount('changes')
             ->with(['client', 'latestWhatsAppMessage', 'latestRespondedWhatsAppMessage'])
             ->leftJoin('clients', 'clients.id', '=', 'appointments.client_id')
             ->where('appointments.client_id', $selectedClient->id)
