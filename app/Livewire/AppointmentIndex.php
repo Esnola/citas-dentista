@@ -34,10 +34,15 @@ class AppointmentIndex extends Component
 
     public function render()
     {
+        $today = now(config('app.timezone'))->toDateString();
+
         $clients = Client::query()
-            ->whereHas('appointments')
-            ->withCount('appointments as appointments_count')
+            ->whereHas('appointments', fn (Builder $query) => $query->whereDate('fecha', '>=', $today))
+            ->withCount([
+                'appointments as appointments_count' => fn (Builder $query) => $query->whereDate('fecha', '>=', $today),
+            ])
             ->with(['appointments' => fn (Builder|HasMany $query) => $query
+                ->whereDate('fecha', '>=', $today)
                 ->orderBy('fecha')
                 ->orderBy('hora')
                 ->limit(1)])

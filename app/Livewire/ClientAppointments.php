@@ -277,8 +277,8 @@ class ClientAppointments extends Component
             return;
         }
 
-        if (! $appointment->activo) {
-            $this->dispatch('toast', message: 'Las citas no pendientes no pueden enviarse.', type: 'error');
+        if (! $appointment->activo || ! $appointment->cita_activa) {
+            $this->dispatch('toast', message: 'Las citas inactivas no pueden enviarse.', type: 'error');
 
             return;
         }

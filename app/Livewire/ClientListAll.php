@@ -80,6 +80,9 @@ class ClientListAll extends Component
     public function render()
     {
         $clients = Client::query()
+            ->withCount([
+                'appointments' => fn ($query) => $query->active()->upcoming(),
+            ])
             ->when($this->filter_nombre, fn ($query) => $query->where('nombre', 'like', '%'.$this->filter_nombre.'%'))
             ->when($this->filter_apellidos, fn ($query) => $query->where('apellidos', 'like', '%'.$this->filter_apellidos.'%'))
             ->when($this->filter_telefono, fn ($query) => $query->where('telefono', 'like', '%'.$this->filter_telefono.'%'))

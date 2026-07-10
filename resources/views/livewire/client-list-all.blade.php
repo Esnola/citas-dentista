@@ -1,4 +1,4 @@
-<div class="mx-auto max-w-3xl rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur">
+<div class="mx-auto max-w-5xl rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur">
   <div class="flex flex-wrap items-center justify-between ">
     <div class="flex items-center gap-6">
       <h1 class="text-xl font-semibold d uppercase tracking-[0.08em] text-emerald-300/80">Listado de
@@ -46,39 +46,47 @@
             <span class="text-xs text-slate-400">{{ $sort_direction === 'asc' ? '↑' : '↓' }}</span>
           </button>
         </th>
-        <th class="px-4 py-3">Teléfono</th>
         <th class="px-4 py-3 text-center">Acciones</th>
       </tr>
       </thead>
       <tbody class="divide-y divide-white/10 bg-slate-950/40">
       @forelse ($clients as $client)
+        @php
+          $numCitas = $client->appointments_count;
+          $masDeUna = $numCitas > 1 ? 's' : null;
+          //$hasCitas = $numCitas > 0;
+       @endphp
         <tr wire:key="client-{{ $client->id }}">
           <td class="px-4 py-3">{{ $client->nombre }} {{ $client->apellidos }}</td>
-          <td class="px-4 py-3">{{ $client->telefono }}</td>
           <td class="px-4 py-3 text-right">
-            <div class="flex justify-center  gap-4">
-              <x-botones.icono-buton
+            <div class="grid grid-cols-4 justify-center  gap-4">
+
+                <x-botones.icono-buton
                       color="amber"
                       icon="ojo"
-                      label="Ver Cliente"
+                      texto=" {{ $numCitas ? $numCitas .' - Cita'.$masDeUna  : 'Sin citas' }}"
+                      especialtexto="text-xs px-0! py-2! {{ $numCitas ? '' : 'disabled opacity-50 pointer-events-none disabled:opacity-50' }}"
                       onclick="window.location ='{{ route('clients.appointments', $client) }}'"
-              />
+                />
               <x-botones.icono-buton
-                      color="sky"
-                      icon="cita"
-                      label="Crear cita"
+                      color="emerald"
+                      texto="Nueva Cita"
+                      icon="usuario-plus"
+                      especialtexto="text-xs px-2! py-2!"
                       onclick="window.location ='{{ route('appointments.create', ['client' => $client->id]) }}'"
               />
               <x-botones.icono-buton
-                      color="sky"
-                      icon="lapiz"
-                      label="Editar cliente"
+                      color="blue"
+                      icon="agenda"
+                      texto="Editar / Historial"
+                      especialtexto="text-xs px-0! py-2!"
                       onclick="window.location ='{{ route('clients.edit', $client) }}'"
               />
               <x-botones.icono-buton
                       color="red"
                       icon="papelera"
-                      label="Eliminar cliente"
+                      texto="Eliminar"
+                      especialtexto="text-xs px-0! py-2!"
                       wire:click="confirmDelete({{ $client->id }})"
               />
             </div>

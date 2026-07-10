@@ -179,8 +179,19 @@ class ClientForm extends Component
 
     public function render()
     {
+        $appointmentHistory = $this->selectedClientId
+            ? Appointment::query()
+                ->where('client_id', $this->selectedClientId)
+                ->whereDate('fecha', '<', now(config('app.timezone'))->toDateString())
+                ->select(['id', 'fecha', 'hora', 'activo', 'cita_activa', 'confirmada', 'pendiente_reprogramacion', 'enviado', 'entregado'])
+                ->orderByDesc('fecha')
+                ->orderByDesc('hora')
+                ->get()
+            : collect();
+
         return view('livewire.client-form', [
             'selectedClient' => $this->selectedClient,
+            'appointmentHistory' => $appointmentHistory,
         ]);
     }
 

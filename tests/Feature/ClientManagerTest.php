@@ -98,6 +98,7 @@ class ClientManagerTest extends TestCase
             'apellidos' => 'Pérez',
             'telefono' => '600123123',
         ]);
+
         $appointment = Appointment::query()->create([
             'client_id' => $client->id,
             'fecha' => '2026-07-01',
@@ -238,6 +239,7 @@ class ClientManagerTest extends TestCase
 
     public function test_clients_list_page_displays_clients(): void
     {
+        Carbon::setTestNow('2026-06-30 12:00:00');
         $admin = User::factory()->create();
 
         $client = Client::query()->create([
@@ -246,17 +248,55 @@ class ClientManagerTest extends TestCase
             'telefono' => '600123123',
         ]);
 
+        Appointment::query()->create([
+            'client_id' => $client->id,
+            'fecha' => '2026-07-01',
+            'hora' => '10:15',
+        ]);
+        Appointment::query()->create([
+            'client_id' => $client->id,
+            'fecha' => '2026-06-29',
+            'hora' => '10:15',
+        ]);
+
         $this->actingAs($admin)
             ->get(route('clients.list'))
             ->assertOk()
             ->assertSee('Listado de')
             ->assertSee('Ana Pérez')
-            ->assertSeeHtml('href="'.route('clients.appointments', $client).'"')
-            ->assertSeeHtml('href="'.route('appointments.create', ['client' => $client->id]).'"')
+            ->assertSee('1 - Cita')
+            ->assertSee(route('clients.appointments', $client), false)
+            ->assertSee(route('appointments.create', ['client' => $client->id]), false)
             ->assertSee('Nuevo Cliente');
+
+        Carbon::setTestNow();
     }
 
-    public function test_selected_client_edit_page_does_not_show_appointments(): void
+    public function test_clients_list_does_not_count_past_appointments(): void
+    {
+        Carbon::setTestNow('2026-06-30 12:00:00');
+        $admin = User::factory()->create();
+        $client = Client::query()->create([
+            'nombre' => 'Luis',
+            'apellidos' => 'Gómez',
+            'telefono' => '699999999',
+        ]);
+        Appointment::query()->create([
+            'client_id' => $client->id,
+            'fecha' => '2026-06-29',
+            'hora' => '10:15',
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('clients.list'))
+            ->assertOk()
+            ->assertSee('Luis Gómez')
+            ->assertSee('Sin citas');
+
+        Carbon::setTestNow();
+    }
+
+    public function test_selected_client_edit_page_only_shows_past_appointments_in_history(): void
     {
         Carbon::setTestNow('2026-06-23 09:00:00');
 
@@ -266,29 +306,61 @@ class ClientManagerTest extends TestCase
             'telefono' => '+34666777888',
         ]);
 
-        $laterAppointment = Appointment::query()->create([
+        Appointment::query()->create([
             'client_id' => $client->id,
             'fecha' => '2026-07-01',
             'hora' => '10:15',
             'enviado' => false,
             'activo' => true,
         ]);
-        $earlierAppointment = Appointment::query()->create([
+        Appointment::query()->create([
             'client_id' => $client->id,
-            'fecha' => '2026-06-30',
+            'fecha' => '2026-06-22',
             'hora' => '09:00',
-            'enviado' => false,
+            'enviado' => true,
+            'entregado' => true,
+            'activo' => true,
+            'confirmada' => true,
+        ]);
+
+        Appointment::query()->create([
+            'client_id' => $client->id,
+            'fecha' => '2026-06-23',
+            'hora' => '08:00',
             'activo' => true,
         ]);
 
+        $otherClient = Client::query()->create(['nombre' => 'Otra', 'apellidos' => 'Persona', 'telefono' => '+34600111222']);
+        Appointment::query()->create(['client_id' => $otherClient->id, 'fecha' => '2026-06-21', 'hora' => '12:00']);
+
         Livewire::test(ClientForm::class, ['client' => $client->id])
             ->assertSee('Editar cliente')
-            ->assertDontSee('Citas')
+            ->assertSee('Historial de citas')
+            ->assertSee('1 cita')
+            ->assertSee('Lunes, 22 de junio de 2026')
+            ->assertSee('09:00')
+            ->assertSee('Confirmada')
+            ->assertSee('WhatsApp entregado')
             ->assertDontSee('01/07/2026')
             ->assertDontSee('10:15')
-            ->assertDontSee('Pendiente');
+            ->assertDontSee('08:00')
+            ->assertDontSee('12:00');
 
         Carbon::setTestNow();
+    }
+
+    public function test_client_form_history_visibility_and_empty_state(): void
+    {
+        $client = Client::query()->create(['nombre' => 'Lucía', 'apellidos' => 'Martín', 'telefono' => '+34666777888']);
+
+        Livewire::test(ClientForm::class, ['client' => $client->id])
+            ->assertSee('Historial de citas')
+            ->assertSee('Este cliente no tiene citas anteriores.');
+
+        Livewire::test(ClientForm::class)
+            ->assertSee('Crear cliente')
+            ->assertDontSee('Historial de citas')
+            ->assertDontSee('Este cliente no tiene citas anteriores.');
     }
 
     public function test_selected_client_edit_page_does_not_show_appointment_actions(): void

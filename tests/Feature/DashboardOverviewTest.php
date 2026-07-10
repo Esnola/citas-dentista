@@ -3,9 +3,11 @@
 namespace Tests\Feature;
 
 use App\Livewire\AgendaIndex;
+use App\Livewire\DashboardOverview;
 use App\Models\Appointment;
 use App\Models\Client;
 use App\Models\User;
+use App\Models\WhatsAppMessage;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
@@ -299,5 +301,92 @@ class DashboardOverviewTest extends TestCase
             ->assertSee('13:45')
             ->assertSee('Desactivada')
             ->assertSee('Sin enviar');
+    }
+
+    public function test_dashboard_shows_operational_summary_and_only_upcoming_active_appointments(): void
+    {
+        $now = Carbon::parse('2026-07-10 10:00:00', config('app.timezone'));
+        Carbon::setTestNow($now);
+        $user = User::factory()->create();
+        $client = Client::query()->create([
+            'nombre' => 'Ana',
+            'apellidos' => 'Pérez',
+            'telefono' => '+34600123123',
+        ]);
+
+        foreach ([
+            ['hora' => '09:00:00', 'activo' => true],
+            ['hora' => '11:30:00', 'activo' => true],
+            ['hora' => '12:30:00', 'activo' => false],
+        ] as $appointment) {
+            Appointment::query()->create([
+                'client_id' => $client->id,
+                'fecha' => $now->toDateString(),
+                'hora' => $appointment['hora'],
+                'activo' => $appointment['activo'],
+            ]);
+        }
+
+        Appointment::query()->create([
+            'client_id' => $client->id,
+            'fecha' => $now->copy()->addDay()->toDateString(),
+            'hora' => '08:45:00',
+            'activo' => true,
+            'whatsapp_sent_at' => $now,
+            'enviado' => true,
+        ]);
+
+        $this->actingAs($user);
+
+        Livewire::test(DashboardOverview::class)
+            ->assertViewHas('todayCount', 2)
+            ->assertViewHas('upcomingWithoutReminderCount', 1)
+            ->assertViewHas('nextAppointment', fn (Appointment $appointment): bool => $appointment->hora === '11:30:00')
+            ->assertViewHas('nextAppointments', fn ($appointments): bool => $appointments->count() === 2)
+            ->assertSee('11:30')
+            ->assertDontSee('09:00')
+            ->assertDontSee('12:30');
+    }
+
+    public function test_dashboard_incidents_exclude_inbound_whatsapp_messages(): void
+    {
+        $now = Carbon::parse('2026-07-10 10:00:00', config('app.timezone'));
+        Carbon::setTestNow($now);
+        $user = User::factory()->create();
+        $client = Client::query()->create([
+            'nombre' => 'Lucía',
+            'apellidos' => 'Martín',
+            'telefono' => '+34666777888',
+        ]);
+        $appointment = Appointment::query()->create([
+            'client_id' => $client->id,
+            'fecha' => $now->copy()->addDay()->toDateString(),
+            'hora' => '09:00:00',
+            'activo' => true,
+            'pendiente_reprogramacion' => true,
+        ]);
+
+        foreach ([WhatsAppMessage::DIRECTION_OUTBOUND, WhatsAppMessage::DIRECTION_INBOUND] as $direction) {
+            WhatsAppMessage::query()->create([
+                'user_id' => $user->id,
+                'client_id' => $client->id,
+                'appointment_id' => $appointment->id,
+                'nombre' => $client->nombre,
+                'apellidos' => $client->apellidos,
+                'telefono' => $client->telefono,
+                'scheduled_for' => $now,
+                'message' => 'Recordatorio',
+                'status' => WhatsAppMessage::STATUS_FAILED,
+                'direction' => $direction,
+            ]);
+        }
+
+        $this->actingAs($user);
+
+        Livewire::test(DashboardOverview::class)
+            ->assertViewHas('failedCount', 1)
+            ->assertViewHas('rescheduleCount', 1)
+            ->assertSee('1 mensajes fallidos')
+            ->assertSee('1 por reprogramar');
     }
 }

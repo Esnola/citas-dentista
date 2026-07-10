@@ -468,8 +468,7 @@ class AppointmentManagerTest extends TestCase
 
         $this->actingAs($admin);
 
-        Livewire::withQueryParams(['client' => $client->id])
-            ->test(ClientAppointments::class)
+        Livewire::test(ClientAppointments::class, ['clientId' => $client->id])
             ->assertSee('Enviar WhatsApp')
             ->assertSeeHtml('x-on:reload-appointment-list.window')
             ->assertSeeHtml('appointments/'.$appointment->id.'/edit')
@@ -493,6 +492,47 @@ class AppointmentManagerTest extends TestCase
         $this->assertSame($appointment->id, $message->appointment_id);
         $this->assertSame(WhatsAppMessage::STATUS_SENT, $message->status);
         $this->assertSame('SMAPPOINTMENTLIST123', $message->provider_message_id);
+
+        Carbon::setTestNow();
+    }
+
+    public function test_appointment_list_does_not_send_whatsapp_for_inactive_appointments(): void
+    {
+        Carbon::setTestNow('2026-06-23 09:00:00');
+
+        $admin = User::factory()->create();
+        $client = Client::query()->create([
+            'nombre' => 'Ana',
+            'apellidos' => 'Pérez',
+            'telefono' => '+34600111222',
+        ]);
+        $appointment = Appointment::query()->create([
+            'client_id' => $client->id,
+            'fecha' => '2026-06-30',
+            'hora' => '11:30',
+            'enviado' => false,
+            'activo' => true,
+            'cita_activa' => false,
+        ]);
+
+        Config::set('whatsapp.driver', 'twilio');
+        Config::set('whatsapp.message_mode', 'text');
+        Config::set('whatsapp.twilio.account_sid', 'AC123');
+        Config::set('whatsapp.twilio.auth_token', 'test-token');
+        Config::set('whatsapp.twilio.mode', 'sandbox');
+        Config::set('whatsapp.twilio.from', 'whatsapp:+14155238886');
+
+        Http::fake();
+
+        $this->actingAs($admin);
+
+        Livewire::test(ClientAppointments::class, ['clientId' => $client->id])
+            ->assertDontSeeHtml('wire:click="sendNow('.$appointment->id.')"')
+            ->call('sendNow', $appointment->id)
+            ->assertDispatched('toast', fn ($n, $p) => $p['message'] === 'Las citas inactivas no pueden enviarse.' && $p['type'] === 'error');
+
+        Http::assertNothingSent();
+        $this->assertFalse($appointment->refresh()->enviado);
 
         Carbon::setTestNow();
     }
@@ -917,8 +957,22 @@ class AppointmentManagerTest extends TestCase
 
         Appointment::query()->create([
             'client_id' => $firstClient->id,
-            'fecha' => '2026-06-24',
+            'fecha' => '2026-06-22',
             'hora' => '10:17',
+            'enviado' => false,
+            'activo' => true,
+        ]);
+        Appointment::query()->create([
+            'client_id' => $firstClient->id,
+            'fecha' => '2026-06-23',
+            'hora' => '08:00',
+            'enviado' => false,
+            'activo' => true,
+        ]);
+        Appointment::query()->create([
+            'client_id' => $firstClient->id,
+            'fecha' => '2026-06-24',
+            'hora' => '10:18',
             'enviado' => false,
             'activo' => true,
         ]);
@@ -950,9 +1004,11 @@ class AppointmentManagerTest extends TestCase
 
         Livewire::test(AppointmentIndex::class)
             ->assertSee('Ana Pérez')
-            ->assertSee('10:17')
+            ->assertSee('08:00')
+            ->assertDontSee('10:17')
+            ->assertDontSee('10:18')
             ->assertDontSee('11:23')
-            ->assertSee('2');
+            ->assertSee('Citas:  3');
 
         Carbon::setTestNow();
     }

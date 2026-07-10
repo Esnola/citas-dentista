@@ -1,7 +1,7 @@
 @props([
     'color' => 'emerald',
-    'icon',
-    'label',
+    'icon' =>  null,
+    'label' =>  null,
     'texto'=>null,
     'type'=>'button',
     'especial'=> 'size-4',
@@ -20,6 +20,7 @@
       'yellow'    => 'border-yellow-400/25 bg-yellow-400/10 text-yellow-200 hover:bg-yellow-400/15 hover:text-yellow-100',
       'violet'   => 'border-violet-400/25 bg-violet-400/10 text-violet-200 hover:bg-violet-400/15 hover:text-violet-100',
       'olive'   => 'border-olive-400/25 bg-olive-400/10 text-olive-200 hover:bg-olive-400/15 hover:text-olive-100',
+      'stone'   => 'border-stone-400/25 bg-stone-400/10 text-stone-200 hover:bg-stone-400/15 hover:text-stone-100',
       'gray'    => 'border-white/15 bg-white/5 text-white/60 hover:bg-white/10 hover:text-white',
   ];
 @endphp
@@ -29,19 +30,21 @@
             'group flex items-center gap-4 justify-center rounded-full border p-2 transition-colors duration-100',
             'disabled:pointer-events-none disabled:opacity-50',
             'aria-disabled:pointer-events-none aria-disabled:opacity-50',
-            'text-sm font-medium px-4! py-2!' => $texto,
+            'text-sm font-medium px-4! py-2!' => $texto && !$especialtexto,
              $especialtexto,
              $colors[$color] => true,
         ]) }}
         type="{{ $type }}"
+        @if($label) {
         aria-label="{{ $label }}"
         title="{{ $label }}"
+        } @endif
 >
   @if($texto)
-    <x-dynamic-component :component="'iconos.'.$icon" :clase="$especial"/>
+    @if($icon) <x-dynamic-component :component="'iconos.'.$icon" :clase="$especial"/>@endif
     {{ $texto }}
   @elseif($especial2)
-    <x-dynamic-component :component="'iconos.'.$icon" :clase="$especial2"/>
+    @if($icon) <x-dynamic-component :component="'iconos.'.$icon" :clase="$especial2"/> @endif
   @else
     <x-dynamic-component :component="'iconos.'.$icon"/>
   @endif

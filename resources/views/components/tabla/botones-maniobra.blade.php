@@ -1,7 +1,6 @@
 <td class="px-4 py-3 text-right" onclick="event.stopPropagation()">
   <div class="flex justify-end items-center gap-2">
-
-    @if (! $appointment->enviado && $appointment->activo && $appointment->scheduledFor()->isFuture())
+    @if (! $appointment->enviado && $appointment->activo && $appointment->cita_activa && $appointment->scheduledFor()->isFuture())
       <x-botones.icono-buton
               color="emerald"
               icon="whatsapp"
