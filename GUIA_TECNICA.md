@@ -96,6 +96,8 @@ En `Citas` puedes:
 - Editar una cita futura que todavía no haya sido enviada
 - Marcar una cita como activa o inactiva
 - Enviar el WhatsApp inmediatamente
+- Reenviar un WhatsApp de una cita futura ya enviada
+- Abrir el historial de comunicaciones desde la columna `Respuesta`
 - Eliminar una cita
 
 ### Reglas de negocio
@@ -111,6 +113,13 @@ En `Citas` puedes:
 - `Entregado`: el proveedor confirmó la entrega
 - `Leído`: el destinatario abrió el mensaje
 - `Pendiente`: sigue en cola para enviarse
+- `Respuesta`: badge accionable con `Confirmada`, `Reprogramar` o `Leer Mensaje`
+
+### Historial de comunicaciones
+
+En `resources/views/livewire/client-appointments.blade.php`, la columna `Respuesta` es el punto de entrada al historial de una cita. Si existe respuesta, el badge llama a `openHistory({{ $appointment->id }})` con `wire:click.stop` para abrir `x-modales.historia-whatsapp` sin disparar la navegación de la fila.
+
+El botón `Historial` se retiró de `resources/views/components/tabla/botones-maniobra.blade.php`. La columna de acciones queda para enviar WhatsApp, editar y eliminar.
 
 ## 8. Programar mensajes desde un cliente
 

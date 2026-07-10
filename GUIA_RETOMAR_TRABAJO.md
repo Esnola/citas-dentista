@@ -49,7 +49,8 @@ Aplicacion Laravel 13 con Livewire 4, Flux UI y Tailwind CSS 4 para gestionar cl
 | `ClientForm` | Crear/editar cliente |
 | `ClientMessageScheduler` | Programar WhatsApp desde ficha de cliente |
 | `ClientCsvImporter` | Importar clientes desde CSV |
-| `AppointmentList` | Listado de citas con filtros, ordenacion, eliminacion masiva, reenvio |
+| `ClientAppointments` | Citas de un cliente: filtros, ordenacion, eliminacion masiva, reenvio, respuesta e historial |
+| `AppointmentList` | Listado general de citas con filtros y ordenacion |
 | `AppointmentForm` | Crear/editar cita con busqueda de cliente |
 | `AppointmentOverview` | Vista resumen de citas |
 | `DailyAgenda` | Agenda diaria con navegacion por fecha (hoy/manana) |
@@ -114,6 +115,13 @@ Las plantillas pueden incluir botones de respuesta (config en `config/whatsapp.p
 - **Reprogramar** -> marca la cita como `pendiente_reprogramacion = true`
 
 Esto se procesa via `WhatsAppResponseHandler` y se sincroniza en el webhook o polling.
+
+En la UI de citas de cliente, `resources/views/livewire/client-appointments.blade.php` muestra la respuesta en la columna `Respuesta`:
+- `Confirmada`
+- `Reprogramar`
+- `Leer Mensaje`
+
+Ese badge es el boton que abre `openHistory({{ $appointment->id }})`. El boton `Historial` ya no existe en la columna de acciones (`resources/views/components/tabla/botones-maniobra.blade.php`), que queda para enviar WhatsApp, editar y eliminar.
 
 ### Ajustes (drag-and-drop)
 
@@ -220,5 +228,4 @@ php artisan test --compact tests/Feature/WhatsAppTwilioDispatchTest.php tests/Fe
 12. Preparar para enviar correos de confirmacion de cita.
 
 ### Funcionalidad
-13. Soporte para reprogramar via boton (caso `'reprogram*'` en `resolveAction()`).
-14. Verificar entrega real de envios marcados como `queued` despues de 24h.
+13. Verificar entrega real de envios marcados como `queued` despues de 24h.

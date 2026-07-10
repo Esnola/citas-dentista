@@ -7,6 +7,7 @@ Aplicación Laravel para gestionar citas, pacientes y recordatorios por WhatsApp
 - Panel principal con métricas y próximos envíos
 - Gestión de pacientes y citas
 - Programación de mensajes de WhatsApp
+- Seguimiento de envío, entrega, lectura y respuestas de WhatsApp
 - Importación de datos desde Excel
 - Plantillas reutilizables para mensajes
 - Envío manual y envío programado
@@ -70,7 +71,11 @@ php artisan test --compact --filter=NombreDelTest
 2. Registrar citas o mensajes
 3. Elegir una plantilla
 4. Programar el envío
-5. Ejecutar el comando de mensajes pendientes
+5. Revisar el estado y la respuesta desde la lista de citas
+
+## Respuestas e historial
+
+En la lista de citas, la columna `Respuesta` muestra si el paciente confirmó, pidió reprogramar o envió un mensaje de texto. Cuando hay respuesta, el badge de esa columna abre el historial completo de comunicaciones de la cita. La columna de acciones queda reservada para enviar WhatsApp, editar y eliminar.
 
 ## WhatsApp
 

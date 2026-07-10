@@ -4,7 +4,26 @@
 Gestión de citas dentales con recordatorios WhatsApp. Sistema completo con envíos programados, respuestas vía botones, y panel de administración.
 
 ## Current state
-Funcional. Tests: **103 passed / 44 failed** (faltan arreglar tests — ver pendientes abajo).
+Funcional. La lista de citas de un cliente ya muestra respuestas de WhatsApp en la columna `Respuesta`; el badge de respuesta abre el historial completo de comunicaciones. Tests historicos: **103 passed / 44 failed** en la ultima corrida documentada (faltan arreglar tests — ver pendientes abajo).
+
+## Últimos cambios (Sesión 2026-07-10)
+
+### 1. Historial desde columna Respuesta
+- `resources/views/livewire/client-appointments.blade.php`
+- La cabecera ahora es `Respuesta`.
+- Los estados `Confirmada`, `Reprogramar` y `Leer Mensaje` se muestran como botón/badge.
+- El badge llama a `openHistory({{ $appointment->id }})` con `wire:click.stop`.
+- La celda detiene propagación para no navegar a editar la cita al pulsar la respuesta.
+
+### 2. Acciones sin botón Historial
+- `resources/views/components/tabla/botones-maniobra.blade.php`
+- Se retiró el botón `Historial`.
+- La columna de acciones queda para `Enviar WhatsApp`, `Editar cita` y `Eliminar cita`.
+
+### 3. Verificación realizada
+- `php artisan view:cache`
+- `php artisan view:clear`
+- `php artisan test --compact --filter=ClientAppointments` no encontró tests con ese filtro.
 
 ## Últimos cambios (Sesión 2026-07-08)
 
@@ -122,7 +141,7 @@ Los 44 fallos restantes son de tests que dependen de cambios internos en compone
 1. Arreglar los 44 tests fallidos (ver sección pendiente arriba)
 2. Registrar sender de WhatsApp en Twilio para usar templates custom en español con botones
 3. Implementar envío de correos (plantillas pendientes en GUIA_RETOMAR_TRABAJO.md)
-4. Considerar reprogramar vía botón (caso `'reprogram*'` en `resolveAction()`)
+4. Añadir o actualizar tests de UI/Livewire para cubrir el historial desde la columna `Respuesta`
 
 ## Notes for another computer
 - `WHATSAPP_DRIVER=log` por defecto en `.env.example` — cambiar a `twilio` para probar

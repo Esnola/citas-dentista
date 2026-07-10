@@ -13,6 +13,7 @@ Con ella puedes:
 - Importar datos desde un archivo
 - Usar plantillas de mensajes ya preparadas
 - Revisar el estado de los mensajes enviados
+- Revisar respuestas e historial de comunicaciones de una cita
 
 ## Cómo está organizada
 
@@ -75,6 +76,8 @@ Desde aquí puedes:
 - Editar una cita
 - Marcar una cita como activa o inactiva
 - Enviar el mensaje ahora
+- Reenviar un WhatsApp si la cita enviada sigue siendo futura
+- Abrir el historial desde la columna **Respuesta** cuando exista una respuesta
 - Eliminar una cita
 
 ### Estados que puedes ver
@@ -83,6 +86,17 @@ Desde aquí puedes:
 - **Enviado**: el mensaje ya salió
 - **Entregado**: el mensaje llegó correctamente
 - **Leído**: el destinatario abrió el mensaje
+- **Respuesta**: el paciente confirmó, pidió reprogramar o envió texto
+
+### Respuestas e historial
+
+Cuando una cita tiene respuesta, la columna **Respuesta** muestra un botón con el estado:
+
+- **Confirmada**: el paciente confirmó la cita
+- **Reprogramar**: el paciente pidió cambiar la cita
+- **Leer Mensaje**: el paciente envió una respuesta de texto
+
+Pulsa ese botón para abrir el historial completo de comunicaciones de la cita. La columna **Acciones** ya no muestra un botón separado de historial; ahí quedan las acciones de enviar, editar o eliminar.
 
 ### Reglas importantes
 
