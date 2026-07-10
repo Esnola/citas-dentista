@@ -7,12 +7,11 @@ use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
 
 class Client extends Model
 {
-    use HasFactory, NormalizesPhone, SoftDeletes;
+    use HasFactory, NormalizesPhone;
 
     protected $fillable = [
         'nombre',
@@ -72,15 +71,11 @@ class Client extends Model
 
         $lookupName = static::normalizeImportValue($rawName);
 
-        $client = static::withTrashed()
+        $client = static::query()
             ->get()
             ->first(fn (self $candidate): bool => static::matchesImportIdentity($candidate, $normalizedPhone, $lookupName));
 
         if ($client) {
-            if ($client->trashed()) {
-                $client->restore();
-            }
-
             return $client;
         }
 

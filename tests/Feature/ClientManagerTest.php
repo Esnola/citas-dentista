@@ -98,6 +98,13 @@ class ClientManagerTest extends TestCase
             'apellidos' => 'Pérez',
             'telefono' => '600123123',
         ]);
+        $appointment = Appointment::query()->create([
+            'client_id' => $client->id,
+            'fecha' => '2026-07-01',
+            'hora' => '10:15',
+            'enviado' => false,
+            'activo' => true,
+        ]);
 
         Livewire::test(ClientIndex::class)
             ->set('filter_nombre', 'Ana')
@@ -114,7 +121,12 @@ class ClientManagerTest extends TestCase
             ->call('deleteConfirmed')
             ->assertSet('clientPendingDeletionId', null);
 
-        $this->assertSoftDeleted($client);
+        $this->assertDatabaseMissing('clients', [
+            'id' => $client->id,
+        ]);
+        $this->assertDatabaseMissing('appointments', [
+            'id' => $appointment->id,
+        ]);
     }
 
     public function test_clients_screen_can_edit_selected_client(): void

@@ -145,7 +145,7 @@ CSV;
         $this->assertSame('600123123', $client->telefono);
     }
 
-    public function test_import_restores_soft_deleted_same_client_instead_of_creating_duplicate(): void
+    public function test_import_recreates_client_after_it_was_deleted(): void
     {
         $admin = User::factory()->create();
 
@@ -167,15 +167,13 @@ CSV;
         Livewire::test(ClientCsvImporter::class)
             ->set('file', UploadedFile::fake()->createWithContent('clientes.csv', $csv))
             ->call('import')
-            ->assertSet('status', 'Importación completada: 0 nuevo(s), 0 omitido(s), 1 restaurado(s).');
+            ->assertSet('status', 'Importación completada: 1 nuevo(s), 0 omitido(s), 0 restaurado(s).');
 
-        $this->assertSame(1, Client::withTrashed()->count());
         $this->assertSame(1, Client::query()->count());
 
         $client = Client::query()->firstOrFail();
 
         $this->assertSame('Ana', $client->nombre);
         $this->assertSame('Pérez', $client->apellidos);
-        $this->assertFalse($client->trashed());
     }
 }

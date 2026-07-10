@@ -44,8 +44,6 @@ class ClientsImport implements ToCollection, WithCustomCsvSettings, WithHeadingR
 
                 if ($client->wasRecentlyCreated) {
                     $this->createdRows++;
-                } elseif ($client->wasChanged('deleted_at')) {
-                    $this->restoredRows++;
                 } else {
                     $this->skippedRows++;
                 }

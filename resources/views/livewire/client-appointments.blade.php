@@ -370,63 +370,17 @@
     </div>
   </div>
 
-  {{-- MODAL DE CONFIRMACION BORRADO --}}
+  {{-- MODAL DE BORRADO --}}
+  <x-modales.borrar wire:target="confirmDelete" :appointmentPendingDeletion="$appointmentPendingDeletion"/>
 
-  @if ($appointmentPendingDeletion)
-    <x-modales.confirmacion x-data="{ modalOpen: true }" x-trap.noscroll="modalOpen"
-                            x-on:keydown.escape.window="$wire.cancelDelete()" titulo="Eliminar cita">
-      <p class="mt-3 text-sm text-slate-300">
-        ¿Seguro que quieres eliminar la cita de
-        <span class="font-medium text-white">{{ $appointmentPendingDeletion->client?->full_name }}</span>
-        del {{ $appointmentPendingDeletion->fecha?->format('d/m/Y') }} a
-        las {{ Str::substr($appointmentPendingDeletion->hora, 0, 5) }}?
-      </p>
-      <p class="mt-2 text-sm text-slate-400">Esta acción no se puede deshacer.</p>
+  {{-- MODAL DE REENVIO --}}
+  <x-modales.reenvio wire:target="confirmResend" :appointmentPendingResend="$appointmentPendingResend"/>
 
-      <x-slot:actions>
-        <x-botones.icono-buton color="amber" label="Cancelar" texto="Cancelar" icon="volver"
-                               wire:click="cancelDelete"/>
-        <x-botones.icono-buton color="red" icon="papelera" label="Eliminar cita" texto="Eliminar cita"
-                               wire:click="deleteConfirmed"/>
-      </x-slot:actions>
-    </x-modales.confirmacion>
-  @endif
-  {{-- MODAL DE CONFIRMACION REENVIO --}}
-  <x-modales.confirmacion-reenvio wire:target="confirmResend" :appointmentPendingResend="$appointmentPendingResend"/>
-  {{--
-    @if ($appointmentPendingResend)
-      <x-modales.confirmacion x-data="{ modalOpen: true }" x-trap.noscroll="modalOpen"
-                              x-on:keydown.escape.window="$wire.cancelResend()" titulo="Reenviar WhatsApp">
-        <p class="mt-3 text-sm text-slate-300">Ya se ha enviado un WhatsApp de esta cita.</p>
-        <p class="mt-2 text-sm text-slate-400">¿Quieres enviarlo de nuevo?</p>
+  {{-- MODAL DE BULK BORRADO --}}
+  <x-modales.bulk-borrar wire:target="confirmBulkDelete"
+                         :bulkDeleteConfirmationOpen="$bulkDeleteConfirmationOpen"
+                         :selectedAppointmentIds="$selectedAppointmentIds"/>
 
-        <x-slot:actions>
-          <x-botones.icono-buton color="amber" label="Cancelar" texto="Cancelar" icon="volver"
-                                 wire:click="cancelResend"/>
-          <x-botones.icono-buton color="emerald" icon="whatsapp" label="Reenviar" texto="Reenviar"
-                                 wire:click="resendConfirmed"/>
-        </x-slot:actions>
-      </x-modales.confirmacion>
-    @endif
-  --}}
-
-  @if ($bulkDeleteConfirmationOpen)
-    <x-modales.confirmacion x-data="{ modalOpen: true }" x-trap.noscroll="modalOpen"
-                            x-on:keydown.escape.window="$wire.$set('bulkDeleteConfirmationOpen', false)"
-                            titulo="Eliminar citas seleccionadas">
-      <p class="mt-3 text-sm text-slate-300">
-        Se eliminarán <span class="font-medium text-white">{{ count($selectedAppointmentIds) }} cita(s)</span>.
-      </p>
-      <p class="mt-2 text-sm text-slate-400">Esta acción no se puede deshacer.</p>
-
-      <x-slot:actions>
-        <x-botones.icono-buton color="amber" icon="volver" label="Cancelar" texto="Cancelar"
-                               wire:click="$set('bulkDeleteConfirmationOpen', false)"/>
-        <x-botones.icono-buton color="red" icon="papelera" label="Eliminar citas" texto="Eliminar citas"
-                               wire:click="deleteSelected"/>
-      </x-slot:actions>
-    </x-modales.confirmacion>
-  @endif
   {{-- MODAL HISTORIAL DE COMUNICACIONES --}}
   <x-modales.historia-whatsapp :historyAppointment="$historyAppointment"
                                wire:key="history-modal-{{ $historyAppointment?->id }}"/>
