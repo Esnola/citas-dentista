@@ -1,15 +1,6 @@
 <td class="px-4 py-3 text-right" onclick="event.stopPropagation()">
   <div class="flex justify-end items-center gap-2">
 
-    @if ($appointment->whatsAppMessages()->count() > 0)
-      <x-botones.icono-buton
-              color="emerald"
-              icon="historial"
-              label="Historial"
-              wire:click="openHistory({{ $appointment->id }})"
-      />
-    @endif
-
     @if (! $appointment->enviado && $appointment->activo && $appointment->scheduledFor()->isFuture())
       <x-botones.icono-buton
               color="emerald"

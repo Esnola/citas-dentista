@@ -3,6 +3,7 @@
 namespace App\Livewire;
 
 use App\Models\Client;
+use App\Services\ClientDataDeletionService;
 use Livewire\Component;
 use Livewire\WithPagination;
 
@@ -58,7 +59,8 @@ class ClientIndex extends Component
             return;
         }
 
-        Client::query()->find($this->clientPendingDeletionId)?->delete();
+        app(ClientDataDeletionService::class)->deleteClientById($this->clientPendingDeletionId);
+
         $this->clientPendingDeletionId = null;
 
         session()->flash('status', 'Cliente eliminado correctamente.');

@@ -14,7 +14,6 @@ return new class extends Migration
             $table->string('apellidos');
             $table->string('telefono', 40)->index();
             $table->timestamps();
-            $table->softDeletes();
 
             $table->index(['nombre', 'apellidos']);
         });

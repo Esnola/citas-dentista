@@ -5,6 +5,7 @@ namespace App\Livewire;
 use App\Models\Appointment;
 use App\Models\Client;
 use App\Models\WhatsAppMessage;
+use App\Services\ClientDataDeletionService;
 use App\Services\WhatsApp\AppointmentDeliveryStatusSyncer;
 use App\Services\WhatsApp\AppointmentImmediateSender;
 use App\Services\WhatsApp\WhatsAppSender;
@@ -121,10 +122,8 @@ class ClientAppointments extends Component
             return;
         }
 
-        $deleted = Appointment::query()
-            ->where('client_id', $this->clientId)
-            ->whereKey(array_map('intval', $this->selectedAppointmentIds))
-            ->delete();
+        $deleted = app(ClientDataDeletionService::class)
+            ->deleteAppointments($this->selectedAppointmentIds, $this->clientId);
 
         $this->selectedAppointmentIds = [];
         $this->selectAll = false;
@@ -198,7 +197,9 @@ class ClientAppointments extends Component
             return;
         }
 
-        Appointment::query()->whereKey($this->appointmentPendingDeletionId)->delete();
+        app(ClientDataDeletionService::class)
+            ->deleteAppointments([$this->appointmentPendingDeletionId], $this->clientId);
+
         $this->appointmentPendingDeletionId = null;
 
         $this->redirectAfterAction('Cita eliminada correctamente.');

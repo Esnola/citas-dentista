@@ -5,6 +5,7 @@ namespace App\Livewire;
 use App\Models\Appointment;
 use App\Models\Client;
 use App\Models\WhatsAppMessage;
+use App\Services\ClientDataDeletionService;
 use App\Services\WhatsApp\AppointmentDeliveryStatusSyncer;
 use App\Services\WhatsApp\AppointmentImmediateSender;
 use App\Services\WhatsApp\WhatsAppSender;
@@ -107,10 +108,8 @@ class ClientForm extends Component
 
     public function deleteAppointment(int $appointmentId): void
     {
-        Appointment::query()
-            ->where('client_id', $this->selectedClientId)
-            ->whereKey($appointmentId)
-            ->delete();
+        app(ClientDataDeletionService::class)
+            ->deleteAppointments([$appointmentId], $this->selectedClientId);
 
         session()->flash('status', 'Cita eliminada correctamente.');
 

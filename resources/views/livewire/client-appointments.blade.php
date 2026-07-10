@@ -161,7 +161,7 @@
             </div>
           </th>
           <th class="px-4 py-3 text-center">
-            Confir / Repro
+            Respuesta
           </th>
           <th class="px-4 py-3 text-xs text-center">Envío</th>
           <th class="px-4 py-3 text-xs text-center">Cita activa</th>
@@ -266,12 +266,10 @@
                 </div>
               @endif
             </td>
-            <td class="px-4 py-3 text-center text-xs">
+            <td class="px-4 py-3 text-center text-xs" onclick="event.stopPropagation()" onkeydown="event.stopPropagation()">
               @php
-                $esConfirmada = $appointment->esCitaConfirmada();
                 $retorno = $appointment->queBoton();
                 $tieneMensaje = $appointment->hasTextResponse() ;
-
 
                 if($retorno === 'confirmada'){
                     $icono =  'usuario-plus';
@@ -297,10 +295,18 @@
 
               @if ($displayResponseLabel || $appointment->wasRescheduled())
                 <div class="flex flex-col items-center gap-1">
-                    <span class="inline-flex items-center rounded-full gap-2 px-2 py-0.5 text-xs font-semibold border {{ $responseClasses }}">
-                       <x-dynamic-component :component="'iconos.' . $icono" class="size-6 "/>
-                     {{$displayResponseLabel}}
-                      </span>
+                  @if ($displayResponseLabel)
+                    <button type="button"
+                            wire:click.stop="openHistory({{ $appointment->id }})"
+                            wire:loading.attr="disabled"
+                            wire:target="openHistory({{ $appointment->id }})"
+                            class="inline-flex items-center rounded-full gap-2 px-2 py-0.5 text-xs font-semibold transition-colors hover:bg-white/10 cursor-pointer {{ $responseClasses }}"
+                            aria-label="Ver historial de comunicaciones de esta cita"
+                            title="Ver historial">
+                      <x-dynamic-component :component="'iconos.' . $icono" class="size-6 "/>
+                      {{ $displayResponseLabel }}
+                    </button>
+                  @endif
 
                   @if ($appointment->wasRescheduled())
                     <span class="flex items-center gap-2 rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold text-amber-300 ring-1 ring-inset ring-amber-400/30">

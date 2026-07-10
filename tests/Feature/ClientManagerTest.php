@@ -106,6 +106,29 @@ class ClientManagerTest extends TestCase
             'activo' => true,
         ]);
 
+        WhatsAppMessage::query()->create([
+            'client_id' => $client->id,
+            'appointment_id' => $appointment->id,
+            'nombre' => 'Ana',
+            'apellidos' => 'Pérez',
+            'telefono' => '+34600111222',
+            'scheduled_for' => now()->addDay(),
+            'message' => 'Recordatorio',
+            'source' => WhatsAppMessage::SOURCE_APPOINTMENT,
+            'status' => WhatsAppMessage::STATUS_SENT,
+        ]);
+
+        WhatsAppMessage::query()->create([
+            'client_id' => $client->id,
+            'nombre' => 'Ana',
+            'apellidos' => 'Pérez',
+            'telefono' => '+34600111222',
+            'scheduled_for' => now()->addDay(),
+            'message' => 'Mensaje manual',
+            'source' => WhatsAppMessage::SOURCE_MANUAL,
+            'status' => WhatsAppMessage::STATUS_SENT,
+        ]);
+
         Livewire::test(ClientIndex::class)
             ->set('filter_nombre', 'Ana')
             ->call('confirmDelete', $client->id)
@@ -127,6 +150,8 @@ class ClientManagerTest extends TestCase
         $this->assertDatabaseMissing('appointments', [
             'id' => $appointment->id,
         ]);
+        $this->assertSame(0, WhatsAppMessage::query()->where('client_id', $client->id)->count());
+        $this->assertSame(0, WhatsAppMessage::query()->where('appointment_id', $appointment->id)->count());
     }
 
     public function test_clients_screen_can_edit_selected_client(): void
@@ -373,6 +398,18 @@ class ClientManagerTest extends TestCase
             'activo' => true,
         ]);
 
+        WhatsAppMessage::query()->create([
+            'client_id' => $client->id,
+            'appointment_id' => $appointment->id,
+            'nombre' => 'Lucía',
+            'apellidos' => 'Martín',
+            'telefono' => '+34666777888',
+            'scheduled_for' => now()->addDay(),
+            'message' => 'Recordatorio enviado',
+            'source' => WhatsAppMessage::SOURCE_APPOINTMENT,
+            'status' => WhatsAppMessage::STATUS_SENT,
+        ]);
+
         Livewire::test(ClientForm::class, ['client' => $client->id])
             ->call('deleteAppointment', $appointment->id)
             ->assertHasNoErrors();
@@ -380,6 +417,7 @@ class ClientManagerTest extends TestCase
         $this->assertDatabaseMissing('appointments', [
             'id' => $appointment->id,
         ]);
+        $this->assertSame(0, WhatsAppMessage::query()->where('appointment_id', $appointment->id)->count());
 
         Carbon::setTestNow();
     }
