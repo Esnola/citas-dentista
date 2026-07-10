@@ -14,6 +14,11 @@ class WhatsAppDispatchSettings extends Model
         'hours',
     ];
 
+    protected $attributes = [
+        'enabled' => true,
+        'hours' => '["09:00","12:00","15:00"]',
+    ];
+
     protected function casts(): array
     {
         return [

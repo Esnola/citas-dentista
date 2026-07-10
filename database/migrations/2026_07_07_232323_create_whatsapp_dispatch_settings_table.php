@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('whatsapp_dispatch_settings', function (Blueprint $table) {
             $table->id();
             $table->boolean('enabled')->default(true);
-            $table->json('hours')->default(json_encode(['09:00', '12:00', '15:00']));
+            $table->json('hours');
             $table->timestamps();
         });
     }
