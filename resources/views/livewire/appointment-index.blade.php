@@ -5,7 +5,7 @@
         <x-iconos.calendar/>
         <h2 class="text-xl font-semibold">Citas registradas</h2>
         <h3 class="rounded-2xl border border-green-300/70 bg-slate-900/60 px-4 py-3 text-sm text-slate-300 shadow-xs shadow-green-300">
-          {{ $clients->total() }} cliente{{ $clients->total() !== 1 ? 's' : '' }}
+          {{ $clients->total() }} cliente{{ $clients->total() !== 1 ? 's' : '' }} con cita{{ $clients->total() !== 1 ? 's' : '' }}
         </h3>
         @if ($deliveryStatusesSyncedAt)
           <span class="text-xs font-medium text-slate-400">Sincronizado: {{ $deliveryStatusesSyncedAt }}</span>
@@ -22,20 +22,6 @@
     </div>
 
     <div class="mt-4 flex flex-wrap items-end gap-4">
-      <div class="flex items-center gap-4">
-        <flux:field class="flex flex-col">
-          <flux:label>Enviadas</flux:label>
-          <x-formularios.toggle :checked="false" disabled/>
-        </flux:field>
-        <flux:field class="flex flex-col">
-          <flux:label>Entregadas</flux:label>
-          <x-formularios.toggle :checked="false" disabled/>
-        </flux:field>
-        <flux:field class="flex flex-col">
-          <flux:label>Suspendidas</flux:label>
-          <x-formularios.toggle :checked="false" disabled/>
-        </flux:field>
-      </div>
       <div class="group flex items-center gap-2">
         <button type="button"
                 class="cursor-pointer rounded-full p-2"
@@ -68,7 +54,7 @@
       </div>
     </div>
 
-    <div class="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+    <div class="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
       @forelse ($clients as $client)
         @php $appointment = $client->appointments->first(); @endphp
         <a wire:key="appointment-client-{{ $client->id }}"
