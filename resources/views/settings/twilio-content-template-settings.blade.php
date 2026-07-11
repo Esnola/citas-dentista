@@ -63,8 +63,7 @@
                       icon="papelera"
                       label="Eliminar plantilla"
                       texto="Eliminar"
-                      wire:click="deleteTemplate({{ $selectedTemplate->id }})"
-                      wire:confirm="¿Eliminar esta plantilla?" />
+                      wire:click="confirmDeleteTemplate({{ $selectedTemplate->id }})" />
             </div>
           </div>
         @endif
@@ -88,8 +87,7 @@
                       icon="papelera"
                       label="Eliminar plantilla"
                       texto="Eliminar"
-                      wire:click="deleteTemplate({{ $template->id }})"
-                      wire:confirm="¿Eliminar esta plantilla?" />
+                      wire:click="confirmDeleteTemplate({{ $template->id }})" />
             </div>
           </div>
         @endforeach
@@ -97,6 +95,23 @@
         <p class="rounded-2xl border border-white/10 bg-slate-900/50 p-4 text-sm text-slate-300">
           Aún no hay plantillas guardadas. Mientras tanto se usa {{ $envContentSid ?: 'ningún Content SID del .env' }}.
         </p>
+      @endif
+
+      @if ($pendingTemplate)
+        <x-modales.confirmacion x-data="{ modalOpen: true }" x-trap.noscroll="modalOpen"
+                                 x-on:keydown.escape.window="$wire.cancelDeleteTemplate()"
+                                 titulo="Eliminar plantilla">
+          <p class="mt-4 text-sm text-slate-300">
+            ¿Seguro que quieres eliminar la plantilla
+            <span class="font-medium text-white">{{ $pendingTemplate->nombre }}</span>?
+          </p>
+
+          <x-slot:actions>
+            <x-botones.icono-buton texto="Cancelar" x-on:click="$wire.cancelDeleteTemplate()" />
+            <x-botones.icono-buton color="red" icon="papelera" texto="Eliminar"
+                                   wire:click="deleteTemplate({{ $pendingTemplate->id }})" />
+          </x-slot:actions>
+        </x-modales.confirmacion>
       @endif
     </div>
   </div>

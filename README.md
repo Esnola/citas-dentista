@@ -53,6 +53,8 @@ Si prefieres un arranque completo del entorno:
 composer run dev
 ```
 
+Ese comando también levanta el scheduler de Laravel con `php artisan schedule:work`, así que las tareas automáticas quedan activas en local.
+
 ## Pruebas
 
 ```bash

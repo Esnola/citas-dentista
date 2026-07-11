@@ -44,236 +44,40 @@
     </div>
 
     <div x-ref="board" class="grid gap-4" aria-label="Secciones de ajustes">
-      <section data-settings-section="overview"
-               data-default-open="true"
-               class="rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur"
-               x-bind:class="sectionStateClasses('overview')"
-               x-on:dragenter.prevent="setDropTarget('overview', $event)"
-               x-on:dragover.prevent
-               x-on:drop.prevent="drop('overview', $event)"
-               x-show="isVisible('overview')"
-      >
-        <div x-show="showDropHint('overview', 'before')" x-cloak
-             class="mb-4 h-1 rounded-full bg-emerald-400/80 shadow-[0_0_24px_rgba(52,211,153,0.45)]"></div>
-        <div class="flex cursor-pointer items-center justify-between gap-4"
-             x-on:click="toggle('overview')">
-          <div class="flex items-center gap-3">
-            <x-botones.arrastrar-seccion seccion="overview"/>
-            <div>
-              <h3 class="text-lg font-semibold">Resumen</h3>
-              <p class="text-sm text-slate-300">Estado general de WhatsApp, plantillas y sandbox.</p>
-            </div>
-          </div>
-          <x-botones.expandir-contraer abierto="isOpen('overview')" seccion="overview"/>
-        </div>
+      <x-settings.section id="credentials"
+                          title="Credenciales Twilio"
+                          description="Modo de envío, remitente y API key."
+                          drag-label="Credenciales en movimiento">
+        <livewire:twilio-credential-settings/>
+      </x-settings.section>
 
-        <div x-show="dragging === 'overview'" x-cloak
-             class="mt-4 rounded-2xl border border-emerald-400/20 bg-emerald-500/10 px-4 py-3 text-xs uppercase tracking-[0.28em] text-emerald-100">
-          Soltando esta tarjeta aquí
-        </div>
+      <x-settings.section id="reminders"
+                          title="Tiempos de envío"
+                          description="Selecciona WhatsApp y email 1, 2, 3 días o una semana antes."
+                          drag-label="Recordatorios en movimiento">
+        <livewire:appointment-reminder-settings/>
+      </x-settings.section>
 
-        <div x-show="isOpen('overview')" x-cloak class="mt-6">
-          <livewire:settings-overview/>
-        </div>
-        <div x-show="showDropHint('overview', 'after')" x-cloak
-             class="mt-4 h-1 rounded-full bg-emerald-400/80 shadow-[0_0_24px_rgba(52,211,153,0.45)]"></div>
-      </section>
+      <x-settings.section id="maintenance"
+                          title="Mantenimiento / Opciones"
+                          description="Define cuándo se eliminan automáticamente las citas pasadas."
+                          drag-label="Mantenimiento en movimiento">
+        <livewire:appointment-cleanup-settings/>
+      </x-settings.section>
 
-      <section data-settings-section="status"
-               data-default-open="false"
-               class="rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur"
-               x-bind:class="sectionStateClasses('status')"
-               x-on:dragenter.prevent="setDropTarget('status', $event)"
-               x-on:dragover.prevent
-               x-on:drop.prevent="drop('status', $event)">
+      <x-settings.section id="twilio-templates"
+                          title="Plantillas de Twilio"
+                          description="Guarda Content SID y elige cuál usa WhatsApp."
+                          drag-label="Plantillas en movimiento">
+        <livewire:twilio-content-template-settings/>
+      </x-settings.section>
 
-        <div x-show="showDropHint('status', 'before')" x-cloak
-             class="mb-4 h-1 rounded-full bg-emerald-400/80 shadow-[0_0_24px_rgba(52,211,153,0.45)]"></div>
-        <div class="flex cursor-pointer items-center justify-between gap-4"
-             x-on:click="toggle('status')">
-          <div class="flex items-center gap-3">
-            <x-botones.arrastrar-seccion seccion="status"/>
-            <div>
-              <h3 class="text-lg font-semibold">Estado actual</h3>
-              <p class="text-sm text-slate-300">Credenciales, sender y estado de conexión.</p>
-            </div>
-          </div>
-
-          <x-botones.expandir-contraer abierto="isOpen('status')" seccion="status"/>
-        </div>
-
-        <div x-show="dragging === 'status'" x-cloak
-             class="mt-4 rounded-2xl border border-emerald-400/20 bg-emerald-500/10 px-4 py-3 text-xs uppercase tracking-[0.28em] text-emerald-100">
-          Arrastre activo
-        </div>
-
-        <div x-show="isOpen('status')" x-cloak class="mt-6 grid gap-4">
-          <div class="rounded-2xl border border-white/10 bg-slate-900/60 p-4">
-            <p class="text-xs uppercase tracking-[0.25em] text-slate-400">Account SID</p>
-            <p class="mt-2 font-medium">
-              {{ $twilioAccountSid ? Str::mask($twilioAccountSid, '*', 4) : 'No configurado' }}
-            </p>
-          </div>
-          <div class="rounded-2xl border border-white/10 bg-slate-900/60 p-4">
-            <p class="text-xs uppercase tracking-[0.25em] text-slate-400">Sender</p>
-            <p class="mt-2 font-medium">{{ $selectedSenderNumber?->full_number ?: ($twilioFrom ?: 'No configurado') }}</p>
-            <p class="mt-1 text-sm text-slate-300">
-              {{ $selectedSenderNumber ? ($selectedSenderNumber->name ?: 'Sender activo') : ($twilioFrom ? 'Sender por defecto del .env' : 'Añade un sender o configura el .env') }}
-            </p>
-          </div>
-          <div class="rounded-2xl border border-white/10 bg-slate-900/60 p-4">
-            <p class="text-xs uppercase tracking-[0.25em] text-slate-400">Auth Token</p>
-            <p class="mt-2 font-medium">{{ $twilioAuthToken ? 'Configurado' : 'No configurado' }}</p>
-            <p class="mt-1 text-sm text-slate-300">Necesario para validar las firmas de los webhooks.</p>
-          </div>
-          <div class="rounded-2xl border border-white/10 bg-slate-900/60 p-4">
-            <p class="text-xs uppercase tracking-[0.25em] text-slate-400">API Key</p>
-            <p class="mt-2 font-medium">{{ $twilioUsesApiKey ? Str::mask($twilioApiKeySid, '*', 4) : 'No configurada' }}</p>
-            <p class="mt-1 text-sm text-slate-300">{{ $twilioUsesApiKey ? 'Usada para conectar con la API REST' : 'Se usará Account SID + Auth Token' }}</p>
-          </div>
-          <div class="rounded-2xl border border-white/10 bg-slate-900/60 p-4">
-            <p class="text-xs uppercase tracking-[0.25em] text-slate-400">Content SID</p>
-            <p class="mt-2 font-medium">{{ $twilioContentSid ? Str::mask($twilioContentSid, '*', 4) : 'No configurado' }}</p>
-            <p class="mt-1 text-sm text-slate-300">Necesario cuando el modo está en plantilla.</p>
-          </div>
-        </div>
-        <div x-show="showDropHint('status', 'after')" x-cloak
-             class="mt-4 h-1 rounded-full bg-emerald-400/80 shadow-[0_0_24px_rgba(52,211,153,0.45)]"></div>
-      </section>
-
-      <section data-settings-section="connection"
-               data-default-open="true"
-               class="rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur"
-               x-bind:class="sectionStateClasses('connection')"
-               x-on:dragenter.prevent="setDropTarget('connection', $event)"
-               x-on:dragover.prevent
-               x-on:drop.prevent="drop('connection', $event)"
-      >
-        <div x-show="showDropHint('connection', 'before')" x-cloak
-             class="mb-4 h-1 rounded-full bg-emerald-400/80 shadow-[0_0_24px_rgba(52,211,153,0.45)]"></div>
-        <div class="flex cursor-pointer items-center justify-between gap-4"
-             x-on:click="toggle('connection')">
-          <div class="flex items-center gap-3">
-            <x-botones.arrastrar-seccion seccion="connection"/>
-            <div>
-              <h3 class="text-lg font-semibold">Prueba de conexión</h3>
-              <p class="text-sm text-slate-300">Panel de envío real y vista previa del payload.</p>
-            </div>
-          </div>
-          <x-botones.expandir-contraer abierto="isOpen('connection')" seccion="connection"/>
-        </div>
-
-        <div x-show="dragging === 'connection'" x-cloak
-             class="mt-4 rounded-2xl border border-emerald-400/20 bg-emerald-500/10 px-4 py-3 text-xs uppercase tracking-[0.28em] text-emerald-100">
-          Sección lista para soltar
-        </div>
-
-        <div x-show="isOpen('connection')" x-cloak class="mt-6">
-          <livewire:whatsapp-connection-test/>
-        </div>
-        <div x-show="showDropHint('connection', 'after')" x-cloak
-             class="mt-4 h-1 rounded-full bg-emerald-400/80 shadow-[0_0_24px_rgba(52,211,153,0.45)]"></div>
-      </section>
-
-      <section data-settings-section="twilio-templates"
-               data-default-open="true"
-               class="rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur"
-               x-bind:class="sectionStateClasses('twilio-templates')"
-               x-on:dragenter.prevent="setDropTarget('twilio-templates', $event)"
-               x-on:dragover.prevent
-               x-on:drop.prevent="drop('twilio-templates', $event)">
-        <div x-show="showDropHint('twilio-templates', 'before')" x-cloak
-             class="mb-4 h-1 rounded-full bg-emerald-400/80 shadow-[0_0_24px_rgba(52,211,153,0.45)]"></div>
-        <div class="flex cursor-pointer items-center justify-between gap-4"
-             x-on:click="toggle('twilio-templates')">
-          <div class="flex items-center gap-3">
-            <x-botones.arrastrar-seccion seccion="twilio-templates"/>
-            <div>
-              <h3 class="text-lg font-semibold">Plantillas de Twilio</h3>
-              <p class="text-sm text-slate-300">Guarda Content SID y elige cuál usa WhatsApp.</p>
-            </div>
-          </div>
-          <x-botones.expandir-contraer abierto="isOpen('twilio-templates')" seccion="twilio-templates"/>
-        </div>
-
-        <div x-show="dragging === 'twilio-templates'" x-cloak
-             class="mt-4 rounded-2xl border border-emerald-400/20 bg-emerald-500/10 px-4 py-3 text-xs uppercase tracking-[0.28em] text-emerald-100">
-          Plantillas en movimiento
-        </div>
-
-        <div x-show="isOpen('twilio-templates')" x-cloak class="mt-6">
-          <livewire:twilio-content-template-settings/>
-        </div>
-        <div x-show="showDropHint('twilio-templates', 'after')" x-cloak
-             class="mt-4 h-1 rounded-full bg-emerald-400/80 shadow-[0_0_24px_rgba(52,211,153,0.45)]"></div>
-      </section>
-
-      <section data-settings-section="credentials"
-               data-default-open="true"
-               class="rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur"
-               x-bind:class="sectionStateClasses('credentials')"
-               x-on:dragenter.prevent="setDropTarget('credentials', $event)"
-               x-on:dragover.prevent
-               x-on:drop.prevent="drop('credentials', $event)">
-        <div x-show="showDropHint('credentials', 'before')" x-cloak
-             class="mb-4 h-1 rounded-full bg-emerald-400/80 shadow-[0_0_24px_rgba(52,211,153,0.45)]"></div>
-        <div class="flex cursor-pointer items-center justify-between gap-4"
-             x-on:click="toggle('credentials')">
-          <div class="flex items-center gap-3">
-            <x-botones.arrastrar-seccion seccion="credentials"/>
-            <div>
-              <h3 class="text-lg font-semibold">Credenciales Twilio</h3>
-              <p class="text-sm text-slate-300">Modo de envío, remitente y API key.</p>
-            </div>
-          </div>
-          <x-botones.expandir-contraer abierto="isOpen('credentials')" seccion="credentials"/>
-        </div>
-
-        <div x-show="dragging === 'credentials'" x-cloak
-             class="mt-4 rounded-2xl border border-emerald-400/20 bg-emerald-500/10 px-4 py-3 text-xs uppercase tracking-[0.28em] text-emerald-100">
-          Credenciales en movimiento
-        </div>
-
-        <div x-show="isOpen('credentials')" x-cloak class="mt-6">
-          <livewire:twilio-credential-settings/>
-        </div>
-        <div x-show="showDropHint('credentials', 'after')" x-cloak
-             class="mt-4 h-1 rounded-full bg-emerald-400/80 shadow-[0_0_24px_rgba(52,211,153,0.45)]"></div>
-      </section>
-
-      <section data-settings-section="reminders"
-               data-default-open="true"
-               class="rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur"
-               x-bind:class="sectionStateClasses('reminders')"
-               x-on:dragenter.prevent="setDropTarget('reminders', $event)"
-               x-on:dragover.prevent
-               x-on:drop.prevent="drop('reminders', $event)"
-      >
-        <div x-show="showDropHint('reminders', 'before')" x-cloak
-             class="mb-4 h-1 rounded-full bg-emerald-400/80 shadow-[0_0_24px_rgba(52,211,153,0.45)]"></div>
-        <div class="flex cursor-pointer items-center justify-between gap-4"
-             x-on:click="toggle('reminders')">
-          <div class="flex items-center gap-3">
-            <x-botones.arrastrar-seccion seccion="reminders"/>
-            <div>
-              <h3 class="text-lg font-semibold">Tiempos de envío</h3>
-              <p class="text-sm text-slate-300">Selecciona WhatsApp y email 1, 2, 3 días o una semana antes.</p>
-            </div>
-          </div>
-          <x-botones.expandir-contraer abierto="isOpen('reminders')" seccion="reminders"/>
-        </div>
-
-        <div x-show="dragging === 'reminders'" x-cloak
-             class="mt-4 rounded-2xl border border-emerald-400/20 bg-emerald-500/10 px-4 py-3 text-xs uppercase tracking-[0.28em] text-emerald-100">
-          Recordatorios en movimiento
-        </div>
-
-        <div x-show="isOpen('reminders')" x-cloak class="mt-6">
-          <livewire:appointment-reminder-settings/>
-        </div>
-        <div x-show="showDropHint('reminders', 'after')" x-cloak
-             class="mt-4 h-1 rounded-full bg-emerald-400/80 shadow-[0_0_24px_rgba(52,211,153,0.45)]"></div>
-      </section>
+      <x-settings.section id="connection"
+                          title="Prueba de conexión"
+                          description="Panel de envío real y vista previa del payload."
+                          drag-label="Sección lista para soltar">
+        <livewire:whatsapp-connection-test/>
+      </x-settings.section>
     </div>
   </div>
 

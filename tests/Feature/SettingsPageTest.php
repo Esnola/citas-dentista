@@ -18,8 +18,8 @@ class SettingsPageTest extends TestCase
             ->get(route('settings.index'))
             ->assertOk()
             ->assertSee('Ajustes')
-            ->assertSee('Resumen')
             ->assertSee('Credenciales Twilio')
-            ->assertSee('Plantillas de Twilio');
+            ->assertSee('Plantillas de Twilio')
+            ->assertSee('Mantenimiento / Opciones');
     }
 }

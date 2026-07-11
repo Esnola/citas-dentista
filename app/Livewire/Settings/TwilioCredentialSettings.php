@@ -26,6 +26,8 @@ class TwilioCredentialSettings extends Component
 
     public string $newNumber = '';
 
+    public ?int $senderNumberPendingDeletion = null;
+
     public function mount(): void
     {
         $credential = WhatsAppCredential::get();
@@ -114,6 +116,19 @@ class TwilioCredentialSettings extends Component
 
         $this->loadSenderNumbers();
         $this->dispatch('credentialsChanged');
+        $this->senderNumberPendingDeletion = null;
+    }
+
+    public function confirmRemoveSenderNumber(int $id): void
+    {
+        abort_unless(auth()->user()?->is_admin, 403);
+
+        $this->senderNumberPendingDeletion = $id;
+    }
+
+    public function cancelRemoveSenderNumber(): void
+    {
+        $this->senderNumberPendingDeletion = null;
     }
 
     public function selectSenderNumber(int $id): void
@@ -162,8 +177,12 @@ class TwilioCredentialSettings extends Component
 
     public function render()
     {
+        $pendingSenderNumber = collect($this->senderNumbers)
+            ->firstWhere('id', $this->senderNumberPendingDeletion);
+
         return view('settings.twilio-credential-settings', [
             'credential' => WhatsAppCredential::get(),
+            'pendingSenderNumber' => $pendingSenderNumber,
         ]);
     }
 }

@@ -1,7 +1,9 @@
 <?php
 
 use App\Console\Commands\DispatchDueWhatsAppMessages;
+use App\Console\Commands\PurgePastAppointments;
 use App\Console\Commands\SyncWhatsAppDeliveryStatus;
+use App\Models\SistemaOpcion;
 use App\Models\WhatsAppDispatchSettings;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
@@ -19,3 +21,10 @@ Schedule::command(DispatchDueWhatsAppMessages::class)
     });
 
 Schedule::command(SyncWhatsAppDeliveryStatus::class)->everyMinute()->withoutOverlapping();
+
+Schedule::command(PurgePastAppointments::class)
+    ->daily()
+    ->withoutOverlapping()
+    ->when(function (): bool {
+        return SistemaOpcion::get()->isEnabled();
+    });

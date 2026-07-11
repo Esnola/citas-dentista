@@ -16,6 +16,8 @@ class TwilioContentTemplateSettings extends Component
 
     public string $status = '';
 
+    public ?int $templatePendingDeletion = null;
+
     public function addTemplate(): void
     {
         abort_unless(auth()->user()?->is_admin, 403);
@@ -59,13 +61,29 @@ class TwilioContentTemplateSettings extends Component
 
         $this->status = 'Plantilla eliminada.';
         $this->dispatch('templateChanged');
+        $this->templatePendingDeletion = null;
+    }
+
+    public function confirmDeleteTemplate(int $templateId): void
+    {
+        abort_unless(auth()->user()?->is_admin, 403);
+
+        $this->templatePendingDeletion = $templateId;
+    }
+
+    public function cancelDeleteTemplate(): void
+    {
+        $this->templatePendingDeletion = null;
     }
 
     public function render()
     {
+        $templates = TwilioContentTemplate::query()->orderBy('nombre')->get();
+
         return view('settings.twilio-content-template-settings', [
-            'templates' => TwilioContentTemplate::query()->orderBy('nombre')->get(),
+            'templates' => $templates,
             'envContentSid' => (string) WhatsAppCredential::get()->resolveContentSid(),
+            'pendingTemplate' => $templates->firstWhere('id', $this->templatePendingDeletion),
         ]);
     }
 

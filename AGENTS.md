@@ -5,7 +5,7 @@ Laravel 13 app for dental appointment management with WhatsApp reminders. Livewi
 ## Commands
 
 ```bash
-composer run dev          # full stack: server + queue + pail + vite
+composer run dev          # full stack: server + queue + scheduler + pail + vite
 php artisan test --compact                              # all tests
 php artisan test --compact tests/Feature/ClientManagerTest.php  # single file
 php artisan test --compact --filter=testName           # single test
@@ -42,7 +42,7 @@ npm run build / npm run dev                             # frontend assets
 - Run `vendor/bin/pint --dirty --format agent` after any PHP edit — CI expects formatted code
 - If you see `ViteException: Unable to locate file in Vite manifest`, run `npm run build`
 - `WHATSAPP_DRIVER=log` is the safe default — never hardcode Twilio/Cloud API credentials
-- `composer run dev` spawns 4 processes concurrently via `npx concurrently`
+- `composer run dev` spawns 5 processes concurrently via `npx concurrently`
 - Database migrations are timestamped with `2026_06_*` dates — newer files sort correctly
 - MySQL compatibility: never use `->after()` in `Schema::create()` (only works in `Schema::table()`)
 - MySQL compatibility: foreign keys in `Schema::create()` require the referenced table to already exist — check migration order or use `foreignId()->index()` without `constrained()` and add FKs later

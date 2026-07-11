@@ -1,4 +1,4 @@
-<div class="rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur">
+<div class="rounded-3xl border border-white/10 p-6">
     <div class="flex flex-wrap items-start justify-between gap-4">
         <div>
             <h3 class="text-lg font-semibold">Credenciales Twilio</h3>
@@ -97,7 +97,7 @@
                             <p class="text-xs text-slate-500 font-mono">{{ $number['prefix'] }}{{ $number['number'] }}</p>
                         </div>
 
-                        <button type="button" wire:click="removeSenderNumber({{ $number['id'] }})" wire:confirm="¿Eliminar este número?" class="shrink-0 text-slate-500 hover:text-rose-400 transition-colors">
+                        <button type="button" wire:click="confirmRemoveSenderNumber({{ $number['id'] }})" class="shrink-0 text-slate-500 hover:text-rose-400 transition-colors">
                             <x-iconos.borrar class="h-4 w-4" />
                         </button>
                     </div>
@@ -110,21 +110,19 @@
                         <flux:input wire:model="newName" label="Nombre (identificador)" placeholder="Ej: Consulting Room" />
                         <div>
                             <label class="text-xs text-slate-400">Prefijo</label>
-                            <input type="text" wire:model="newPrefix" list="prefix-options" placeholder="+1" class="w-full rounded-xl border border-white/10 bg-slate-950/40 px-3 py-2.5 text-sm text-slate-200 focus:border-emerald-400 focus:outline-none" />
-                            <datalist id="prefix-options">
-                                <option value="+1">USA/Canadá</option>
-                                <option value="+34">España</option>
-                                <option value="+52">México</option>
-                                <option value="+54">Argentina</option>
-                                <option value="+56">Chile</option>
-                                <option value="+57">Colombia</option>
-                                <option value="+51">Perú</option>
-                                <option value="+44">Reino Unido</option>
-                            </datalist>
+                            <x-formularios.select wire:model="newPrefix" class="mt-1">
+                                <option value="+1">USA/Canadá (+1)</option>
+                                <option value="+34">España (+34)</option>
+                                <option value="+52">México (+52)</option>
+                                <option value="+54">Argentina (+54)</option>
+                                <option value="+56">Chile (+56)</option>
+                                <option value="+57">Colombia (+57)</option>
+                                <option value="+51">Perú (+51)</option>
+                                <option value="+44">Reino Unido (+44)</option>
+                            </x-formularios.select>
                         </div>
                         <flux:input wire:model="newNumber" label="Número" placeholder="600000000" />
                         <flux:error name="newNumber" />
-
                     </div>
                     <button type="button" wire:click="addSenderNumber" class="m-6 shrink-0 rounded-xl border border-emerald-400/30 bg-emerald-500/10 px-4 py-2.5 text-sm text-emerald-300 hover:bg-emerald-500/20 transition-colors">
                         Añadir
@@ -132,6 +130,24 @@
                 </div>
             </div>
         </div>
+
+        @if ($pendingSenderNumber)
+            <x-modales.confirmacion x-data="{ modalOpen: true }" x-trap.noscroll="modalOpen"
+                                     x-on:keydown.escape.window="$wire.cancelRemoveSenderNumber()"
+                                     titulo="Eliminar número de remitente">
+                <p class="mt-4 text-sm text-slate-300">
+                    ¿Seguro que quieres eliminar
+                    <span class="font-medium text-white">
+                        {{ $pendingSenderNumber['name'] ?: $pendingSenderNumber['prefix'] . $pendingSenderNumber['number'] }}
+                    </span>?
+                </p>
+
+                <x-slot:actions>
+                    <x-botones.icono-buton label="Cancelar" texto="Cancelar" x-on:click="$wire.cancelRemoveSenderNumber()" />
+                    <x-botones.icono-buton color="red" icon="papelera" label="Eliminar número" texto="Eliminar" wire:click="removeSenderNumber({{ $pendingSenderNumber['id'] }})" />
+                </x-slot:actions>
+            </x-modales.confirmacion>
+        @endif
 
         <div>
             <x-botones.icono-buton icon="disquete" type="submit" label="Guardar" texto="Guardar" />
