@@ -106,9 +106,7 @@ class Appointment extends Model
             return false;
         }
 
-        $buttonPayload = strtolower(trim((string) data_get($latest->provider_payload, 'inbound.button_payload', '')));
-
-        return $buttonPayload === '';
+        return ! $latest->isConfirmed() && ! $latest->isRescheduleRequested();
     }
 
     public function latestInboundAfterLastSent(): ?WhatsAppMessage
@@ -217,15 +215,12 @@ class Appointment extends Model
     public function queBoton(): ?string
     {
         $latestInbound = $this->latestInboundAfterLastSent();
-        $salida = null;
-        if ($latestInbound) {
-            $salida = strtolower(trim((string) data_get($latestInbound->provider_payload, 'inbound.button_payload', '')));
-        }
 
-        if (str_starts_with($salida, 'confirm')) {
+        if ($latestInbound?->isConfirmed()) {
             return 'confirmada';
         }
-        if (str_starts_with($salida, 'cambiar')) {
+
+        if ($latestInbound?->isRescheduleRequested()) {
             return 'cambiar';
         }
 
@@ -236,13 +231,7 @@ class Appointment extends Model
     {
         $latestInbound = $this->latestInboundAfterLastSent();
 
-        if ($latestInbound) {
-            $buttonPayload = strtolower(trim((string) data_get($latestInbound->provider_payload, 'inbound.button_payload', '')));
-
-            return str_starts_with($buttonPayload, 'confirm');
-        }
-
-        return false;
+        return $latestInbound?->isConfirmed() ?? false;
     }
 
     public function wasRescheduled(): bool

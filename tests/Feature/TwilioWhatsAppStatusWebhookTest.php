@@ -316,9 +316,18 @@ class TwilioWhatsAppStatusWebhookTest extends TestCase
             'apellidos' => 'Perez',
             'telefono' => '+34600111222',
         ]);
+        $appointment = Appointment::query()->create([
+            'client_id' => $client->id,
+            'fecha' => '2026-06-30',
+            'hora' => '11:30',
+            'enviado' => true,
+            'entregado' => true,
+            'activo' => true,
+        ]);
 
         $outbound = WhatsAppMessage::query()->create([
             'client_id' => $client->id,
+            'appointment_id' => $appointment->id,
             'nombre' => 'Ana',
             'apellidos' => 'Perez',
             'telefono' => '+34600111222',
@@ -356,10 +365,82 @@ class TwilioWhatsAppStatusWebhookTest extends TestCase
         $inbound = WhatsAppMessage::query()
             ->where('direction', WhatsAppMessage::DIRECTION_INBOUND)
             ->firstOrFail();
+        $appointment->refresh();
 
         $this->assertSame('Confirmar', $inbound->respuesta);
         $this->assertSame('Confirmar', $inbound->provider_payload['inbound']['button_text']);
         $this->assertSame('Confirmar', $inbound->provider_payload['inbound']['response_text']);
+        $this->assertTrue($appointment->confirmada);
+
+        Carbon::setTestNow();
+    }
+
+    public function test_twilio_inbound_marks_appointment_confirmed_when_button_text_is_confirmada_without_payload(): void
+    {
+        Carbon::setTestNow('2026-06-23 10:00:00');
+
+        Config::set('whatsapp.twilio.auth_token', 'test-token');
+        Config::set('whatsapp.twilio.status_callback_url', route('webhooks.twilio.whatsapp-status', absolute: true));
+
+        $client = Client::query()->create([
+            'nombre' => 'Ana',
+            'apellidos' => 'Perez',
+            'telefono' => '+34600111222',
+        ]);
+        $appointment = Appointment::query()->create([
+            'client_id' => $client->id,
+            'fecha' => '2026-06-30',
+            'hora' => '11:30',
+            'enviado' => true,
+            'entregado' => true,
+            'activo' => true,
+        ]);
+        $outbound = WhatsAppMessage::query()->create([
+            'client_id' => $client->id,
+            'appointment_id' => $appointment->id,
+            'nombre' => 'Ana',
+            'apellidos' => 'Perez',
+            'telefono' => '+34600111222',
+            'scheduled_for' => now()->subMinute(),
+            'message' => 'Recordatorio',
+            'source' => WhatsAppMessage::SOURCE_APPOINTMENT,
+            'direction' => WhatsAppMessage::DIRECTION_OUTBOUND,
+            'status' => WhatsAppMessage::STATUS_SENT,
+            'sent_at' => now()->subMinute(),
+            'provider_message_id' => 'SM_BUTTON_CONFIRMADA',
+            'provider_payload' => ['provider' => 'twilio'],
+        ]);
+
+        $payload = [
+            'AccountSid' => 'AC123',
+            'MessageSid' => 'SM_INBOUND_CONFIRMADA',
+            'Direction' => 'inbound-api',
+            'Status' => 'received',
+            'ButtonText' => 'Confirmada',
+            'Body' => '',
+            'To' => 'whatsapp:+14155238886',
+            'From' => 'whatsapp:+34600111222',
+            'ParentMessageSid' => 'SM_BUTTON_CONFIRMADA',
+        ];
+
+        $signature = (new RequestValidator('test-token'))->computeSignature(
+            route('webhooks.twilio.whatsapp-status', absolute: true),
+            $payload
+        );
+
+        $this->post(route('webhooks.twilio.whatsapp-status'), $payload, [
+            'X-Twilio-Signature' => $signature,
+        ])->assertNoContent();
+
+        $inbound = WhatsAppMessage::query()
+            ->where('direction', WhatsAppMessage::DIRECTION_INBOUND)
+            ->firstOrFail();
+        $appointment->refresh();
+
+        $this->assertSame('Confirmada', $inbound->respuesta);
+        $this->assertTrue($inbound->isConfirmed());
+        $this->assertTrue($appointment->confirmada);
+        $this->assertFalse($appointment->pendiente_reprogramacion);
 
         Carbon::setTestNow();
     }

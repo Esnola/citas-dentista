@@ -53,14 +53,7 @@ class WhatsAppResponseHandler
             return;
         }
 
-        $buttonPayload = strtolower(trim((string) data_get($inbound->provider_payload, 'inbound.button_payload', '')));
-        $respuesta = strtolower(trim((string) $inbound->respuesta));
-
-        $isConfirmed = $buttonPayload !== ''
-            ? str_starts_with($buttonPayload, 'confirm')
-            : in_array($respuesta, ['confirmar', 'confirmar cita'], true);
-
-        if ($isConfirmed) {
+        if ($inbound->isConfirmed()) {
             $appointment->update([
                 'confirmada' => true,
                 'pendiente_reprogramacion' => false,
@@ -69,11 +62,7 @@ class WhatsAppResponseHandler
             return;
         }
 
-        $isReschedule = $buttonPayload !== ''
-            ? str_starts_with($buttonPayload, 'reprogram') || str_starts_with($buttonPayload, 'cambiar')
-            : in_array($respuesta, ['reprogramar', 'reprogramar cita', 'cambiar', 'cambiar cita'], true);
-
-        if ($isReschedule) {
+        if ($inbound->isRescheduleRequested()) {
             $appointment->update([
                 'pendiente_reprogramacion' => true,
                 'confirmada' => false,
@@ -86,7 +75,7 @@ class WhatsAppResponseHandler
             'message_id' => $inbound->id,
             'appointment_id' => $appointment->id,
             'respuesta' => $inbound->respuesta,
-            'button_payload' => $buttonPayload ?: null,
+            'button_payload' => data_get($inbound->provider_payload, 'inbound.button_payload'),
         ]);
     }
 }

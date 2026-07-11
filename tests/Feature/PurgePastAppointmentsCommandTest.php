@@ -58,7 +58,7 @@ class PurgePastAppointmentsCommandTest extends TestCase
         ]);
 
         $this->artisan('appointments:purge-past')
-            ->expectsOutput('Deleted 1 expired appointment(s).')
+            ->expectsOutput('Borrado 1 citas expiradas.')
             ->assertSuccessful();
 
         $this->assertDatabaseMissing('appointments', ['id' => $expiredAppointment->id]);
@@ -88,7 +88,7 @@ class PurgePastAppointmentsCommandTest extends TestCase
         ]);
 
         $this->artisan('appointments:purge-past')
-            ->expectsOutput('Deleted 1 expired appointment(s).')
+            ->expectsOutput('Borrado 1 citas expiradas.')
             ->assertSuccessful();
 
         $this->assertDatabaseMissing('appointments', ['id' => $cutoffAppointment->id]);
@@ -101,7 +101,7 @@ class PurgePastAppointmentsCommandTest extends TestCase
         ]);
 
         $this->artisan('appointments:purge-past')
-            ->expectsOutput('Appointment cleanup is disabled. Skipping.')
+            ->expectsOutput('Borrado automático desactivado.')
             ->assertSuccessful();
     }
 }

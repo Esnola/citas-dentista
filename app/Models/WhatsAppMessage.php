@@ -213,9 +213,12 @@ class WhatsAppMessage extends Model
             return str_starts_with($buttonPayload, 'confirm');
         }
 
-        $respuesta = strtolower(trim((string) $this->respuesta));
-
-        return in_array($respuesta, ['confirmar', 'confirmar cita'], true);
+        return in_array($this->normalizedInboundResponse(), [
+            'confirmar',
+            'confirmar cita',
+            'confirmada',
+            'confirmado',
+        ], true);
     }
 
     public function isRescheduleRequested(): bool
@@ -226,9 +229,12 @@ class WhatsAppMessage extends Model
             return str_starts_with($buttonPayload, 'reprogram') || str_starts_with($buttonPayload, 'cambiar');
         }
 
-        $respuesta = strtolower(trim((string) $this->respuesta));
-
-        return in_array($respuesta, ['reprogramar', 'reprogramar cita', 'cambiar', 'cambiar cita'], true);
+        return in_array($this->normalizedInboundResponse(), [
+            'reprogramar',
+            'reprogramar cita',
+            'cambiar',
+            'cambiar cita',
+        ], true);
     }
 
     public function responseValue(): ?string
@@ -286,5 +292,15 @@ class WhatsAppMessage extends Model
         } catch (\Throwable) {
             return null;
         }
+    }
+
+    private function normalizedInboundResponse(): string
+    {
+        $responseText = trim((string) data_get($this->provider_payload, 'inbound.response_text', ''));
+        $buttonText = trim((string) data_get($this->provider_payload, 'inbound.button_text', ''));
+        $body = trim((string) data_get($this->provider_payload, 'inbound.body', ''));
+        $respuesta = trim((string) $this->respuesta);
+
+        return strtolower($responseText !== '' ? $responseText : ($buttonText !== '' ? $buttonText : ($body !== '' ? $body : $respuesta)));
     }
 }
