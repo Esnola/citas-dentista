@@ -140,7 +140,10 @@ class WhatsAppMessage extends Model
 
     public function scopeOutbound($query)
     {
-        return $query->where('direction', self::DIRECTION_OUTBOUND);
+        return $query->where(function ($query): void {
+            $query->where('direction', self::DIRECTION_OUTBOUND)
+                ->orWhereNull('direction');
+        });
     }
 
     public function scopeInbound($query)
@@ -213,12 +216,13 @@ class WhatsAppMessage extends Model
             return str_starts_with($buttonPayload, 'confirm');
         }
 
-        return in_array($this->normalizedInboundResponse(), [
-            'confirmar',
-            'confirmar cita',
-            'confirmada',
-            'confirmado',
-        ], true);
+        $response = $this->normalizedInboundResponse();
+
+        return $response !== ''
+            && (
+                str_contains($response, 'confirm')
+                || in_array($response, ['confirmada', 'confirmado'], true)
+            );
     }
 
     public function isRescheduleRequested(): bool
@@ -229,12 +233,13 @@ class WhatsAppMessage extends Model
             return str_starts_with($buttonPayload, 'reprogram') || str_starts_with($buttonPayload, 'cambiar');
         }
 
-        return in_array($this->normalizedInboundResponse(), [
-            'reprogramar',
-            'reprogramar cita',
-            'cambiar',
-            'cambiar cita',
-        ], true);
+        $response = $this->normalizedInboundResponse();
+
+        return $response !== ''
+            && (
+                str_contains($response, 'reprogram')
+                || str_contains($response, 'cambiar')
+            );
     }
 
     public function responseValue(): ?string
@@ -300,7 +305,11 @@ class WhatsAppMessage extends Model
         $buttonText = trim((string) data_get($this->provider_payload, 'inbound.button_text', ''));
         $body = trim((string) data_get($this->provider_payload, 'inbound.body', ''));
         $respuesta = trim((string) $this->respuesta);
+        $value = $responseText !== '' ? $responseText : ($buttonText !== '' ? $buttonText : ($body !== '' ? $body : $respuesta));
 
-        return strtolower($responseText !== '' ? $responseText : ($buttonText !== '' ? $buttonText : ($body !== '' ? $body : $respuesta)));
+        $value = strtolower($value);
+        $value = preg_replace('/\s+/u', ' ', $value) ?? $value;
+
+        return trim($value, " \t\n\r\0\x0B:;,.!?-_+*#\"'()[]{}");
     }
 }

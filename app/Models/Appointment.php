@@ -112,7 +112,7 @@ class Appointment extends Model
     public function latestInboundAfterLastSent(): ?WhatsAppMessage
     {
         $lastSent = $this->whatsAppMessages()
-            ->where('direction', WhatsAppMessage::DIRECTION_OUTBOUND)
+            ->outbound()
             ->whereNotNull('sent_at')
             ->orderByDesc('sent_at')
             ->first();

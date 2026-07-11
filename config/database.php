@@ -3,6 +3,13 @@
 use Illuminate\Support\Str;
 use Pdo\Mysql;
 
+$defaultSqliteDatabase = database_path('database.sqlite');
+$configuredSqliteDatabase = env('DB_DATABASE', $defaultSqliteDatabase);
+
+if (env('APP_ENV') === 'testing' && $configuredSqliteDatabase === $defaultSqliteDatabase) {
+    $configuredSqliteDatabase = ':memory:';
+}
+
 return [
 
     /*
@@ -35,7 +42,7 @@ return [
         'sqlite' => [
             'driver' => 'sqlite',
             'url' => env('DB_URL'),
-            'database' => env('DB_DATABASE', database_path('database.sqlite')),
+            'database' => $configuredSqliteDatabase,
             'prefix' => '',
             'foreign_key_constraints' => env('DB_FOREIGN_KEYS', true),
             'busy_timeout' => null,

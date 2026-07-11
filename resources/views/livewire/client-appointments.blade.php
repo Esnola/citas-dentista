@@ -316,7 +316,7 @@
                             class="inline-flex items-center rounded-full gap-2 px-2 py-0.5 text-xs font-semibold transition-colors hover:bg-white/10 cursor-pointer {{ $responseClasses }}"
                             aria-label="Ver historial de esta cita"
                             title="Ver historial">
-                      <x-dynamic-component :component="'iconos.' . $icono" class="size-6 "/>
+                      <x-dynamic-component :component="'iconos.' . $icono" clase="size-6"/>
                       {{ $displayResponseLabel }}
                     </button>
                   @endif

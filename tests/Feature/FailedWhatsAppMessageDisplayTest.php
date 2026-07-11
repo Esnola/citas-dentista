@@ -250,4 +250,289 @@ class FailedWhatsAppMessageDisplayTest extends TestCase
             ->set('showAllHistory', true)
             ->assertSee('No entregado');
     }
+
+    public function test_history_modal_shows_confirmation_badge_for_inbound_button_text_without_payload(): void
+    {
+        Carbon::setTestNow('2026-07-11 23:35:00');
+
+        $user = User::factory()->create();
+        $client = Client::query()->create([
+            'nombre' => 'Juan Jose',
+            'apellidos' => 'Gonzalez Vega',
+            'telefono' => '+34600123123',
+        ]);
+
+        $appointment = Appointment::query()->create([
+            'client_id' => $client->id,
+            'fecha' => '2026-07-12',
+            'hora' => '09:30:00',
+            'enviado' => true,
+            'entregado' => true,
+            'whatsapp_sent_at' => now()->subMinutes(6),
+            'whatsapp_delivered_at' => now()->subMinutes(5),
+            'whatsapp_read_at' => now()->subMinutes(4),
+            'activo' => true,
+        ]);
+
+        $outbound = WhatsAppMessage::query()->create([
+            'client_id' => $client->id,
+            'appointment_id' => $appointment->id,
+            'nombre' => 'Juan Jose',
+            'apellidos' => 'Gonzalez Vega',
+            'telefono' => '+34600123123',
+            'scheduled_for' => now()->subMinutes(6),
+            'message' => 'Hola Juan Jose',
+            'source' => WhatsAppMessage::SOURCE_APPOINTMENT,
+            'direction' => WhatsAppMessage::DIRECTION_OUTBOUND,
+            'status' => WhatsAppMessage::STATUS_SENT,
+            'sent_at' => now()->subMinutes(6),
+            'provider_message_id' => 'SM_HISTORY_MODAL_1',
+            'provider_payload' => [
+                'provider' => 'twilio',
+                'callback' => [
+                    'message_status' => 'read',
+                ],
+            ],
+        ]);
+
+        WhatsAppMessage::query()->create([
+            'client_id' => $client->id,
+            'appointment_id' => $appointment->id,
+            'parent_id' => $outbound->id,
+            'nombre' => 'Juan Jose',
+            'apellidos' => 'Gonzalez Vega',
+            'telefono' => '+34600123123',
+            'scheduled_for' => now()->subMinutes(5),
+            'message' => 'Confirmada',
+            'source' => WhatsAppMessage::SOURCE_APPOINTMENT,
+            'direction' => WhatsAppMessage::DIRECTION_INBOUND,
+            'status' => WhatsAppMessage::STATUS_SENT,
+            'sent_at' => now()->subMinutes(5),
+            'respuesta' => 'Confirmada',
+            'responded_at' => now()->subMinutes(5),
+            'provider_payload' => [
+                'inbound' => [
+                    'direction' => 'inbound-api',
+                    'status' => 'received',
+                    'button_text' => 'Confirmada',
+                    'response_text' => 'Confirmada',
+                    'body' => '',
+                ],
+            ],
+        ]);
+
+        $this->actingAs($user);
+
+        Livewire::test(ClientAppointments::class, ['clientId' => $client->id])
+            ->call('openHistory', $appointment->id)
+            ->assertSee('Historial de la cita')
+            ->assertSee('Confirmada')
+            ->assertDontSee('Confirmar Cita');
+    }
+
+    public function test_history_modal_treats_confirmar_cita_text_as_confirmation_without_payload(): void
+    {
+        Carbon::setTestNow('2026-07-11 23:35:00');
+
+        $user = User::factory()->create();
+        $client = Client::query()->create([
+            'nombre' => 'Juan Jose',
+            'apellidos' => 'Gonzalez Vega',
+            'telefono' => '+34600123123',
+        ]);
+
+        $appointment = Appointment::query()->create([
+            'client_id' => $client->id,
+            'fecha' => '2026-07-12',
+            'hora' => '09:30:00',
+            'enviado' => true,
+            'entregado' => true,
+            'whatsapp_sent_at' => now()->subMinutes(6),
+            'whatsapp_delivered_at' => now()->subMinutes(5),
+            'whatsapp_read_at' => now()->subMinutes(4),
+            'activo' => true,
+        ]);
+
+        $outbound = WhatsAppMessage::query()->create([
+            'client_id' => $client->id,
+            'appointment_id' => $appointment->id,
+            'nombre' => 'Juan Jose',
+            'apellidos' => 'Gonzalez Vega',
+            'telefono' => '+34600123123',
+            'scheduled_for' => now()->subMinutes(6),
+            'message' => 'Hola Juan Jose',
+            'source' => WhatsAppMessage::SOURCE_APPOINTMENT,
+            'direction' => WhatsAppMessage::DIRECTION_OUTBOUND,
+            'status' => WhatsAppMessage::STATUS_SENT,
+            'sent_at' => now()->subMinutes(6),
+            'provider_message_id' => 'SM_HISTORY_MODAL_2',
+            'provider_payload' => [
+                'provider' => 'twilio',
+                'callback' => [
+                    'message_status' => 'read',
+                ],
+            ],
+        ]);
+
+        WhatsAppMessage::query()->create([
+            'client_id' => $client->id,
+            'appointment_id' => $appointment->id,
+            'parent_id' => $outbound->id,
+            'nombre' => 'Juan Jose',
+            'apellidos' => 'Gonzalez Vega',
+            'telefono' => '+34600123123',
+            'scheduled_for' => now()->subMinutes(5),
+            'message' => 'Confirmar Cita',
+            'source' => WhatsAppMessage::SOURCE_APPOINTMENT,
+            'direction' => WhatsAppMessage::DIRECTION_INBOUND,
+            'status' => WhatsAppMessage::STATUS_SENT,
+            'sent_at' => now()->subMinutes(5),
+            'respuesta' => 'Confirmar Cita',
+            'responded_at' => now()->subMinutes(5),
+            'provider_payload' => [
+                'inbound' => [
+                    'direction' => 'inbound-api',
+                    'status' => 'received',
+                    'body' => 'Confirmar Cita',
+                    'response_text' => 'Confirmar Cita',
+                ],
+            ],
+        ]);
+
+        $this->actingAs($user);
+
+        Livewire::test(ClientAppointments::class, ['clientId' => $client->id])
+            ->call('openHistory', $appointment->id)
+            ->assertSee('Confirmada')
+            ->assertDontSee('Confirmar Cita');
+    }
+
+    public function test_history_modal_treats_prefixed_confirm_text_as_confirmation_without_payload(): void
+    {
+        Carbon::setTestNow('2026-07-11 23:35:00');
+
+        $user = User::factory()->create();
+        $client = Client::query()->create([
+            'nombre' => 'Juan Jose',
+            'apellidos' => 'Gonzalez Vega',
+            'telefono' => '+34600123123',
+        ]);
+
+        $appointment = Appointment::query()->create([
+            'client_id' => $client->id,
+            'fecha' => '2026-07-12',
+            'hora' => '09:30:00',
+            'enviado' => true,
+            'entregado' => true,
+            'activo' => true,
+        ]);
+
+        $outbound = WhatsAppMessage::query()->create([
+            'client_id' => $client->id,
+            'appointment_id' => $appointment->id,
+            'nombre' => 'Juan Jose',
+            'apellidos' => 'Gonzalez Vega',
+            'telefono' => '+34600123123',
+            'scheduled_for' => now()->subMinutes(6),
+            'message' => 'Hola Juan Jose',
+            'source' => WhatsAppMessage::SOURCE_APPOINTMENT,
+            'direction' => WhatsAppMessage::DIRECTION_OUTBOUND,
+            'status' => WhatsAppMessage::STATUS_SENT,
+            'sent_at' => now()->subMinutes(6),
+            'provider_message_id' => 'SM_HISTORY_MODAL_3',
+        ]);
+
+        WhatsAppMessage::query()->create([
+            'client_id' => $client->id,
+            'appointment_id' => $appointment->id,
+            'parent_id' => $outbound->id,
+            'nombre' => 'Juan Jose',
+            'apellidos' => 'Gonzalez Vega',
+            'telefono' => '+34600123123',
+            'scheduled_for' => now()->subMinutes(5),
+            'message' => 'Respuesta: Confirmar Cita',
+            'source' => WhatsAppMessage::SOURCE_APPOINTMENT,
+            'direction' => WhatsAppMessage::DIRECTION_INBOUND,
+            'status' => WhatsAppMessage::STATUS_SENT,
+            'sent_at' => now()->subMinutes(5),
+            'respuesta' => 'Respuesta: Confirmar Cita',
+            'responded_at' => now()->subMinutes(5),
+            'provider_payload' => [
+                'inbound' => [
+                    'direction' => 'inbound-api',
+                    'status' => 'received',
+                    'body' => 'Respuesta: Confirmar Cita',
+                    'response_text' => 'Respuesta: Confirmar Cita',
+                ],
+            ],
+        ]);
+
+        $this->actingAs($user);
+
+        Livewire::test(ClientAppointments::class, ['clientId' => $client->id])
+            ->call('openHistory', $appointment->id)
+            ->assertSee('Confirmada')
+            ->assertDontSee('Respuesta: Confirmar Cita');
+    }
+
+    public function test_appointment_detects_latest_inbound_after_last_sent_when_outbound_direction_is_null(): void
+    {
+        Carbon::setTestNow('2026-07-11 23:35:00');
+
+        $client = Client::query()->create([
+            'nombre' => 'Juan Jose',
+            'apellidos' => 'Gonzalez Vega',
+            'telefono' => '+34600123123',
+        ]);
+
+        $appointment = Appointment::query()->create([
+            'client_id' => $client->id,
+            'fecha' => '2026-07-12',
+            'hora' => '09:30:00',
+            'enviado' => true,
+            'activo' => true,
+        ]);
+
+        $outbound = WhatsAppMessage::query()->create([
+            'client_id' => $client->id,
+            'appointment_id' => $appointment->id,
+            'nombre' => 'Juan Jose',
+            'apellidos' => 'Gonzalez Vega',
+            'telefono' => '+34600123123',
+            'scheduled_for' => now()->subMinutes(6),
+            'message' => 'Hola Juan Jose',
+            'source' => WhatsAppMessage::SOURCE_APPOINTMENT,
+            'status' => WhatsAppMessage::STATUS_SENT,
+            'sent_at' => now()->subMinutes(6),
+            'provider_message_id' => 'SM_NULL_DIRECTION',
+        ]);
+
+        $inbound = WhatsAppMessage::query()->create([
+            'client_id' => $client->id,
+            'appointment_id' => $appointment->id,
+            'parent_id' => $outbound->id,
+            'nombre' => 'Juan Jose',
+            'apellidos' => 'Gonzalez Vega',
+            'telefono' => '+34600123123',
+            'scheduled_for' => now()->subMinutes(5),
+            'message' => 'Confirmada',
+            'source' => WhatsAppMessage::SOURCE_APPOINTMENT,
+            'direction' => WhatsAppMessage::DIRECTION_INBOUND,
+            'status' => WhatsAppMessage::STATUS_SENT,
+            'sent_at' => now()->subMinutes(5),
+            'respuesta' => 'Confirmada',
+            'responded_at' => now()->subMinutes(5),
+            'provider_payload' => [
+                'inbound' => [
+                    'button_text' => 'Confirmada',
+                    'response_text' => 'Confirmada',
+                ],
+            ],
+        ]);
+
+        $appointment->refresh();
+
+        $this->assertTrue($appointment->esCitaConfirmada());
+        $this->assertSame($inbound->id, $appointment->latestInboundAfterLastSent()?->id);
+    }
 }

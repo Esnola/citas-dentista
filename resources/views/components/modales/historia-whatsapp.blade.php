@@ -44,15 +44,13 @@
             $laClase = $isInbound
                     ? 'bg-whatsapp border border-emerald-500/20'
                     : 'bg-slate-800/60 border border-white/10';
-            $displayMessage = $msg->message ?: $msg->responseValue();
-            $buttonPayload = $isInbound
-                    ? strtolower(trim((string) data_get($msg->provider_payload, 'inbound.button_payload', '')))
-                    : '';
+            $displayMessage = $isInbound ? $msg->responseValue() : $msg->message;
             $buttonBadge = match (true) {
-                    str_starts_with($buttonPayload, 'confirm') => ['clase' => 'cita-confirmada', 'texto' => 'Confirmada', 'icono' => 'usuario-plus'],
-                    str_starts_with($buttonPayload, 'reprogram'), str_starts_with($buttonPayload, 'cambiar') => ['clase' => 'cambiar-cita', 'texto' => 'Cambiar cita', 'icono' => 'alert'],
+                    $isInbound && $msg->isConfirmed() => ['clase' => 'cita-confirmada', 'texto' => 'Confirmada', 'icono' => 'usuario-plus'],
+                    $isInbound && $msg->isRescheduleRequested() => ['clase' => 'cambiar-cita', 'texto' => 'Cambiar cita', 'icono' => 'alert'],
                     default => null,
             };
+            $displayTimestamp = $msg->sent_at ?? $msg->responded_at ?? $msg->created_at;
           @endphp
           <div class="flex {{ !$isInbound ? 'justify-end' : 'justify-start' }}">
             <div class="max-w-full sm:max-w-[85%] px-4 py-3 {{ $laClase }}">
@@ -61,7 +59,7 @@
                     {{ $isInbound ? 'Recibido' : 'Enviado' }}
                   </span>
                 <span class="text-[10px] {{ $isInbound ? 'text-emerald-800' : 'text-slate-500' }}">
-                    {{ $msg->sent_at?->format('d/m/Y H:i:s') }}
+                    {{ $displayTimestamp?->format('d/m/Y H:i:s') }}
                   </span>
               </div>
               @if (! $buttonBadge && filled($displayMessage))

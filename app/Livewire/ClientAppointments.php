@@ -354,7 +354,7 @@ class ClientAppointments extends Component
         $this->historyAppointment = Appointment::query()
             ->with([
                 'changes',
-                'whatsAppMessages' => fn ($q) => $q->orderBy('sent_at', 'asc')->orderBy('id', 'asc'),
+                'whatsAppMessages' => fn ($q) => $q->orderByRaw('COALESCE(sent_at, responded_at, created_at) asc')->orderBy('id', 'asc'),
             ])
             ->findOrFail($appointmentId);
     }

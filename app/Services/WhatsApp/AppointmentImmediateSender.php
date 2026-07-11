@@ -38,6 +38,7 @@ class AppointmentImmediateSender
                 'scheduled_for' => $scheduledFor,
             ]),
             'source' => WhatsAppMessage::SOURCE_APPOINTMENT,
+            'direction' => WhatsAppMessage::DIRECTION_OUTBOUND,
             'status' => WhatsAppMessage::STATUS_PENDING,
             'metadata' => [
                 'origin_appointment_id' => $appointment->id,
