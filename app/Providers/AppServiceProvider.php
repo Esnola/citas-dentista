@@ -12,6 +12,9 @@ use App\Livewire\Settings\TableBackup;
 use App\Livewire\Settings\TwilioContentTemplateSettings;
 use App\Livewire\Settings\TwilioCredentialSettings;
 use App\Livewire\Settings\WhatsAppConnectionTest;
+use App\Livewire\UnreadResponsesNotice;
+use App\Models\WhatsAppCredential;
+use App\Observers\WhatsAppCredentialObserver;
 use Illuminate\Support\ServiceProvider;
 use Livewire\Livewire;
 
@@ -35,10 +38,13 @@ class AppServiceProvider extends ServiceProvider
         Livewire::component('appointment-cleanup-settings', AppointmentCleanupSettings::class);
         Livewire::component('twilio-content-template-settings', TwilioContentTemplateSettings::class);
         Livewire::component('dispatch-banner', DispatchBanner::class);
+        Livewire::component('unread-responses-notice', UnreadResponsesNotice::class);
         Livewire::component('twilio-credential-settings', TwilioCredentialSettings::class);
         Livewire::component('settings-overview', SettingsOverview::class);
         Livewire::component('settings-backup', SettingsBackup::class);
         Livewire::component('database-backup', DatabaseBackup::class);
         Livewire::component('table-backup', TableBackup::class);
+
+        WhatsAppCredential::observe(WhatsAppCredentialObserver::class);
     }
 }

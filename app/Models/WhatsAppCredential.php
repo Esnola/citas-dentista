@@ -31,6 +31,8 @@ class WhatsAppCredential extends Model
         'api_key_sid',
         'api_key_secret',
         'status_callback_url',
+        'webhook_enabled',
+        'poll_interval',
         'selected',
     ];
 
@@ -45,7 +47,9 @@ class WhatsAppCredential extends Model
             'connect_timeout' => 'integer',
             'cloud_api_timeout' => 'integer',
             'timeout' => 'integer',
+            'poll_interval' => 'integer',
             'selected' => 'boolean',
+            'webhook_enabled' => 'boolean',
         ];
     }
 
@@ -199,6 +203,25 @@ class WhatsAppCredential extends Model
         return $configuredUrl !== ''
             ? $configuredUrl
             : (string) config('whatsapp.twilio.status_callback_url', '');
+    }
+
+    public static function webhookEnabled(): bool
+    {
+        $credential = static::get();
+
+        return (bool) ($credential->webhook_enabled ?? true);
+    }
+
+    public static function pollInterval(): int
+    {
+        $credential = static::get();
+        $interval = (int) ($credential->poll_interval ?? 10);
+
+        if ((bool) ($credential->webhook_enabled ?? true)) {
+            return 2;
+        }
+
+        return max(5, min(60, $interval));
     }
 
     private function stringSetting(mixed $value, string $configKey, string $default): string

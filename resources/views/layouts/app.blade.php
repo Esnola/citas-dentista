@@ -112,6 +112,7 @@
 
 <div
         class="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(16,185,129,0.18),transparent_35%),linear-gradient(180deg,#020617,#0f172a)]"></div>
+<livewire:unread-responses-notice/>
 <div x-data="{ mobileOpen: false }" class="relative mx-auto flex min-h-screen min-w-6/8">
 
   <button

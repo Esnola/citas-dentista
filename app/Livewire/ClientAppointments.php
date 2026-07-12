@@ -2,14 +2,17 @@
 
 namespace App\Livewire;
 
+use App\Jobs\SendWhatsAppMessage;
 use App\Models\Appointment;
 use App\Models\Client;
+use App\Models\WhatsAppCredential;
 use App\Models\WhatsAppMessage;
 use App\Services\ClientDataDeletionService;
 use App\Services\WhatsApp\AppointmentDeliveryStatusSyncer;
 use App\Services\WhatsApp\AppointmentImmediateSender;
 use App\Services\WhatsApp\WhatsAppSender;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -41,6 +44,8 @@ class ClientAppointments extends Component
 
     public ?Appointment $historyAppointment = null;
 
+    public string $historyReplyBody = '';
+
     private AppointmentImmediateSender $immediateSender;
 
     private AppointmentDeliveryStatusSyncer $deliveryStatusSyncer;
@@ -58,6 +63,17 @@ class ClientAppointments extends Component
         $this->clientId = $clientId;
 
         $this->deliveryStatusesSyncedAt = Cache::get('appointment_delivery_statuses_synced_at');
+        $historyAppointmentId = (int) request()->integer('history');
+
+        if ($historyAppointmentId > 0) {
+            $appointment = Appointment::query()
+                ->where('client_id', $this->clientId)
+                ->find($historyAppointmentId);
+
+            if ($appointment) {
+                $this->openHistory($appointment->id);
+            }
+        }
     }
 
     public function updated(string $property): void
@@ -351,24 +367,92 @@ class ClientAppointments extends Component
 
     public function openHistory(int $appointmentId): void
     {
+        $appointment = Appointment::query()->findOrFail($appointmentId);
+        $appointment->markLatestInboundAsSeen();
+
         $this->historyAppointment = Appointment::query()
             ->with([
                 'changes',
                 'whatsAppMessages' => fn ($q) => $q->orderByRaw('COALESCE(sent_at, responded_at, created_at) asc')->orderBy('id', 'asc'),
             ])
             ->findOrFail($appointmentId);
+        $this->historyReplyBody = '';
     }
 
     public function closeHistory(): void
     {
         $this->historyAppointment = null;
+        $this->historyReplyBody = '';
+    }
+
+    public function sendHistoryReply(): void
+    {
+        if (! $this->historyAppointment?->id) {
+            return;
+        }
+
+        $data = $this->validate([
+            'historyReplyBody' => ['required', 'string', 'max:1000'],
+        ], [
+            'historyReplyBody.required' => 'Escribe un mensaje antes de enviarlo.',
+            'historyReplyBody.max' => 'El mensaje no puede superar los 1000 caracteres.',
+        ]);
+
+        $appointment = Appointment::query()
+            ->with('client')
+            ->findOrFail($this->historyAppointment->id);
+
+        $client = $appointment->client;
+
+        if (! $client) {
+            $this->dispatch('toast', message: 'La cita no tiene cliente asociado.', type: 'error');
+
+            return;
+        }
+
+        $parentMessage = $appointment->latestInboundAfterLastSent();
+
+        $message = WhatsAppMessage::query()->create([
+            'user_id' => Auth::id(),
+            'client_id' => $client->id,
+            'appointment_id' => $appointment->id,
+            'parent_id' => $parentMessage?->id,
+            'nombre' => $client->nombre,
+            'apellidos' => $client->apellidos,
+            'telefono' => $client->telefono,
+            'scheduled_for' => now(),
+            'message' => trim($data['historyReplyBody']),
+            'source' => WhatsAppMessage::SOURCE_MANUAL,
+            'direction' => WhatsAppMessage::DIRECTION_OUTBOUND,
+            'status' => WhatsAppMessage::STATUS_PENDING,
+            'metadata' => [
+                'origin_appointment_id' => $appointment->id,
+                'history_reply' => true,
+                'reply_to_inbound_id' => $parentMessage?->id,
+            ],
+        ]);
+
+        SendWhatsAppMessage::dispatchSync($message->id);
+
+        $message->refresh();
+
+        if ($message->status === WhatsAppMessage::STATUS_SENT) {
+            $this->historyReplyBody = '';
+            $this->refreshHistoryAppointment();
+            $this->dispatch('toast', message: 'Respuesta enviada correctamente.', type: 'success');
+
+            return;
+        }
+
+        $this->refreshHistoryAppointment();
+        $this->dispatch('toast', message: 'No se pudo enviar la respuesta. '.($message->last_error ?? ''), type: 'error');
     }
 
     public function syncDeliveryStatuses(): void
     {
         $updated = $this->deliveryStatusSyncer->syncAll($this->clientId, force: true);
-        $this->deliveryStatusesSyncedAt = now(config('app.timezone'))->format('H:i - d/m/Y');
-        Cache::forever('appointment_delivery_statuses_synced_at', $this->deliveryStatusesSyncedAt);
+        $this->touchDeliveryStatusesSyncedAt();
+        $this->refreshHistoryAppointment();
 
         if ($updated > 0) {
             $this->dispatch('toast', message: $updated === 1 ? 'Se ha actualizado 1 cita' : 'Se han actualizado '.$updated.' citas', type: 'success');
@@ -381,14 +465,37 @@ class ClientAppointments extends Component
 
     public function autoSync(): void
     {
-        $this->deliveryStatusSyncer->syncAll($this->clientId, force: true);
-        $this->deliveryStatusesSyncedAt = now(config('app.timezone'))->format('H:i - d/m/Y');
-        Cache::forever('appointment_delivery_statuses_synced_at', $this->deliveryStatusesSyncedAt);
+        if (! WhatsAppCredential::webhookEnabled()) {
+            $this->deliveryStatusSyncer->syncAll($this->clientId, force: true);
+        }
+
+        $this->touchDeliveryStatusesSyncedAt();
+        $this->refreshHistoryAppointment();
     }
 
     private function queuePageReloadAfterWhatsAppSend(): void
     {
         $this->dispatch('reload-appointment-list');
+    }
+
+    private function touchDeliveryStatusesSyncedAt(): void
+    {
+        $this->deliveryStatusesSyncedAt = now(config('app.timezone'))->format('H:i - d/m/Y');
+        Cache::forever('appointment_delivery_statuses_synced_at', $this->deliveryStatusesSyncedAt);
+    }
+
+    private function refreshHistoryAppointment(): void
+    {
+        if (! $this->historyAppointment?->id) {
+            return;
+        }
+
+        $this->historyAppointment = Appointment::query()
+            ->with([
+                'changes',
+                'whatsAppMessages' => fn ($q) => $q->orderByRaw('COALESCE(sent_at, responded_at, created_at) asc')->orderBy('id', 'asc'),
+            ])
+            ->find($this->historyAppointment->id);
     }
 
     public function render()
@@ -419,6 +526,7 @@ class ClientAppointments extends Component
             'showBulkActions' => true,
             'visibleAppointmentIds' => $visibleAppointmentIds,
             'allVisibleAppointmentsSelected' => $allVisibleAppointmentsSelected,
+            'pollInterval' => WhatsAppCredential::pollInterval(),
         ]);
     }
 

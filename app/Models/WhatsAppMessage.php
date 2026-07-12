@@ -246,10 +246,28 @@ class WhatsAppMessage extends Model
     {
         $direction = strtolower(trim((string) data_get($this->provider_payload, 'inbound.direction', '')));
         $status = strtolower(trim((string) data_get($this->provider_payload, 'inbound.status', '')));
+        $responseText = trim((string) data_get($this->provider_payload, 'inbound.response_text', ''));
+        $buttonText = trim((string) data_get($this->provider_payload, 'inbound.button_text', ''));
         $body = trim((string) data_get($this->provider_payload, 'inbound.body', ''));
 
         if (in_array($direction, ['inbound api', 'inbound-api', 'inbound_api'], true) && $status === 'received' && $body !== '') {
             return $body;
+        }
+
+        if ($responseText !== '') {
+            return $responseText;
+        }
+
+        if ($buttonText !== '') {
+            return $buttonText;
+        }
+
+        if ($body !== '') {
+            return $body;
+        }
+
+        if (filled($this->message)) {
+            return $this->message;
         }
 
         if (filled($this->respuesta)) {

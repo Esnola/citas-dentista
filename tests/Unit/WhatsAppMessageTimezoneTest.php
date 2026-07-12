@@ -39,4 +39,25 @@ class WhatsAppMessageTimezoneTest extends TestCase
         $this->assertSame('Reprogramar por la tarde', $message->responseValue());
         $this->assertTrue($message->hasResponse());
     }
+
+    public function test_inbound_body_is_used_before_truncated_respuesta(): void
+    {
+        $message = new WhatsAppMessage([
+            'message' => 'Necesito reprogramar la cita porque me surge una urgencia y no llego a tiempo.',
+            'respuesta' => 'Necesito reprogramar la cita porque me surge un',
+            'provider_payload' => [
+                'inbound' => [
+                    'direction' => 'inbound',
+                    'status' => 'received',
+                    'body' => 'Necesito reprogramar la cita porque me surge una urgencia y no llego a tiempo.',
+                ],
+            ],
+        ]);
+
+        $this->assertSame(
+            'Necesito reprogramar la cita porque me surge una urgencia y no llego a tiempo.',
+            $message->responseValue()
+        );
+        $this->assertTrue($message->hasResponse());
+    }
 }

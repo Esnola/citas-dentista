@@ -150,7 +150,7 @@
             route="appointments.index"
         />
     </section>
-
+{{--
     <section aria-labelledby="attention-heading" class="overflow-hidden rounded-[1.75rem] border {{ $attentionCount > 0 ? 'border-amber-400/20 bg-amber-400/5' : 'border-emerald-400/20 bg-emerald-400/5' }}">
         <div class="grid gap-6 p-6 sm:p-7 lg:grid-cols-[0.95fr_1.2fr] lg:items-start">
             <div class="space-y-4">
@@ -220,7 +220,7 @@
                 @endif
             </div>
         </div>
-    </section>
+    </section>--}}
 
     <section aria-labelledby="next-heading" class="overflow-hidden rounded-[1.75rem] border border-white/10 bg-slate-900/45">
         <div class="flex flex-wrap items-end justify-between gap-4 border-b border-white/10 px-5 py-4 sm:px-6">
@@ -239,7 +239,7 @@
         @else
             <ul class="divide-y divide-white/5">
                 @foreach ($nextAppointments as $appointment)
-                    <li wire:key="dashboard-appointment-{{ $appointment->id }}" class="grid gap-4 px-5 py-4 transition hover:bg-white/[0.025] sm:grid-cols-[8rem_minmax(0,1fr)_auto] sm:items-center sm:px-6">
+                    <li wire:key="dashboard-appointment-{{ $appointment->id }}" class="grid gap-4 px-5 py-4 transition hover:bg-white/2.5 sm:grid-cols-[8rem_minmax(0,1fr)_auto] sm:items-center sm:px-6">
                         <div class="flex items-center gap-3">
                             <span class="text-xl font-bold text-white">{{ substr($appointment->hora, 0, 5) }}</span>
                             <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">{{ $appointment->fecha->isToday() ? 'Hoy' : $appointment->fecha->translatedFormat('d M') }}</span>

@@ -400,6 +400,50 @@ class WhatsAppTwilioDispatchTest extends TestCase
         });
     }
 
+    public function test_history_reply_messages_are_sent_as_text_without_twilio_template(): void
+    {
+        $admin = User::factory()->create();
+
+        WhatsAppMessage::query()->create([
+            'user_id' => $admin->id,
+            'nombre' => 'Ana',
+            'apellidos' => 'Perez',
+            'telefono' => '600123123',
+            'scheduled_for' => now()->subMinute(),
+            'message' => 'Te llamamos en unos minutos.',
+            'source' => WhatsAppMessage::SOURCE_MANUAL,
+            'status' => WhatsAppMessage::STATUS_PENDING,
+            'direction' => WhatsAppMessage::DIRECTION_OUTBOUND,
+            'metadata' => [
+                'history_reply' => true,
+            ],
+        ]);
+
+        Config::set('whatsapp.driver', 'twilio');
+        Config::set('whatsapp.twilio.account_sid', 'AC123');
+        Config::set('whatsapp.twilio.auth_token', 'test-token');
+        Config::set('whatsapp.twilio.mode', 'sandbox');
+        Config::set('whatsapp.twilio.from', 'whatsapp:+14155238886');
+        Config::set('whatsapp.twilio.status_callback_url', route('webhooks.twilio.whatsapp-status', absolute: true));
+        Config::set('whatsapp.default_country_code', '+34');
+        $this->createSelectedTwilioTemplate();
+
+        Http::fake([
+            'api.twilio.com/*/Messages.json' => Http::response([
+                'sid' => 'SMHISTORYTEXT123',
+                'status' => 'queued',
+            ], 201),
+        ]);
+
+        $this->artisan('whatsapp:dispatch-due')->assertExitCode(0);
+
+        Http::assertSent(function ($request): bool {
+            return $request['To'] === 'whatsapp:+34600123123'
+                && $request['Body'] === 'Te llamamos en unos minutos.'
+                && ! isset($request['ContentSid']);
+        });
+    }
+
     private function createSelectedTwilioTemplate(): void
     {
         TwilioContentTemplate::query()->create([

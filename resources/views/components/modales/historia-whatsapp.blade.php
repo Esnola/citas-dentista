@@ -3,7 +3,7 @@
        x-on:keydown.escape.window="$wire.closeHistory()"
        class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
        x-show="modalOpen" x-transition.opacity>
-    <div class="relative mx-4 flex max-h-[80vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-white/10 bg-slate-900 shadow-2xl"
+    <div class="relative mx-4 flex max-h-[80vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-white/10 bg-slate-900 shadow-2xl"
          x-show="modalOpen" x-transition.scale.95>
       <div class="shrink-0 flex items-center justify-between border-b border-white/10 px-6 py-4">
         <div>
@@ -53,7 +53,7 @@
             $displayTimestamp = $msg->sent_at ?? $msg->responded_at ?? $msg->created_at;
           @endphp
           <div class="flex {{ !$isInbound ? 'justify-end' : 'justify-start' }}">
-            <div class="max-w-full sm:max-w-[85%] px-4 py-3 {{ $laClase }}">
+            <div class="w-full px-4 py-3 sm:w-auto sm:max-w-[92%] {{ $laClase }}">
               <div class="mb-1 flex flex-wrap items-center gap-x-2 gap-y-1">
                   <span class="text-[10px] font-semibold {{ $isInbound ? 'text-emerald-700' : 'text-slate-400' }}">
                     {{ $isInbound ? 'Recibido' : 'Enviado' }}
@@ -63,7 +63,7 @@
                   </span>
               </div>
               @if (! $buttonBadge && filled($displayMessage))
-                <p class="mt-2 whitespace-pre-wrap break-words text-sm leading-relaxed {{ $isInbound ? 'text-slate-950' : 'text-slate-100' }}">{{ $displayMessage }}</p>
+                <p class="mt-2 whitespace-pre-wrap break-all text-sm leading-relaxed {{ $isInbound ? 'text-slate-950' : 'text-slate-100' }}">{{ $displayMessage }}</p>
               @endif
               @if ($buttonBadge)
                 <div class="mt-2 flex items-center gap-1">
@@ -99,6 +99,32 @@
             No hay mensajes registrados para esta cita.
           </div>
         @endforelse
+      </div>
+      <div class="shrink-0 border-t border-white/10 px-6 py-4">
+        <form wire:submit="sendHistoryReply" class="space-y-3">
+          <div>
+            <label for="history-reply-body" class="text-sm font-semibold text-white">Responder por WhatsApp</label>
+            <textarea
+                id="history-reply-body"
+                wire:model="historyReplyBody"
+                rows="3"
+                placeholder="Escribe una respuesta para este cliente..."
+                class="mt-2 w-full rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm text-slate-100 placeholder:text-slate-500 focus:border-emerald-400/40 focus:outline-none"
+            ></textarea>
+            <flux:error name="historyReplyBody"/>
+          </div>
+          <div class="flex items-center justify-between gap-3">
+            <p class="text-xs text-slate-500">Se enviara como mensaje manual y quedara registrado en este historial.</p>
+            <button
+                type="submit"
+                wire:loading.attr="disabled"
+                wire:target="sendHistoryReply"
+                class="inline-flex items-center rounded-full border border-emerald-400/30 bg-emerald-500/10 px-4 py-2 text-sm font-semibold text-emerald-200 transition hover:bg-emerald-500/20 disabled:opacity-50"
+            >
+              Enviar respuesta
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   </div>

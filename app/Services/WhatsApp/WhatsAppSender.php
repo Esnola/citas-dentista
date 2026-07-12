@@ -85,7 +85,7 @@ class WhatsAppSender
             'provider' => 'log',
             'message_id' => null,
             'payload' => $payload,
-            'raw' => [],
+            'raw' => ['status' => 'sent'],
         ];
     }
 
@@ -118,7 +118,12 @@ class WhatsAppSender
      */
     private function sendViaTwilio(WhatsAppMessage $message): array
     {
-        return $this->sendTwilioRequest($message->telefono, $message->message, forceTemplate: true, message: $message);
+        return $this->sendTwilioRequest(
+            $message->telefono,
+            $message->message,
+            forceTemplate: $this->shouldUseTwilioTemplate($message),
+            message: $message
+        );
     }
 
     /**
@@ -460,10 +465,21 @@ class WhatsAppSender
 
     private function twilioStatusCallbackUrl(): string
     {
-        $configuredUrl = WhatsAppCredential::get()->resolveStatusCallbackUrl();
+        $credential = WhatsAppCredential::get();
+
+        if (! $credential->webhookEnabled()) {
+            return '';
+        }
+
+        $configuredUrl = $credential->resolveStatusCallbackUrl();
 
         return $configuredUrl !== ''
             ? $configuredUrl
             : route('webhooks.twilio.whatsapp-status', absolute: true);
+    }
+
+    private function shouldUseTwilioTemplate(WhatsAppMessage $message): bool
+    {
+        return ! (bool) data_get($message->metadata, 'history_reply', false);
     }
 }

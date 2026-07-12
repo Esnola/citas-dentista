@@ -1,11 +1,11 @@
 <div class="grid gap-6"
-     wire:poll.10s="autoSync"
+     wire:poll.{{ $pollInterval }}s="autoSync"
      x-on:reload-appointment-list.window="
        setTimeout(() => $wire.syncDeliveryStatuses(), 3000)
      ">
   <div class='rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur '>
     <div class="flex flex-wrap items-center justify-between gap-4">
-      <div class="flex gap-6 items-center">
+      <div class="flex items-center gap-6">
         <x-iconos.calendar/>
         <h2 class="text-xl font-semibold">
           {{ $selectedClient->full_name }}
@@ -295,8 +295,10 @@
                   $responseClasses = 'bg-red-500/15 text-red-300 border border-red-400/30';
                 }elseif($tieneMensaje){
                     $icono =  'ojo';
-                    $displayResponseLabel = 'Leer Mensaje';
-                    $responseClasses = 'bg-amber-500/15 text-amber-300 border border-amber-400/30';
+                    $displayResponseLabel = $appointment->hasUnreadInboundResponse() ? 'Nuevo mensaje' : 'Todo leido';
+                    $responseClasses = $appointment->hasUnreadInboundResponse()
+                        ? 'bg-sky-500/20 text-sky-200 border border-sky-400/40 ring-2 ring-sky-300/20'
+                        : 'bg-amber-500/15 text-amber-300 border border-amber-400/30';
                 }else{
                   $icono = '';
                   $displayResponseLabel =  '';
@@ -319,6 +321,12 @@
                       <x-dynamic-component :component="'iconos.' . $icono" clase="size-6"/>
                       {{ $displayResponseLabel }}
                     </button>
+                  @endif
+
+                  @if ($appointment->hasUnreadInboundResponse())
+                    <span class="rounded-full bg-sky-500/15 px-2 py-0.5 text-[10px] font-semibold text-sky-200 ring-1 ring-inset ring-sky-400/30">
+                      No leido
+                    </span>
                   @endif
 
                   @if ($appointment->wasRescheduled())

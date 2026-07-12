@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Livewire\ClientAppointments;
+use App\Livewire\UnreadResponsesNotice;
 use App\Models\Appointment;
 use App\Models\Client;
 use App\Models\User;
@@ -534,5 +535,277 @@ class FailedWhatsAppMessageDisplayTest extends TestCase
 
         $this->assertTrue($appointment->esCitaConfirmada());
         $this->assertSame($inbound->id, $appointment->latestInboundAfterLastSent()?->id);
+    }
+
+    public function test_appointment_list_shows_unread_badge_for_new_inbound_message(): void
+    {
+        Carbon::setTestNow('2026-07-13 10:00:00');
+
+        $user = User::factory()->create();
+        $client = Client::query()->create([
+            'nombre' => 'Ana',
+            'apellidos' => 'Perez',
+            'telefono' => '+34600123123',
+        ]);
+
+        $appointment = Appointment::query()->create([
+            'client_id' => $client->id,
+            'fecha' => '2026-07-20',
+            'hora' => '11:00:00',
+            'enviado' => true,
+            'entregado' => true,
+            'activo' => true,
+        ]);
+
+        $outbound = WhatsAppMessage::query()->create([
+            'client_id' => $client->id,
+            'appointment_id' => $appointment->id,
+            'nombre' => 'Ana',
+            'apellidos' => 'Perez',
+            'telefono' => '+34600123123',
+            'scheduled_for' => now()->subMinutes(5),
+            'message' => 'Hola Ana',
+            'source' => WhatsAppMessage::SOURCE_APPOINTMENT,
+            'direction' => WhatsAppMessage::DIRECTION_OUTBOUND,
+            'status' => WhatsAppMessage::STATUS_SENT,
+            'sent_at' => now()->subMinutes(5),
+            'provider_message_id' => 'SM_UNREAD_001',
+        ]);
+
+        WhatsAppMessage::query()->create([
+            'client_id' => $client->id,
+            'appointment_id' => $appointment->id,
+            'parent_id' => $outbound->id,
+            'nombre' => 'Ana',
+            'apellidos' => 'Perez',
+            'telefono' => '+34600123123',
+            'scheduled_for' => now()->subMinutes(1),
+            'message' => 'Necesito hablar con la clinica antes de venir.',
+            'source' => WhatsAppMessage::SOURCE_APPOINTMENT,
+            'direction' => WhatsAppMessage::DIRECTION_INBOUND,
+            'status' => WhatsAppMessage::STATUS_SENT,
+            'sent_at' => now()->subMinutes(1),
+            'respuesta' => 'Necesito hablar con la clinica antes de venir.',
+            'responded_at' => now()->subMinutes(1),
+            'provider_payload' => [
+                'inbound' => [
+                    'direction' => 'inbound-api',
+                    'status' => 'received',
+                    'body' => 'Necesito hablar con la clinica antes de venir.',
+                    'response_text' => 'Necesito hablar con la clinica antes de venir.',
+                ],
+            ],
+        ]);
+
+        $this->actingAs($user);
+
+        Livewire::test(ClientAppointments::class, ['clientId' => $client->id])
+            ->assertSee('Nuevo mensaje')
+            ->assertSee('No leido');
+    }
+
+    public function test_opening_history_marks_latest_inbound_message_as_seen(): void
+    {
+        Carbon::setTestNow('2026-07-13 10:00:00');
+
+        $user = User::factory()->create();
+        $client = Client::query()->create([
+            'nombre' => 'Ana',
+            'apellidos' => 'Perez',
+            'telefono' => '+34600123123',
+        ]);
+
+        $appointment = Appointment::query()->create([
+            'client_id' => $client->id,
+            'fecha' => '2026-07-20',
+            'hora' => '11:00:00',
+            'enviado' => true,
+            'entregado' => true,
+            'activo' => true,
+        ]);
+
+        $outbound = WhatsAppMessage::query()->create([
+            'client_id' => $client->id,
+            'appointment_id' => $appointment->id,
+            'nombre' => 'Ana',
+            'apellidos' => 'Perez',
+            'telefono' => '+34600123123',
+            'scheduled_for' => now()->subMinutes(5),
+            'message' => 'Hola Ana',
+            'source' => WhatsAppMessage::SOURCE_APPOINTMENT,
+            'direction' => WhatsAppMessage::DIRECTION_OUTBOUND,
+            'status' => WhatsAppMessage::STATUS_SENT,
+            'sent_at' => now()->subMinutes(5),
+            'provider_message_id' => 'SM_UNREAD_002',
+        ]);
+
+        WhatsAppMessage::query()->create([
+            'client_id' => $client->id,
+            'appointment_id' => $appointment->id,
+            'parent_id' => $outbound->id,
+            'nombre' => 'Ana',
+            'apellidos' => 'Perez',
+            'telefono' => '+34600123123',
+            'scheduled_for' => now()->subMinutes(1),
+            'message' => 'Necesito hablar con la clinica antes de venir.',
+            'source' => WhatsAppMessage::SOURCE_APPOINTMENT,
+            'direction' => WhatsAppMessage::DIRECTION_INBOUND,
+            'status' => WhatsAppMessage::STATUS_SENT,
+            'sent_at' => now()->subMinutes(1),
+            'respuesta' => 'Necesito hablar con la clinica antes de venir.',
+            'responded_at' => now()->subMinutes(1),
+            'provider_payload' => [
+                'inbound' => [
+                    'direction' => 'inbound-api',
+                    'status' => 'received',
+                    'body' => 'Necesito hablar con la clinica antes de venir.',
+                    'response_text' => 'Necesito hablar con la clinica antes de venir.',
+                ],
+            ],
+        ]);
+
+        $this->actingAs($user);
+
+        Livewire::test(ClientAppointments::class, ['clientId' => $client->id])
+            ->assertSee('No leido')
+            ->call('openHistory', $appointment->id)
+            ->assertDontSee('No leido')
+            ->assertSee('Todo leido');
+
+        $this->assertNotNull($appointment->refresh()->last_inbound_seen_at);
+        $this->assertFalse($appointment->fresh()->hasUnreadInboundResponse());
+    }
+
+    public function test_history_modal_can_send_manual_text_reply(): void
+    {
+        Carbon::setTestNow('2026-07-13 10:00:00');
+        Config::set('whatsapp.driver', 'log');
+
+        $user = User::factory()->create();
+        $client = Client::query()->create([
+            'nombre' => 'Ana',
+            'apellidos' => 'Perez',
+            'telefono' => '+34600123123',
+        ]);
+
+        $appointment = Appointment::query()->create([
+            'client_id' => $client->id,
+            'fecha' => '2026-07-20',
+            'hora' => '11:00:00',
+            'enviado' => true,
+            'activo' => true,
+        ]);
+
+        $outbound = WhatsAppMessage::query()->create([
+            'client_id' => $client->id,
+            'appointment_id' => $appointment->id,
+            'nombre' => 'Ana',
+            'apellidos' => 'Perez',
+            'telefono' => '+34600123123',
+            'scheduled_for' => now()->subMinutes(5),
+            'message' => 'Hola Ana',
+            'source' => WhatsAppMessage::SOURCE_APPOINTMENT,
+            'direction' => WhatsAppMessage::DIRECTION_OUTBOUND,
+            'status' => WhatsAppMessage::STATUS_SENT,
+            'sent_at' => now()->subMinutes(5),
+            'provider_message_id' => 'SM_REPLY_PARENT',
+        ]);
+
+        $inbound = WhatsAppMessage::query()->create([
+            'client_id' => $client->id,
+            'appointment_id' => $appointment->id,
+            'parent_id' => $outbound->id,
+            'nombre' => 'Ana',
+            'apellidos' => 'Perez',
+            'telefono' => '+34600123123',
+            'scheduled_for' => now()->subMinutes(1),
+            'message' => 'Necesito hablar con la clinica antes de venir.',
+            'source' => WhatsAppMessage::SOURCE_APPOINTMENT,
+            'direction' => WhatsAppMessage::DIRECTION_INBOUND,
+            'status' => WhatsAppMessage::STATUS_SENT,
+            'sent_at' => now()->subMinutes(1),
+            'respuesta' => 'Necesito hablar con la clinica antes de venir.',
+            'responded_at' => now()->subMinutes(1),
+            'provider_payload' => [
+                'inbound' => [
+                    'direction' => 'inbound-api',
+                    'status' => 'received',
+                    'body' => 'Necesito hablar con la clinica antes de venir.',
+                    'response_text' => 'Necesito hablar con la clinica antes de venir.',
+                ],
+            ],
+        ]);
+
+        $this->actingAs($user);
+
+        Livewire::test(ClientAppointments::class, ['clientId' => $client->id])
+            ->call('openHistory', $appointment->id)
+            ->set('historyReplyBody', 'Te llamamos en unos minutos.')
+            ->call('sendHistoryReply')
+            ->assertDispatched('toast', fn ($n, $p) => $p['message'] === 'Respuesta enviada correctamente.' && $p['type'] === 'success');
+
+        $reply = WhatsAppMessage::query()
+            ->where('appointment_id', $appointment->id)
+            ->where('source', WhatsAppMessage::SOURCE_MANUAL)
+            ->latest('id')
+            ->firstOrFail();
+
+        $this->assertSame('Te llamamos en unos minutos.', $reply->message);
+        $this->assertSame(WhatsAppMessage::DIRECTION_OUTBOUND, $reply->direction);
+        $this->assertSame($inbound->id, $reply->parent_id);
+        $this->assertSame(WhatsAppMessage::STATUS_SENT, $reply->status);
+    }
+
+    public function test_global_unread_responses_notice_lists_clients_with_direct_history_link(): void
+    {
+        Carbon::setTestNow('2026-07-13 10:00:00');
+
+        $user = User::factory()->create();
+        $client = Client::query()->create([
+            'nombre' => 'Ana',
+            'apellidos' => 'Perez',
+            'telefono' => '+34600123123',
+        ]);
+
+        $appointment = Appointment::query()->create([
+            'client_id' => $client->id,
+            'fecha' => '2026-07-20',
+            'hora' => '11:00:00',
+            'enviado' => true,
+            'activo' => true,
+        ]);
+
+        $this->actingAs($user);
+
+        WhatsAppMessage::query()->create([
+            'client_id' => $client->id,
+            'appointment_id' => $appointment->id,
+            'nombre' => 'Ana',
+            'apellidos' => 'Perez',
+            'telefono' => '+34600123123',
+            'scheduled_for' => now(),
+            'message' => 'Nuevo mensaje entrante',
+            'source' => WhatsAppMessage::SOURCE_APPOINTMENT,
+            'direction' => WhatsAppMessage::DIRECTION_INBOUND,
+            'status' => WhatsAppMessage::STATUS_SENT,
+            'sent_at' => now(),
+            'respuesta' => 'Nuevo mensaje entrante',
+            'responded_at' => now(),
+            'provider_payload' => [
+                'inbound' => [
+                    'body' => 'Nuevo mensaje entrante',
+                    'response_text' => 'Nuevo mensaje entrante',
+                ],
+            ],
+        ]);
+
+        Livewire::test(UnreadResponsesNotice::class)
+            ->assertSee('Nuevas respuestas de clientes')
+            ->assertSee('Ana Perez')
+            ->assertSee('Nuevo mensaje entrante')
+            ->assertSee(route('clients.appointments', [
+                'client' => $client->id,
+                'history' => $appointment->id,
+            ]));
     }
 }

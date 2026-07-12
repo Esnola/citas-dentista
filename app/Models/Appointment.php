@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Support\Collection;
 
 class Appointment extends Model
 {
@@ -24,6 +25,7 @@ class Appointment extends Model
         'whatsapp_sent_at',
         'whatsapp_delivered_at',
         'whatsapp_read_at',
+        'last_inbound_seen_at',
         'activo',
         'cita_activa',
         'confirmada',
@@ -109,8 +111,73 @@ class Appointment extends Model
         return ! $latest->isConfirmed() && ! $latest->isRescheduleRequested();
     }
 
+    public function hasUnreadInboundResponse(): bool
+    {
+        $latest = $this->latestInboundAfterLastSent();
+
+        if (! $latest) {
+            return false;
+        }
+
+        $seenAt = $this->last_inbound_seen_at;
+        $messageTimestamp = $latest->responded_at ?? $latest->created_at;
+
+        if (! $messageTimestamp) {
+            return false;
+        }
+
+        return $seenAt === null || $messageTimestamp->gt($seenAt);
+    }
+
+    public function markLatestInboundAsSeen(): void
+    {
+        $latest = $this->latestInboundAfterLastSent();
+
+        if (! $latest) {
+            return;
+        }
+
+        $messageTimestamp = $latest->responded_at ?? $latest->created_at;
+
+        if (! $messageTimestamp) {
+            return;
+        }
+
+        if ($this->last_inbound_seen_at !== null && ! $messageTimestamp->gt($this->last_inbound_seen_at)) {
+            return;
+        }
+
+        $this->forceFill([
+            'last_inbound_seen_at' => $messageTimestamp,
+        ])->save();
+    }
+
     public function latestInboundAfterLastSent(): ?WhatsAppMessage
     {
+        if ($this->relationLoaded('whatsAppMessages')) {
+            /** @var Collection<int, WhatsAppMessage> $messages */
+            $messages = $this->getRelation('whatsAppMessages');
+
+            $lastSent = $messages
+                ->filter(fn (WhatsAppMessage $message): bool => in_array($message->direction, [null, WhatsAppMessage::DIRECTION_OUTBOUND], true) && $message->sent_at !== null)
+                ->sortByDesc(fn (WhatsAppMessage $message): int => $message->sent_at?->timestamp ?? 0)
+                ->first();
+
+            $inboundMessages = $messages
+                ->filter(fn (WhatsAppMessage $message): bool => $message->direction === WhatsAppMessage::DIRECTION_INBOUND);
+
+            if (! $lastSent) {
+                return $inboundMessages
+                    ->sortByDesc(fn (WhatsAppMessage $message): int => $message->created_at?->timestamp ?? 0)
+                    ->first();
+            }
+
+            return $inboundMessages
+                ->filter(fn (WhatsAppMessage $message): bool => $message->created_at !== null && $message->created_at->gte($lastSent->created_at))
+                ->sortByDesc(fn (WhatsAppMessage $message): int => $message->created_at?->timestamp ?? 0)
+                ->first();
+        }
+
         $lastSent = $this->whatsAppMessages()
             ->outbound()
             ->whereNotNull('sent_at')
@@ -254,6 +321,7 @@ class Appointment extends Model
             'whatsapp_sent_at' => 'datetime',
             'whatsapp_delivered_at' => 'datetime',
             'whatsapp_read_at' => 'datetime',
+            'last_inbound_seen_at' => 'datetime',
             'hora_original' => 'string',
             'activo' => 'boolean',
             'cita_activa' => 'boolean',
