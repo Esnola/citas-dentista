@@ -19,21 +19,41 @@
     ];
 
     [$cardClasses, $decorationClasses, $titleClasses, $iconClasses, $badgeClasses] = $colors[$color];
+    $href = filled($route) ? route($route) : null;
 @endphp
 
-<div {{ $attributes->class("group relative overflow-hidden rounded-2xl border bg-slate-900/30 p-4 backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:bg-slate-900/60 hover:shadow-xl {$cardClasses}") }}>
-    <div class="absolute top-0 right-0 h-16 w-16 rounded-bl-full transition-all duration-300 {{ $decorationClasses }}"></div>
-    <div class="flex items-center justify-between">
-        <div class="space-y-0.5">
-            <p class="text-xs font-semibold tracking-wide uppercase {{ $titleClasses }}">{{ $title }}</p>
-            <p class="text-2xl font-extrabold tracking-tight text-white">{{ $value }}</p>
+@if ($href)
+    <a href="{{ $href }}" {{ $attributes->class("group relative overflow-hidden rounded-2xl border bg-slate-900/30 p-4 backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:bg-slate-900/60 hover:shadow-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 {$cardClasses}") }}>
+        <div class="absolute right-0 top-0 h-16 w-16 rounded-bl-full transition-all duration-300 {{ $decorationClasses }}"></div>
+        <div class="flex items-center justify-between">
+            <div class="space-y-0.5">
+                <p class="text-xs font-semibold uppercase tracking-wide {{ $titleClasses }}">{{ $title }}</p>
+                <p class="text-2xl font-extrabold tracking-tight text-white">{{ $value }}</p>
+            </div>
+            <div class="rounded-xl p-2.5 transition-all duration-300 group-hover:scale-110 {{ $iconClasses }}">
+                <x-dynamic-component :component="'iconos.'.$icon" clase="size-5" />
+            </div>
         </div>
-        <div class="rounded-xl p-2.5 transition-all duration-300 group-hover:scale-110 {{ $iconClasses }}">
-            <x-dynamic-component :component="'iconos.'.$icon" clase="size-5" />
+        <div class="mt-3 flex items-center justify-between border-t border-white/5 pt-2.5">
+            <span class="text-[10px] text-slate-400">{{ $detail }}</span>
+            <span class="inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium {{ $badgeClasses }}">{{ $badge }}</span>
+        </div>
+    </a>
+@else
+    <div {{ $attributes->class("group relative overflow-hidden rounded-2xl border bg-slate-900/30 p-4 backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:bg-slate-900/60 hover:shadow-xl {$cardClasses}") }}>
+        <div class="absolute right-0 top-0 h-16 w-16 rounded-bl-full transition-all duration-300 {{ $decorationClasses }}"></div>
+        <div class="flex items-center justify-between">
+            <div class="space-y-0.5">
+                <p class="text-xs font-semibold uppercase tracking-wide {{ $titleClasses }}">{{ $title }}</p>
+                <p class="text-2xl font-extrabold tracking-tight text-white">{{ $value }}</p>
+            </div>
+            <div class="rounded-xl p-2.5 transition-all duration-300 group-hover:scale-110 {{ $iconClasses }}">
+                <x-dynamic-component :component="'iconos.'.$icon" clase="size-5" />
+            </div>
+        </div>
+        <div class="mt-3 flex items-center justify-between border-t border-white/5 pt-2.5">
+            <span class="text-[10px] text-slate-400">{{ $detail }}</span>
+            <span class="inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium {{ $badgeClasses }}">{{ $badge }}</span>
         </div>
     </div>
-    <div class="mt-3 flex items-center justify-between border-t border-white/5 pt-2.5">
-        <span class="text-[10px] text-slate-400">{{ $detail }}</span>
-        <span class="inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium {{ $badgeClasses }}">{{ $badge }}</span>
-    </div>
-</div>
+@endif
