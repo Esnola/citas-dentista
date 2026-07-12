@@ -12,7 +12,6 @@ use App\Models\User;
 use App\Models\WhatsAppCredential;
 use App\Models\WhatsAppMessage;
 use App\Models\WhatsAppSenderNumber;
-use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Livewire\Component;
@@ -22,14 +21,6 @@ use ZipArchive;
 class DatabaseBackup extends Component
 {
     use WithFileUploads;
-
-    private const ENCRYPTED_FIELDS = [
-        'account_sid',
-        'auth_token',
-        'api_key_sid',
-        'api_key_secret',
-        'cloud_api_access_token',
-    ];
 
     private const BOOL_FIELDS = [
         'is_admin', 'enviado', 'entregado', 'activo', 'cita_activa',
@@ -349,12 +340,6 @@ class DatabaseBackup extends Component
     private function importCredentials(array $records): void
     {
         foreach ($records as $record) {
-            foreach (self::ENCRYPTED_FIELDS as $field) {
-                if (! empty($record[$field])) {
-                    $record[$field] = $this->encryptValue($record[$field]);
-                }
-            }
-
             $existing = null;
 
             if (! empty($record['id'])) {
@@ -463,17 +448,6 @@ class DatabaseBackup extends Component
         $decoded = json_decode($value, true);
 
         return json_last_error() === JSON_ERROR_NONE && is_array($decoded);
-    }
-
-    private function encryptValue(string $value): string
-    {
-        try {
-            Crypt::decrypt($value);
-
-            return $value;
-        } catch (\Throwable) {
-            return Crypt::encrypt($value);
-        }
     }
 
     public function render()

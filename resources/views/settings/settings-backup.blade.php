@@ -3,7 +3,7 @@
   {{-- Export --}}
   <div class="rounded-2xl border border-white/10 bg-slate-900/50 p-5">
     <div class="flex items-center gap-3">
-      <x-iconos.enviar clase="size-5 shrink-0 text-emerald-300"/>
+      <x-iconos.export clase="size-10 shrink-0 text-emerald-300/60"/>
       <div>
         <h3 class="text-sm font-semibold uppercase tracking-[0.22em] text-emerald-200">Exportar</h3>
         <p class="mt-0.5 text-xs text-slate-400">Descarga un backup con todos los ajustes del sistema.</p>
@@ -13,12 +13,12 @@
     <div class="mt-5 flex flex-wrap gap-3">
       <a href="{{ route('admin.export.settings') }}"
          class="inline-flex items-center gap-1.5 rounded-full border border-emerald-400/20 bg-emerald-400/10 px-4 py-1.5 text-xs font-medium uppercase tracking-[0.25em] text-emerald-300 hover:bg-emerald-400/15 transition-colors">
-        <x-iconos.enviar clase="size-3.5"/>
+        <x-iconos.export clase="size-3.5"/>
         JSON
       </a>
       <a href="{{ route('admin.export.settings-csv') }}"
          class="inline-flex items-center gap-1.5 rounded-full border border-emerald-400/20 bg-emerald-400/10 px-4 py-1.5 text-xs font-medium uppercase tracking-[0.25em] text-emerald-300 hover:bg-emerald-400/15 transition-colors">
-        <x-iconos.excel clase="size-3.5"/>
+        <x-iconos.export clase="size-3.5"/>
         CSV (ZIP)
       </a>
     </div>
@@ -27,7 +27,7 @@
   {{-- Import --}}
   <div class="rounded-2xl border border-white/10 bg-slate-900/50 p-5">
     <div class="flex items-center gap-3">
-      <x-iconos.excel clase="size-5 shrink-0 text-yellow-300"/>
+      <x-iconos.importar clase="size-10 shrink-0 text-yellow-400/60"/>
       <div>
         <h3 class="text-sm font-semibold uppercase tracking-[0.22em] text-yellow-200">Importar</h3>
         <p class="mt-0.5 text-xs text-slate-400">Restaura ajustes desde un archivo JSON o ZIP con CSVs.</p>
@@ -41,7 +41,7 @@
                accept=".json,.zip"
                wire:model.live="importFile"
                class="block w-full text-sm text-slate-400 file:mr-3 file:rounded-full file:border-0 file:px-3 file:py-1 file:text-xs file:font-medium file:uppercase file:tracking-[0.2em] file:transition-colors file:cursor-pointer
-                      file:border file:border-white/10 file:bg-white/5 file:text-slate-300
+                      file:border-white/10 file:bg-white/5 file:text-slate-300
                       hover:file:bg-white/10 hover:file:text-white
                       focus:file:outline-none focus:file:ring-2 focus:file:ring-yellow-400/50">
       </label>
@@ -57,7 +57,7 @@
                      @else
                        border-yellow-400/20 bg-yellow-400/10 text-yellow-300 hover:bg-yellow-400/15
                      @endif">
-        <x-iconos.excel clase="size-3.5"/>
+        <x-iconos.importar clase="size-3.5"/>
         <span wire:loading.remove wire:target="importSettings">
           @if($confirmImport) Confirmar importación @else Importar @endif
         </span>

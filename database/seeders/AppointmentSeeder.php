@@ -14,7 +14,9 @@ class AppointmentSeeder extends Seeder
     public function run(): void
     {
         $dates = collect(range(0, 10))
-            ->map(fn (int $offset): string => now()->addDays($offset)->toDateString())
+            ->map(fn (int $offset) => now()->addDays($offset))
+            ->reject(fn ($date) => $date->isSunday())
+            ->map(fn ($date): string => $date->toDateString())
             ->all();
 
         $timeSlots = [
@@ -43,10 +45,13 @@ class AppointmentSeeder extends Seeder
 
         Appointment::query()->delete();
 
-        $pastDates = [
-            now()->subDays(2)->toDateString(),
-            now()->subDay()->toDateString(),
-        ];
+        $pastDates = collect([
+            now()->subDays(2),
+            now()->subDay(),
+        ])
+            ->reject(fn ($date) => $date->isSunday())
+            ->map(fn ($date): string => $date->toDateString())
+            ->all();
 
         $pastSlots = ['09:00', '10:00'];
         $appointmentIndex = 0;

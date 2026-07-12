@@ -15,10 +15,11 @@
     @endif
 
     <form class="mt-6 grid gap-5" wire:submit="save">
-        <div class="grid gap-4 md:grid-cols-2">
+        <div class="grid gap-4 md:grid-cols-3">
             <div class="rounded-2xl border border-white/10 bg-slate-900/50 p-4">
                 <h4 class="text-sm font-semibold text-slate-200">Modo de envío</h4>
-                <p class="mt-1 text-xs text-slate-400">Sandbox para pruebas, Sender para producción.</p>
+                <p class="mt-1 text-xs text-slate-400"><span class="underline text-emerald-400/50">Sandbox</span> para pruebas,
+                  <span class="underline text-emerald-400/50">Sender</span> para producción.</p>
 
                 <div class="mt-4 flex items-center gap-4">
                     <x-formularios.toggle :checked="$mode === 'sender'" wire:click="toggleMode" texto="{{ $mode === 'sandbox' ? 'Sandbox' : 'Sender' }}" />
@@ -34,7 +35,7 @@
             </div>
 
             <div class="rounded-2xl border border-white/10 bg-slate-900/50 p-4">
-                <h4 class="text-sm font-semibold text-slate-200">Callback URL</h4>
+                <h4 class="text-sm font-semibold text-slate-200">Callback URL <span class="text-[10px]">* En un servidor web no es necesario</span></h4>
                 <p class="mt-1 text-xs text-slate-400">URL donde Twilio envía el estado de entrega del mensaje.</p>
 
                 <div class="mt-4">
@@ -45,38 +46,15 @@
         </div>
 
         <div class="grid gap-4 md:grid-cols-2">
-            <div class="rounded-2xl border border-white/10 bg-slate-900/50 p-4">
-                <h4 class="text-sm font-semibold text-slate-200">API Key (Opcional)</h4>
-                <p class="mt-1 text-xs text-slate-400">Si se configura, se usa en lugar de Auth Token.</p>
-
-                <div class="mt-4 space-y-3">
+            <div class="rounded-2xl border border-white/10 space-y-3 bg-slate-900/50 p-4">
                     <div>
-                        <flux:input wire:model="api_key_sid" label="API Key SID" placeholder="SK..." />
+                        <flux:input wire:model="api_key_sid" :label="$apiKeySidLabel" placeholder="SK..." />
                         <flux:error name="api_key_sid" />
                     </div>
                     <div>
-                        <flux:input wire:model="api_key_secret" label="API Key Secret" type="password" placeholder="••••••••" />
+                        <flux:input wire:model="api_key_secret" :label="$apiKeySecretLabel" type="password" placeholder="••••••••" />
                         <flux:error name="api_key_secret" />
                     </div>
-                </div>
-            </div>
-
-            <div class="rounded-2xl border border-white/10 bg-slate-900/50 p-4">
-                <h4 class="text-sm font-semibold text-slate-200">Estado</h4>
-                <div class="mt-4 space-y-2 text-sm text-slate-300">
-                    @if ($credential->api_key_sid)
-                    <p><span class="text-emerald-400">✓</span> API Key configurada.</p>
-                    @else
-                    <p><span class="text-slate-500">—</span> Sin API Key. Se usa Auth Token del servidor.</p>
-                    @endif
-
-                    @php $selectedNumber = $credential->selectedSenderNumber(); @endphp
-                    @if ($selectedNumber)
-                    <p><span class="text-emerald-400">✓</span> Remitente: {{ $selectedNumber->full_number }}</p>
-                    @else
-                    <p><span class="text-slate-500">—</span> Sin número de remitente configurado.</p>
-                    @endif
-                </div>
             </div>
         </div>
 

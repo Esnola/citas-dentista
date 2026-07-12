@@ -16,22 +16,23 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         // User::factory(10)->create();
-
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
-            'password' => '1234',
-            'is_admin' => true,
-        ]);
-        User::factory()->create([
-            'name' => 'Admin',
-            'email' => 'admin@example.com',
-            'password' => '1234',
-            'is_admin' => true,
-        ]);
+        /*
+                User::factory()->create([
+                    'name' => 'Test User',
+                    'email' => 'test@example.com',
+                    'password' => '1234',
+                    'is_admin' => true,
+                ]);
+                User::factory()->create([
+                    'name' => 'Admin',
+                    'email' => 'admin@example.com',
+                    'password' => '1234',
+                    'is_admin' => true,
+                ]);
+        */
         //    User::factory(10)->create();
         $this->call(ClientSeeder::class);
         $this->call(AppointmentSeeder::class);
-        $this->call(SettingsSeeder::class);
+        //  $this->call(SettingsSeeder::class);
     }
 }

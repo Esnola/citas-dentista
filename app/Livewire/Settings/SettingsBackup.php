@@ -7,7 +7,6 @@ use App\Models\AppSetting;
 use App\Models\TwilioContentTemplate;
 use App\Models\WhatsAppCredential;
 use App\Models\WhatsAppSenderNumber;
-use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Livewire\Component;
 use Livewire\WithFileUploads;
@@ -16,14 +15,6 @@ use ZipArchive;
 class SettingsBackup extends Component
 {
     use WithFileUploads;
-
-    private const ENCRYPTED_FIELDS = [
-        'account_sid',
-        'auth_token',
-        'api_key_sid',
-        'api_key_secret',
-        'cloud_api_access_token',
-    ];
 
     public $importFile;
 
@@ -312,12 +303,6 @@ class SettingsBackup extends Component
     private function importCredentials(array $records): void
     {
         foreach ($records as $record) {
-            foreach (self::ENCRYPTED_FIELDS as $field) {
-                if (! empty($record[$field])) {
-                    $record[$field] = $this->encryptValue($record[$field]);
-                }
-            }
-
             $existing = null;
 
             if (! empty($record['id'])) {
@@ -362,17 +347,6 @@ class SettingsBackup extends Component
                     'content_variables' => $record['content_variables'] ?? [],
                 ],
             );
-        }
-    }
-
-    private function encryptValue(string $value): string
-    {
-        try {
-            Crypt::decrypt($value);
-
-            return $value;
-        } catch (\Throwable) {
-            return Crypt::encrypt($value);
         }
     }
 }

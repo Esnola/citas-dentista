@@ -177,12 +177,17 @@ class TwilioCredentialSettings extends Component
 
     public function render()
     {
+        $credential = WhatsAppCredential::get();
         $pendingSenderNumber = collect($this->senderNumbers)
             ->firstWhere('id', $this->senderNumberPendingDeletion);
 
+        $hasAuthToken = filled($credential->resolveAuthToken());
+
         return view('settings.twilio-credential-settings', [
-            'credential' => WhatsAppCredential::get(),
+            'credential' => $credential,
             'pendingSenderNumber' => $pendingSenderNumber,
+            'apiKeySidLabel' => $hasAuthToken ? 'API Key SID (no necesario)' : 'API Key SID',
+            'apiKeySecretLabel' => $hasAuthToken ? 'API Key Secret (no necesario)' : 'API Key Secret',
         ]);
     }
 }

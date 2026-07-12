@@ -16,7 +16,6 @@ use App\Models\WhatsAppCredential;
 use App\Models\WhatsAppMessage;
 use App\Models\WhatsAppSenderNumber;
 use Illuminate\Routing\Controller;
-use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use PDO;
 use Symfony\Component\HttpFoundation\Response;
@@ -24,14 +23,6 @@ use ZipArchive;
 
 class ExportController extends Controller
 {
-    private const ENCRYPTED_FIELDS = [
-        'account_sid',
-        'auth_token',
-        'api_key_sid',
-        'api_key_secret',
-        'cloud_api_access_token',
-    ];
-
     public function settings()
     {
         $data = [
@@ -97,35 +88,13 @@ class ExportController extends Controller
     {
         $model = AppSetting::query()->first();
 
-        $credential = WhatsAppCredential::query()
-            ->get()
-            ->map(function (WhatsAppCredential $credential): array {
-                $data = $credential->only([
-                    'id', 'driver', 'default_country_code', 'message_mode',
-                    'account_sid', 'auth_token', 'content_sid', 'test_recipient',
-                    'timeout', 'connect_timeout', 'cloud_api_base_url', 'cloud_api_version',
-                    'cloud_api_phone_number_id', 'cloud_api_access_token', 'cloud_api_timeout',
-                    'default_template', 'default_message', 'mode', 'api_key_sid',
-                    'api_key_secret', 'status_callback_url', 'selected',
-                ]);
-
-                foreach (self::ENCRYPTED_FIELDS as $field) {
-                    if (! empty($data[$field])) {
-                        $data[$field] = $this->decryptValue($data[$field]);
-                    }
-                }
-
-                return $data;
-            })
-            ->toArray();
-
         return [
             'app_settings' => $model?->only(['id', 'retention_period', 'dispatch_enabled', 'dispatch_hours']),
             'appointment_reminder_preferences' => AppointmentReminderPreference::query()
                 ->select(['id', 'channel', 'lead_days', 'enabled'])
                 ->get()
                 ->toArray(),
-            'whatsapp_credentials' => $credential,
+            'whatsapp_credentials' => $this->gatherCredentials(),
             'whatsapp_sender_numbers' => WhatsAppSenderNumber::query()
                 ->select(['id', 'whatsapp_credential_id', 'name', 'prefix', 'number', 'selected'])
                 ->get()
@@ -135,15 +104,6 @@ class ExportController extends Controller
                 ->get()
                 ->toArray(),
         ];
-    }
-
-    private function decryptValue(string $value): string
-    {
-        try {
-            return Crypt::decrypt($value);
-        } catch (\Throwable) {
-            return $value;
-        }
     }
 
     private function flattenForCsv(array $row): array
@@ -289,7 +249,35 @@ class ExportController extends Controller
                 ->select(['id', 'retention_period', 'dispatch_enabled', 'dispatch_hours', 'created_at', 'updated_at'])
                 ->get()
                 ->toArray(),
+            'appointment_reminder_preferences' => AppointmentReminderPreference::query()
+                ->select(['id', 'channel', 'lead_days', 'enabled'])
+                ->get()
+                ->toArray(),
+            'whatsapp_credentials' => $this->gatherCredentials(),
+            'whatsapp_sender_numbers' => WhatsAppSenderNumber::query()
+                ->select(['id', 'whatsapp_credential_id', 'name', 'prefix', 'number', 'selected'])
+                ->get()
+                ->toArray(),
+            'twilio_content_templates' => TwilioContentTemplate::query()
+                ->select(['id', 'nombre', 'content_sid', 'seleccionada', 'content_variables'])
+                ->get()
+                ->toArray(),
         ];
+    }
+
+    private function gatherCredentials(): array
+    {
+        return WhatsAppCredential::query()
+            ->get()
+            ->map(fn (WhatsAppCredential $credential) => $credential->only([
+                'id', 'driver', 'default_country_code', 'message_mode',
+                'account_sid', 'auth_token', 'content_sid', 'test_recipient',
+                'timeout', 'connect_timeout', 'cloud_api_base_url', 'cloud_api_version',
+                'cloud_api_phone_number_id', 'cloud_api_access_token', 'cloud_api_timeout',
+                'default_template', 'default_message', 'mode', 'api_key_sid',
+                'api_key_secret', 'status_callback_url', 'selected',
+            ]))
+            ->toArray();
     }
 
     public function appointments()

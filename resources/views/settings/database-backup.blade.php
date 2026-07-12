@@ -3,7 +3,7 @@
   {{-- Export --}}
   <div class="rounded-2xl border border-white/10 bg-slate-900/50 p-5">
     <div class="flex items-center gap-3">
-      <x-iconos.enviar clase="size-5 shrink-0 text-emerald-300"/>
+      <x-iconos.export clase="size-10 shrink-0 text-emerald-300/60"/>
       <div>
         <h3 class="text-sm font-semibold uppercase tracking-[0.22em] text-emerald-200">Exportar</h3>
         <p class="mt-0.5 text-xs text-slate-400">Descarga la base de datos completa.</p>
@@ -12,12 +12,12 @@
     <div class="mt-5 flex flex-wrap gap-3">
       <a href="{{ route('admin.export.all-json') }}"
          class="inline-flex items-center gap-1.5 rounded-full border border-emerald-400/20 bg-emerald-400/10 px-4 py-1.5 text-xs font-medium uppercase tracking-[0.25em] text-emerald-300 hover:bg-emerald-400/15 transition-colors">
-        <x-iconos.enviar clase="size-3.5"/>
+        <x-iconos.export clase="size-3.5"/>
         JSON
       </a>
       <a href="{{ route('admin.export.all-csv') }}"
          class="inline-flex items-center gap-1.5 rounded-full border border-yellow-400/20 bg-yellow-400/10 px-4 py-1.5 text-xs font-medium uppercase tracking-[0.25em] text-yellow-300 hover:bg-yellow-400/15 transition-colors">
-        <x-iconos.excel clase="size-3.5"/>
+        <x-iconos.export clase="size-3.5"/>
         CSV (ZIP)
       </a>
     </div>
@@ -26,7 +26,7 @@
   {{-- Import --}}
   <div class="rounded-2xl border border-white/10 bg-slate-900/50 p-5">
     <div class="flex items-center gap-3">
-      <x-iconos.excel clase="size-5 shrink-0 text-yellow-300"/>
+      <x-iconos.importar clase="size-10 shrink-0 text-yellow-400/60"/>
       <div>
         <h3 class="text-sm font-semibold uppercase tracking-[0.22em] text-yellow-200">Importar</h3>
         <p class="mt-0.5 text-xs text-slate-400">Restaura desde JSON o ZIP con CSVs.</p>
