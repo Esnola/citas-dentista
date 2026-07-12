@@ -3,10 +3,9 @@
 namespace App\Console\Commands;
 
 use App\Models\AppointmentReminderPreference;
-use App\Models\SistemaOpcion;
+use App\Models\AppSetting;
 use App\Models\TwilioContentTemplate;
 use App\Models\WhatsAppCredential;
-use App\Models\WhatsAppDispatchSettings;
 use App\Models\WhatsAppSenderNumber;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Crypt;
@@ -30,11 +29,10 @@ class SettingsExport extends Command
         $path = $this->argument('path') ?? 'storage/app/settings-backup.json';
 
         $data = [
-            'version' => 1,
+            'version' => 2,
             'exported_at' => now()->toIso8601String(),
             'settings' => [
-                'sistema_opciones' => $this->exportSistemaOpcion(),
-                'whatsapp_dispatch_settings' => $this->exportDispatchSettings(),
+                'app_settings' => $this->exportAppSettings(),
                 'appointment_reminder_preferences' => $this->exportReminderPreferences(),
                 'whatsapp_credentials' => $this->exportCredentials(),
                 'whatsapp_sender_numbers' => $this->exportSenderNumbers(),
@@ -69,18 +67,11 @@ class SettingsExport extends Command
         return self::SUCCESS;
     }
 
-    private function exportSistemaOpcion(): ?array
+    private function exportAppSettings(): ?array
     {
-        $model = SistemaOpcion::query()->first();
+        $model = AppSetting::query()->first();
 
-        return $model?->only(['id', 'retention_period']);
-    }
-
-    private function exportDispatchSettings(): ?array
-    {
-        $model = WhatsAppDispatchSettings::query()->first();
-
-        return $model?->only(['id', 'enabled', 'hours']);
+        return $model?->only(['id', 'retention_period', 'dispatch_enabled', 'dispatch_hours']);
     }
 
     private function exportReminderPreferences(): array

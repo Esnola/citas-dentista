@@ -3,8 +3,7 @@
 use App\Console\Commands\DispatchDueWhatsAppMessages;
 use App\Console\Commands\PurgePastAppointments;
 use App\Console\Commands\SyncWhatsAppDeliveryStatus;
-use App\Models\SistemaOpcion;
-use App\Models\WhatsAppDispatchSettings;
+use App\Models\AppSetting;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
@@ -17,7 +16,7 @@ Schedule::command(DispatchDueWhatsAppMessages::class)
     ->everyMinute()
     ->withoutOverlapping()
     ->when(function (): bool {
-        return WhatsAppDispatchSettings::get()->enabled;
+        return AppSetting::get()->dispatch_enabled;
     });
 
 Schedule::command(SyncWhatsAppDeliveryStatus::class)->everyMinute()->withoutOverlapping();
@@ -26,5 +25,5 @@ Schedule::command(PurgePastAppointments::class)
     ->daily()
     ->withoutOverlapping()
     ->when(function (): bool {
-        return SistemaOpcion::get()->isEnabled();
+        return AppSetting::get()->isEnabled();
     });

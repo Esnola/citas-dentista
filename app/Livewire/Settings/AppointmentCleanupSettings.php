@@ -2,7 +2,7 @@
 
 namespace App\Livewire\Settings;
 
-use App\Models\SistemaOpcion;
+use App\Models\AppSetting;
 use Livewire\Component;
 
 class AppointmentCleanupSettings extends Component
@@ -15,7 +15,7 @@ class AppointmentCleanupSettings extends Component
 
     public function mount(): void
     {
-        $this->retentionPeriod = SistemaOpcion::get()->retention_period;
+        $this->retentionPeriod = AppSetting::get()->retention_period;
     }
 
     public function persistRetentionPeriod(string $retentionPeriod): void
@@ -25,11 +25,11 @@ class AppointmentCleanupSettings extends Component
         $this->retentionPeriod = $retentionPeriod;
         $this->validateOnly('retentionPeriod');
 
-        $settings = SistemaOpcion::get();
+        $settings = AppSetting::get();
         $settings->retention_period = $this->retentionPeriod;
         $settings->save();
 
-        $label = SistemaOpcion::retentionOptions()[$this->retentionPeriod] ?? $this->retentionPeriod;
+        $label = AppSetting::retentionOptions()[$this->retentionPeriod] ?? $this->retentionPeriod;
 
         $this->retentionPeriod = (string) $settings->retention_period;
         $this->status = $this->retentionPeriod === 'disabled'
@@ -41,14 +41,14 @@ class AppointmentCleanupSettings extends Component
     public function render()
     {
         return view('settings.appointment-cleanup-settings', [
-            'retentionOptions' => SistemaOpcion::retentionOptions(),
+            'retentionOptions' => AppSetting::retentionOptions(),
         ]);
     }
 
     protected function rules(): array
     {
         return [
-            'retentionPeriod' => ['required', 'string', 'in:'.implode(',', array_keys(SistemaOpcion::retentionOptions()))],
+            'retentionPeriod' => ['required', 'string', 'in:'.implode(',', array_keys(AppSetting::retentionOptions()))],
         ];
     }
 }

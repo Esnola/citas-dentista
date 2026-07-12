@@ -4,7 +4,7 @@ namespace App\Console\Commands;
 
 use App\Models\Appointment;
 use App\Models\AppointmentReminderPreference;
-use App\Models\WhatsAppDispatchSettings;
+use App\Models\AppSetting;
 use App\Models\WhatsAppMessage;
 use App\Services\WhatsApp\AppointmentDeliveryStatusSyncer;
 use App\Services\WhatsApp\WhatsAppSender;
@@ -21,9 +21,9 @@ class DispatchDueWhatsAppMessages extends Command
     public function handle(WhatsAppSender $sender, AppointmentDeliveryStatusSyncer $deliveryStatusSyncer): int
     {
         try {
-            $settings = WhatsAppDispatchSettings::get();
+            $settings = AppSetting::get();
 
-            if (! $settings->enabled) {
+            if (! $settings->dispatch_enabled) {
                 $this->info('WhatsApp dispatch is disabled. Skipping.');
 
                 return self::SUCCESS;

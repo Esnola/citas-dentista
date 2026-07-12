@@ -5,16 +5,21 @@ namespace App\Http\Controllers\Admin;
 use App\Exports\AppointmentsExport;
 use App\Exports\ClientsExport;
 use App\Exports\UsersExport;
+use App\Models\Appointment;
+use App\Models\AppointmentChange;
 use App\Models\AppointmentReminderPreference;
-use App\Models\SistemaOpcion;
+use App\Models\AppSetting;
+use App\Models\Client;
 use App\Models\TwilioContentTemplate;
+use App\Models\User;
 use App\Models\WhatsAppCredential;
-use App\Models\WhatsAppDispatchSettings;
+use App\Models\WhatsAppMessage;
 use App\Models\WhatsAppSenderNumber;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use PDO;
+use Symfony\Component\HttpFoundation\Response;
 use ZipArchive;
 
 class ExportController extends Controller
@@ -30,7 +35,7 @@ class ExportController extends Controller
     public function settings()
     {
         $data = [
-            'version' => 1,
+            'version' => 2,
             'exported_at' => now()->toIso8601String(),
             'settings' => $this->gatherSettingsData(),
         ];
@@ -46,9 +51,51 @@ class ExportController extends Controller
             ->deleteFileAfterSend(true);
     }
 
+    public function settingsCsv()
+    {
+        abort_unless(class_exists(ZipArchive::class), 500, 'ZipArchive no está disponible.');
+
+        $data = $this->gatherSettingsData();
+        $zipPath = tempnam(sys_get_temp_dir(), 'settings-csv-');
+        abort_if($zipPath === false, 500, 'No se pudo crear el archivo temporal.');
+
+        $zip = new ZipArchive;
+        abort_if($zip->open($zipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true, 500, 'No se pudo crear el ZIP.');
+
+        foreach ($data as $table => $rows) {
+            if ($rows === null) {
+                $rows = [];
+            }
+
+            if (! is_array($rows)) {
+                continue;
+            }
+
+            // Single-row settings stored as associative array
+            if (isset($rows['id']) || array_is_list($rows) === false) {
+                $rows = [$rows];
+            }
+
+            $flatRows = array_map(fn (array $row) => $this->flattenForCsv($row), $rows);
+
+            $headings = $flatRows !== [] ? array_keys($flatRows[0]) : [];
+
+            $csvContent = $this->buildCsvContent($headings, $flatRows);
+            $zip->addFromString("{$table}.csv", $csvContent);
+        }
+
+        $zip->close();
+
+        $filename = 'settings-csv-'.now()->format('Y-m-d-His').'.zip';
+
+        return response()
+            ->download($zipPath, $filename, ['Content-Type' => 'application/zip'])
+            ->deleteFileAfterSend(true);
+    }
+
     private function gatherSettingsData(): array
     {
-        $model = SistemaOpcion::query()->first();
+        $model = AppSetting::query()->first();
 
         $credential = WhatsAppCredential::query()
             ->get()
@@ -73,8 +120,7 @@ class ExportController extends Controller
             ->toArray();
 
         return [
-            'sistema_opciones' => $model ? $model->only(['id', 'retention_period']) : null,
-            'whatsapp_dispatch_settings' => WhatsAppDispatchSettings::query()->first()?->only(['id', 'enabled', 'hours']),
+            'app_settings' => $model?->only(['id', 'retention_period', 'dispatch_enabled', 'dispatch_hours']),
             'appointment_reminder_preferences' => AppointmentReminderPreference::query()
                 ->select(['id', 'channel', 'lead_days', 'enabled'])
                 ->get()
@@ -100,6 +146,152 @@ class ExportController extends Controller
         }
     }
 
+    private function flattenForCsv(array $row): array
+    {
+        $flat = [];
+
+        foreach ($row as $key => $value) {
+            if (is_array($value)) {
+                $flat[$key] = json_encode($value, JSON_UNESCAPED_UNICODE);
+            } elseif (is_bool($value)) {
+                $flat[$key] = $value ? '1' : '0';
+            } else {
+                $flat[$key] = $value;
+            }
+        }
+
+        return $flat;
+    }
+
+    private function buildCsvContent(array $headings, array $rows): string
+    {
+        $output = fopen('php://temp', 'r+');
+        fputcsv($output, $headings, ',');
+
+        foreach ($rows as $row) {
+            fputcsv($output, $row, ',');
+        }
+
+        rewind($output);
+        $csv = stream_get_contents($output);
+        fclose($output);
+
+        return $csv;
+    }
+
+    public function allJson()
+    {
+        $data = [
+            'version' => 1,
+            'exported_at' => now()->toIso8601String(),
+            'tables' => $this->gatherAllData(),
+        ];
+
+        $json = json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+        $filename = 'database-backup-'.now()->format('Y-m-d-His').'.json';
+
+        $path = storage_path("app/{$filename}");
+        file_put_contents($path, $json);
+
+        return response()
+            ->download($path, $filename, ['Content-Type' => 'application/json'])
+            ->deleteFileAfterSend(true);
+    }
+
+    public function allCsv()
+    {
+        abort_unless(class_exists(ZipArchive::class), 500, 'ZipArchive no está disponible.');
+
+        $data = $this->gatherAllData();
+        $zipPath = tempnam(sys_get_temp_dir(), 'db-csv-');
+        abort_if($zipPath === false, 500, 'No se pudo crear el archivo temporal.');
+
+        $zip = new ZipArchive;
+        abort_if($zip->open($zipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true, 500, 'No se pudo crear el ZIP.');
+
+        foreach ($data as $table => $rows) {
+            if (empty($rows)) {
+                continue;
+            }
+
+            $flatRows = array_map(fn (array $row) => $this->flattenForCsv($row), $rows);
+            $headings = array_keys($flatRows[0]);
+            $csvContent = $this->buildCsvContent($headings, $flatRows);
+            $zip->addFromString("{$table}.csv", $csvContent);
+        }
+
+        $zip->close();
+
+        $filename = 'database-csv-'.now()->format('Y-m-d-His').'.zip';
+
+        return response()
+            ->download($zipPath, $filename, ['Content-Type' => 'application/zip'])
+            ->deleteFileAfterSend(true);
+    }
+
+    private function gatherAllData(): array
+    {
+        return [
+            'users' => User::query()
+                ->select(['id', 'name', 'email', 'is_admin', 'created_at', 'updated_at'])
+                ->get()
+                ->toArray(),
+            'clients' => Client::query()
+                ->select(['id', 'nombre', 'apellidos', 'telefono', 'created_at', 'updated_at'])
+                ->get()
+                ->toArray(),
+            'appointments' => Appointment::query()
+                ->select([
+                    'id', 'client_id', 'fecha', 'hora',
+                    'fecha_original', 'hora_original',
+                    'enviado', 'entregado',
+                    'whatsapp_sent_at', 'whatsapp_delivered_at', 'whatsapp_read_at',
+                    'activo', 'cita_activa', 'confirmada', 'pendiente_reprogramacion',
+                    'created_at', 'updated_at',
+                ])
+                ->get()
+                ->toArray(),
+            'appointment_changes' => AppointmentChange::query()
+                ->select(['id', 'appointment_id', 'fecha_anterior', 'hora_anterior', 'fecha_nueva', 'hora_nueva', 'created_at'])
+                ->get()
+                ->toArray(),
+            'whatsapp_messages' => WhatsAppMessage::query()
+                ->get()
+                ->map(fn (WhatsAppMessage $msg) => [
+                    'id' => $msg->id,
+                    'client_id' => $msg->client_id,
+                    'appointment_id' => $msg->appointment_id,
+                    'user_id' => $msg->user_id,
+                    'nombre' => $msg->nombre,
+                    'apellidos' => $msg->apellidos,
+                    'telefono' => $msg->telefono,
+                    'message' => $msg->message,
+                    'source' => $msg->source,
+                    'direction' => $msg->direction,
+                    'status' => $msg->status,
+                    'scheduled_for' => $msg->scheduled_for,
+                    'sent_at' => $msg->sent_at,
+                    'delivered_at' => $msg->delivered_at,
+                    'read_at' => $msg->read_at,
+                    'response' => $msg->response,
+                    'responded_at' => $msg->responded_at,
+                    'provider_message_id' => $msg->provider_message_id,
+                    'last_error' => $msg->last_error,
+                    'provider_payload' => $msg->provider_payload ? json_encode($msg->provider_payload) : null,
+                    'metadata' => $msg->metadata ? json_encode($msg->metadata) : null,
+                    'respuesta' => $msg->respuesta ?? null,
+                    'delivery_status' => $msg->delivery_status ?? null,
+                    'created_at' => $msg->created_at,
+                    'updated_at' => $msg->updated_at,
+                ])
+                ->toArray(),
+            'app_settings' => AppSetting::query()
+                ->select(['id', 'retention_period', 'dispatch_enabled', 'dispatch_hours', 'created_at', 'updated_at'])
+                ->get()
+                ->toArray(),
+        ];
+    }
+
     public function appointments()
     {
         $export = new AppointmentsExport;
@@ -108,6 +300,14 @@ class ExportController extends Controller
             $export->headings(),
             $export->collection()->map(fn ($row) => $export->map($row))->all(),
             'citas.csv'
+        );
+    }
+
+    public function appointmentsJson()
+    {
+        return $this->downloadJson(
+            Appointment::query()->get()->toArray(),
+            'citas.json'
         );
     }
 
@@ -122,6 +322,14 @@ class ExportController extends Controller
         );
     }
 
+    public function clientsJson()
+    {
+        return $this->downloadJson(
+            Client::query()->get()->toArray(),
+            'clientes.json'
+        );
+    }
+
     public function users()
     {
         $export = new UsersExport;
@@ -130,6 +338,14 @@ class ExportController extends Controller
             $export->headings(),
             $export->collection()->map(fn ($row) => $export->map($row))->all(),
             'usuarios.csv'
+        );
+    }
+
+    public function usersJson()
+    {
+        return $this->downloadJson(
+            User::query()->select(['id', 'name', 'email', 'is_admin', 'created_at', 'updated_at'])->get()->toArray(),
+            'usuarios.json'
         );
     }
 
@@ -174,6 +390,18 @@ class ExportController extends Controller
             'Pragma' => 'no-cache',
             'Expires' => '0',
         ]);
+    }
+
+    private function downloadJson(array $data, string $fileName): Response
+    {
+        $json = json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+
+        $path = storage_path("app/{$fileName}");
+        file_put_contents($path, $json);
+
+        return response()
+            ->download($path, $fileName, ['Content-Type' => 'application/json'])
+            ->deleteFileAfterSend(true);
     }
 
     private function dumpSqliteDatabase(PDO $pdo): string

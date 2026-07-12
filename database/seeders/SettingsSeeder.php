@@ -3,34 +3,26 @@
 namespace Database\Seeders;
 
 use App\Models\AppointmentReminderPreference;
-use App\Models\SistemaOpcion;
+use App\Models\AppSetting;
 use App\Models\WhatsAppCredential;
-use App\Models\WhatsAppDispatchSettings;
 use Illuminate\Database\Seeder;
 
 class SettingsSeeder extends Seeder
 {
     public function run(): void
     {
-        $this->seedSistemaOpcion();
-        $this->seedDispatchSettings();
+        $this->seedAppSetting();
         $this->seedReminderPreferences();
         $this->seedCredential();
         $this->seedTemplates();
     }
 
-    private function seedSistemaOpcion(): void
+    private function seedAppSetting(): void
     {
-        SistemaOpcion::updateOrCreate([], [
+        AppSetting::updateOrCreate([], [
             'retention_period' => 'disabled',
-        ]);
-    }
-
-    private function seedDispatchSettings(): void
-    {
-        WhatsAppDispatchSettings::updateOrCreate([], [
-            'enabled' => true,
-            'hours' => ['09:00', '12:00', '15:00'],
+            'dispatch_enabled' => true,
+            'dispatch_hours' => ['09:00', '12:00', '15:00'],
         ]);
     }
 

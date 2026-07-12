@@ -6,18 +6,17 @@
       <x-iconos.enviar clase="size-5 shrink-0 text-emerald-300"/>
       <div>
         <h3 class="text-sm font-semibold uppercase tracking-[0.22em] text-emerald-200">Exportar</h3>
-        <p class="mt-0.5 text-xs text-slate-400">Descarga un backup con todos los ajustes del sistema.</p>
+        <p class="mt-0.5 text-xs text-slate-400">Descarga la base de datos completa.</p>
       </div>
     </div>
-
     <div class="mt-5 flex flex-wrap gap-3">
-      <a href="{{ route('admin.export.settings') }}"
+      <a href="{{ route('admin.export.all-json') }}"
          class="inline-flex items-center gap-1.5 rounded-full border border-emerald-400/20 bg-emerald-400/10 px-4 py-1.5 text-xs font-medium uppercase tracking-[0.25em] text-emerald-300 hover:bg-emerald-400/15 transition-colors">
         <x-iconos.enviar clase="size-3.5"/>
         JSON
       </a>
-      <a href="{{ route('admin.export.settings-csv') }}"
-         class="inline-flex items-center gap-1.5 rounded-full border border-emerald-400/20 bg-emerald-400/10 px-4 py-1.5 text-xs font-medium uppercase tracking-[0.25em] text-emerald-300 hover:bg-emerald-400/15 transition-colors">
+      <a href="{{ route('admin.export.all-csv') }}"
+         class="inline-flex items-center gap-1.5 rounded-full border border-yellow-400/20 bg-yellow-400/10 px-4 py-1.5 text-xs font-medium uppercase tracking-[0.25em] text-yellow-300 hover:bg-yellow-400/15 transition-colors">
         <x-iconos.excel clase="size-3.5"/>
         CSV (ZIP)
       </a>
@@ -30,7 +29,7 @@
       <x-iconos.excel clase="size-5 shrink-0 text-yellow-300"/>
       <div>
         <h3 class="text-sm font-semibold uppercase tracking-[0.22em] text-yellow-200">Importar</h3>
-        <p class="mt-0.5 text-xs text-slate-400">Restaura ajustes desde un archivo JSON o ZIP con CSVs.</p>
+        <p class="mt-0.5 text-xs text-slate-400">Restaura desde JSON o ZIP con CSVs.</p>
       </div>
     </div>
 
@@ -48,7 +47,7 @@
     </div>
 
     <div class="mt-4 flex items-center gap-3">
-      <button wire:click="importSettings"
+      <button wire:click="importDatabase"
               wire:loading.attr="disabled"
               @if(! $importFile) disabled @endif
               class="inline-flex items-center gap-1.5 rounded-full border px-4 py-1.5 text-xs font-medium uppercase tracking-[0.25em] transition-colors disabled:opacity-50
@@ -58,10 +57,10 @@
                        border-yellow-400/20 bg-yellow-400/10 text-yellow-300 hover:bg-yellow-400/15
                      @endif">
         <x-iconos.excel clase="size-3.5"/>
-        <span wire:loading.remove wire:target="importSettings">
-          @if($confirmImport) Confirmar importación @else Importar @endif
+        <span wire:loading.remove wire:target="importDatabase">
+          @if($confirmImport) Confirmar @else Importar @endif
         </span>
-        <span wire:loading wire:target="importSettings">Importando...</span>
+        <span wire:loading wire:target="importDatabase">Importando...</span>
       </button>
 
       @if ($importStatus)

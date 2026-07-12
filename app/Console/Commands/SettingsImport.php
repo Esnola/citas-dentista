@@ -3,10 +3,9 @@
 namespace App\Console\Commands;
 
 use App\Models\AppointmentReminderPreference;
-use App\Models\SistemaOpcion;
+use App\Models\AppSetting;
 use App\Models\TwilioContentTemplate;
 use App\Models\WhatsAppCredential;
-use App\Models\WhatsAppDispatchSettings;
 use App\Models\WhatsAppSenderNumber;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Crypt;
@@ -21,8 +20,6 @@ class SettingsImport extends Command
         'api_key_secret',
         'cloud_api_access_token',
     ];
-
-    private const SUPPORTED_VERSION = 1;
 
     protected $signature = 'settings:import {path?} {--force : Apply without confirmation}';
 
@@ -57,8 +54,8 @@ class SettingsImport extends Command
 
         $version = $data['version'] ?? null;
 
-        if ($version !== self::SUPPORTED_VERSION) {
-            $this->error("Unsupported backup version: {$version} (expected ".self::SUPPORTED_VERSION.'.');
+        if (! in_array($version, [1, 2], true)) {
+            $this->error("Unsupported backup version: {$version}");
 
             return self::FAILURE;
         }
@@ -67,7 +64,7 @@ class SettingsImport extends Command
 
         if (! $this->option('force')) {
             $this->warn('The following settings will be imported:');
-            $this->previewChanges($settings);
+            $this->previewChanges($settings, $version);
 
             if (! $this->confirm('Apply these changes?')) {
                 $this->info('Import cancelled.');
@@ -76,13 +73,12 @@ class SettingsImport extends Command
             }
         }
 
-        DB::transaction(function () use ($settings): void {
-            $this->importSistemaOpcion($settings['sistema_opciones'] ?? null);
-            $this->importDispatchSettings($settings['whatsapp_dispatch_settings'] ?? null);
-            $this->importReminderPreferences($settings['appointment_reminder_preferences'] ?? []);
-            $this->importCredentials($settings['whatsapp_credentials'] ?? []);
-            $this->importSenderNumbers($settings['whatsapp_sender_numbers'] ?? []);
-            $this->importTemplates($settings['twilio_content_templates'] ?? []);
+        DB::transaction(function () use ($settings, $version): void {
+            if ($version === 1) {
+                $this->importV1($settings);
+            } else {
+                $this->importV2($settings);
+            }
         });
 
         $this->info('Settings imported successfully.');
@@ -90,59 +86,73 @@ class SettingsImport extends Command
         return self::SUCCESS;
     }
 
-    private function previewChanges(array $settings): void
+    private function importV1(array $settings): void
     {
+        // v1: sistema_opciones + whatsapp_dispatch_settings → merged into app_settings
+        $retentionPeriod = 'disabled';
+        $dispatchEnabled = true;
+        $dispatchHours = ['09:00', '12:00', '15:00'];
+
         if (! empty($settings['sistema_opciones'])) {
-            $this->line('  - sistema_opciones: retention_period = '.$settings['sistema_opciones']['retention_period']);
+            $retentionPeriod = $settings['sistema_opciones']['retention_period'] ?? 'disabled';
         }
 
         if (! empty($settings['whatsapp_dispatch_settings'])) {
-            $dispatch = $settings['whatsapp_dispatch_settings'];
-            $this->line('  - whatsapp_dispatch_settings: enabled = '.($dispatch['enabled'] ? 'true' : 'false').', hours = '.json_encode($dispatch['hours']));
+            $dispatchEnabled = $settings['whatsapp_dispatch_settings']['enabled'] ?? true;
+            $dispatchHours = $settings['whatsapp_dispatch_settings']['hours'] ?? $dispatchHours;
         }
 
-        if (! empty($settings['appointment_reminder_preferences'])) {
-            $count = count($settings['appointment_reminder_preferences']);
-            $this->line("  - appointment_reminder_preferences: {$count} record(s)");
-        }
+        AppSetting::updateOrCreate([], [
+            'retention_period' => $retentionPeriod,
+            'dispatch_enabled' => $dispatchEnabled,
+            'dispatch_hours' => $dispatchHours,
+        ]);
 
-        if (! empty($settings['whatsapp_credentials'])) {
-            $count = count($settings['whatsapp_credentials']);
-            $this->line("  - whatsapp_credentials: {$count} record(s)");
-        }
-
-        if (! empty($settings['whatsapp_sender_numbers'])) {
-            $count = count($settings['whatsapp_sender_numbers']);
-            $this->line("  - whatsapp_sender_numbers: {$count} record(s)");
-        }
-
-        if (! empty($settings['twilio_content_templates'])) {
-            $count = count($settings['twilio_content_templates']);
-            $this->line("  - twilio_content_templates: {$count} record(s)");
-        }
+        $this->importReminderPreferences($settings['appointment_reminder_preferences'] ?? []);
+        $this->importCredentials($settings['whatsapp_credentials'] ?? []);
+        $this->importSenderNumbers($settings['whatsapp_sender_numbers'] ?? []);
+        $this->importTemplates($settings['twilio_content_templates'] ?? []);
     }
 
-    private function importSistemaOpcion(?array $data): void
+    private function importV2(array $settings): void
     {
-        if ($data === null) {
-            return;
+        if (! empty($settings['app_settings'])) {
+            $data = $settings['app_settings'];
+            AppSetting::updateOrCreate([], [
+                'retention_period' => $data['retention_period'] ?? 'disabled',
+                'dispatch_enabled' => $data['dispatch_enabled'] ?? true,
+                'dispatch_hours' => $data['dispatch_hours'] ?? ['09:00', '12:00', '15:00'],
+            ]);
         }
 
-        SistemaOpcion::updateOrCreate([], [
-            'retention_period' => $data['retention_period'] ?? 'disabled',
-        ]);
+        $this->importReminderPreferences($settings['appointment_reminder_preferences'] ?? []);
+        $this->importCredentials($settings['whatsapp_credentials'] ?? []);
+        $this->importSenderNumbers($settings['whatsapp_sender_numbers'] ?? []);
+        $this->importTemplates($settings['twilio_content_templates'] ?? []);
     }
 
-    private function importDispatchSettings(?array $data): void
+    private function previewChanges(array $settings, int $version): void
     {
-        if ($data === null) {
-            return;
+        if ($version === 1) {
+            if (! empty($settings['sistema_opciones'])) {
+                $this->line('  - sistema_opciones: retention_period = '.$settings['sistema_opciones']['retention_period']);
+            }
+            if (! empty($settings['whatsapp_dispatch_settings'])) {
+                $dispatch = $settings['whatsapp_dispatch_settings'];
+                $this->line('  - whatsapp_dispatch_settings: enabled = '.($dispatch['enabled'] ? 'true' : 'false').', hours = '.json_encode($dispatch['hours']));
+            }
+        } else {
+            if (! empty($settings['app_settings'])) {
+                $app = $settings['app_settings'];
+                $this->line('  - app_settings: retention = '.$app['retention_period'].', dispatch = '.($app['dispatch_enabled'] ? 'on' : 'off'));
+            }
         }
 
-        WhatsAppDispatchSettings::updateOrCreate([], [
-            'enabled' => $data['enabled'] ?? true,
-            'hours' => $data['hours'] ?? ['09:00', '12:00', '15:00'],
-        ]);
+        foreach (['appointment_reminder_preferences', 'whatsapp_credentials', 'whatsapp_sender_numbers', 'twilio_content_templates'] as $key) {
+            if (! empty($settings[$key])) {
+                $this->line("  - {$key}: ".count($settings[$key]).' record(s)');
+            }
+        }
     }
 
     private function importReminderPreferences(array $records): void

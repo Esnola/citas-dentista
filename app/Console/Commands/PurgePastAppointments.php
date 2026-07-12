@@ -3,7 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Models\Appointment;
-use App\Models\SistemaOpcion;
+use App\Models\AppSetting;
 use App\Services\ClientDataDeletionService;
 use Carbon\CarbonInterface;
 use Illuminate\Console\Command;
@@ -17,7 +17,7 @@ class PurgePastAppointments extends Command
 
     public function handle(ClientDataDeletionService $deletionService): int
     {
-        $settings = SistemaOpcion::get();
+        $settings = AppSetting::get();
 
         Log::info('appointments:purge-past started', [
             'retention_period' => $settings->retention_period,

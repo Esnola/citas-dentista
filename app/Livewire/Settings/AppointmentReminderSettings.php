@@ -3,7 +3,7 @@
 namespace App\Livewire\Settings;
 
 use App\Models\AppointmentReminderPreference;
-use App\Models\WhatsAppDispatchSettings;
+use App\Models\AppSetting;
 use Livewire\Component;
 
 class AppointmentReminderSettings extends Component
@@ -34,9 +34,9 @@ class AppointmentReminderSettings extends Component
         $this->whatsappLeadDays = $selections[AppointmentReminderPreference::CHANNEL_WHATSAPP] ?? [];
         $this->emailLeadDays = $selections[AppointmentReminderPreference::CHANNEL_EMAIL] ?? [];
 
-        $dispatchSettings = WhatsAppDispatchSettings::get();
-        $this->dispatchEnabled = $dispatchSettings->enabled;
-        $this->dispatchHours = $dispatchSettings->hours ?? ['09:00', '12:00', '15:00'];
+        $dispatchSettings = AppSetting::get();
+        $this->dispatchEnabled = $dispatchSettings->dispatch_enabled;
+        $this->dispatchHours = $dispatchSettings->dispatch_hours ?? ['09:00', '12:00', '15:00'];
     }
 
     public function save(): void
@@ -50,18 +50,18 @@ class AppointmentReminderSettings extends Component
             AppointmentReminderPreference::CHANNEL_EMAIL => $data['emailLeadDays'],
         ]);
 
-        $dispatchSettings = WhatsAppDispatchSettings::get();
+        $dispatchSettings = AppSetting::get();
         $dispatchSettings->update([
-            'enabled' => $data['dispatchEnabled'],
-            'hours' => $data['dispatchHours'],
+            'dispatch_enabled' => $data['dispatchEnabled'],
+            'dispatch_hours' => $data['dispatchHours'],
         ]);
 
         $this->dispatch('dispatchSettingsChanged');
 
         $this->whatsappLeadDays = AppointmentReminderPreference::enabledLeadDaysFor(AppointmentReminderPreference::CHANNEL_WHATSAPP);
         $this->emailLeadDays = AppointmentReminderPreference::enabledLeadDaysFor(AppointmentReminderPreference::CHANNEL_EMAIL);
-        $this->dispatchEnabled = $dispatchSettings->fresh()->enabled;
-        $this->dispatchHours = $dispatchSettings->fresh()->hours;
+        $this->dispatchEnabled = $dispatchSettings->fresh()->dispatch_enabled;
+        $this->dispatchHours = $dispatchSettings->fresh()->dispatch_hours;
         $this->status = 'Preferencias de recordatorios guardadas.';
     }
 

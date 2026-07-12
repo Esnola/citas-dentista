@@ -4,10 +4,10 @@ namespace Tests\Feature;
 
 use App\Models\Appointment;
 use App\Models\AppointmentReminderPreference;
+use App\Models\AppSetting;
 use App\Models\Client;
 use App\Models\TwilioContentTemplate;
 use App\Models\User;
-use App\Models\WhatsAppDispatchSettings;
 use App\Models\WhatsAppMessage;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -76,7 +76,7 @@ class WhatsAppDispatchCommandTest extends TestCase
             AppointmentReminderPreference::CHANNEL_EMAIL => [],
         ]);
 
-        WhatsAppDispatchSettings::get();
+        AppSetting::get();
 
         $client = Client::query()->create([
             'nombre' => 'Ana',
@@ -154,7 +154,7 @@ class WhatsAppDispatchCommandTest extends TestCase
     {
         Carbon::setTestNow('2026-06-22 12:00:00');
 
-        WhatsAppDispatchSettings::get();
+        AppSetting::get();
 
         AppointmentReminderPreference::saveSelections([
             AppointmentReminderPreference::CHANNEL_WHATSAPP => [1, 2, 7],

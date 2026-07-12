@@ -3,15 +3,15 @@
 namespace App\Livewire\Settings;
 
 use App\Models\AppointmentReminderPreference;
-use App\Models\SistemaOpcion;
+use App\Models\AppSetting;
 use App\Models\TwilioContentTemplate;
 use App\Models\WhatsAppCredential;
-use App\Models\WhatsAppDispatchSettings;
 use App\Models\WhatsAppSenderNumber;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Livewire\Component;
 use Livewire\WithFileUploads;
+use ZipArchive;
 
 class SettingsBackup extends Component
 {
@@ -25,18 +25,6 @@ class SettingsBackup extends Component
         'cloud_api_access_token',
     ];
 
-    private const ALL_SECTIONS = [
-        'sistema_opciones' => 'Opciones del sistema',
-        'whatsapp_dispatch_settings' => 'Configuración de envíos',
-        'appointment_reminder_preferences' => 'Preferencias de recordatorios',
-        'whatsapp_credentials' => 'Credenciales WhatsApp',
-        'whatsapp_sender_numbers' => 'Números de envío',
-        'twilio_content_templates' => 'Plantillas de Twilio',
-    ];
-
-    /** @var array<string, bool> */
-    public array $selectedImport = [];
-
     public $importFile;
 
     public string $importStatus = '';
@@ -47,7 +35,7 @@ class SettingsBackup extends Component
 
     public function mount(): void
     {
-        $this->selectedImport = array_fill_keys(array_keys(self::ALL_SECTIONS), true);
+        //
     }
 
     public function updatedImportFile(): void
@@ -61,7 +49,7 @@ class SettingsBackup extends Component
         abort_unless(auth()->user()?->is_admin, 403);
 
         if (! $this->importFile) {
-            $this->importStatus = 'Selecciona un archivo JSON.';
+            $this->importStatus = 'Selecciona un archivo.';
             $this->importStatusNonce++;
 
             return;
@@ -75,11 +63,30 @@ class SettingsBackup extends Component
             return;
         }
 
+        $originalName = $this->importFile->getClientOriginalName();
+        $extension = strtolower(pathinfo($originalName, PATHINFO_EXTENSION));
+
+        if ($extension === 'json') {
+            $this->importFromJson();
+        } elseif ($extension === 'zip') {
+            $this->importFromZip();
+        } else {
+            $this->importStatus = 'Formato no soportado. Usa .json o .zip.';
+            $this->importStatusNonce++;
+            $this->confirmImport = false;
+
+            return;
+        }
+    }
+
+    private function importFromJson(): void
+    {
         $json = file_get_contents($this->importFile->getRealPath());
 
         if ($json === false) {
             $this->importStatus = 'No se pudo leer el archivo.';
             $this->importStatusNonce++;
+            $this->confirmImport = false;
 
             return;
         }
@@ -89,75 +96,207 @@ class SettingsBackup extends Component
         if (json_last_error() !== JSON_ERROR_NONE) {
             $this->importStatus = 'JSON inválido: '.json_last_error_msg();
             $this->importStatusNonce++;
+            $this->confirmImport = false;
 
             return;
         }
 
         $version = $decoded['version'] ?? null;
 
-        if ($version !== 1) {
+        if (! in_array($version, [1, 2], true)) {
             $this->importStatus = "Versión no soportada: {$version}";
             $this->importStatusNonce++;
+            $this->confirmImport = false;
 
             return;
         }
 
         $settings = $decoded['settings'] ?? [];
-        $sections = array_filter($this->selectedImport);
 
-        DB::transaction(function () use ($settings, $sections): void {
-            if (isset($sections['sistema_opciones']) && isset($settings['sistema_opciones'])) {
-                $this->importSistemaOpcion($settings['sistema_opciones']);
-            }
-
-            if (isset($sections['whatsapp_dispatch_settings']) && isset($settings['whatsapp_dispatch_settings'])) {
-                $this->importDispatchSettings($settings['whatsapp_dispatch_settings']);
-            }
-
-            if (isset($sections['appointment_reminder_preferences']) && isset($settings['appointment_reminder_preferences'])) {
-                $this->importReminderPreferences($settings['appointment_reminder_preferences']);
-            }
-
-            if (isset($sections['whatsapp_credentials']) && isset($settings['whatsapp_credentials'])) {
-                $this->importCredentials($settings['whatsapp_credentials']);
-            }
-
-            if (isset($sections['whatsapp_sender_numbers']) && isset($settings['whatsapp_sender_numbers'])) {
-                $this->importSenderNumbers($settings['whatsapp_sender_numbers']);
-            }
-
-            if (isset($sections['twilio_content_templates']) && isset($settings['twilio_content_templates'])) {
-                $this->importTemplates($settings['twilio_content_templates']);
+        DB::transaction(function () use ($settings, $version): void {
+            if ($version === 1) {
+                $this->importV1($settings);
+            } else {
+                $this->importV2($settings);
             }
         });
 
-        $count = count($sections);
-        $this->importStatus = "{$count} sección(es) importada(s) correctamente.";
+        $this->importStatus = 'Ajustes importados correctamente.';
         $this->importStatusNonce++;
         $this->confirmImport = false;
         $this->importFile = null;
     }
 
+    private function importV1(array $settings): void
+    {
+        $retentionPeriod = $settings['sistema_opciones']['retention_period'] ?? 'disabled';
+        $dispatchEnabled = $settings['whatsapp_dispatch_settings']['enabled'] ?? true;
+        $dispatchHours = $settings['whatsapp_dispatch_settings']['hours'] ?? ['09:00', '12:00', '15:00'];
+
+        AppSetting::updateOrCreate([], [
+            'retention_period' => $retentionPeriod,
+            'dispatch_enabled' => $dispatchEnabled,
+            'dispatch_hours' => $dispatchHours,
+        ]);
+
+        $this->importReminderPreferences($settings['appointment_reminder_preferences'] ?? []);
+        $this->importCredentials($settings['whatsapp_credentials'] ?? []);
+        $this->importSenderNumbers($settings['whatsapp_sender_numbers'] ?? []);
+        $this->importTemplates($settings['twilio_content_templates'] ?? []);
+    }
+
+    private function importV2(array $settings): void
+    {
+        if (! empty($settings['app_settings'])) {
+            $data = $settings['app_settings'];
+            AppSetting::updateOrCreate([], [
+                'retention_period' => $data['retention_period'] ?? 'disabled',
+                'dispatch_enabled' => $data['dispatch_enabled'] ?? true,
+                'dispatch_hours' => $data['dispatch_hours'] ?? ['09:00', '12:00', '15:00'],
+            ]);
+        }
+
+        $this->importReminderPreferences($settings['appointment_reminder_preferences'] ?? []);
+        $this->importCredentials($settings['whatsapp_credentials'] ?? []);
+        $this->importSenderNumbers($settings['whatsapp_sender_numbers'] ?? []);
+        $this->importTemplates($settings['twilio_content_templates'] ?? []);
+    }
+
+    private function importFromZip(): void
+    {
+        if (! class_exists(ZipArchive::class)) {
+            $this->importStatus = 'ZipArchive no está disponible en el servidor.';
+            $this->importStatusNonce++;
+            $this->confirmImport = false;
+
+            return;
+        }
+
+        $zipPath = $this->importFile->getRealPath();
+        $zip = new ZipArchive;
+
+        if ($zip->open($zipPath) !== true) {
+            $this->importStatus = 'No se pudo abrir el ZIP.';
+            $this->importStatusNonce++;
+            $this->confirmImport = false;
+
+            return;
+        }
+
+        $settings = [];
+
+        for ($i = 0; $i < $zip->numFiles; $i++) {
+            $filename = $zip->getNameIndex($i);
+
+            if ($filename === false || pathinfo($filename, PATHINFO_EXTENSION) !== 'csv') {
+                continue;
+            }
+
+            $table = pathinfo($filename, PATHINFO_FILENAME);
+            $settings[$table] = $this->parseCsvFromZip($zip, $filename);
+        }
+
+        $zip->close();
+
+        DB::transaction(function () use ($settings): void {
+            if (isset($settings['app_settings'])) {
+                $row = $settings['app_settings'][0] ?? [];
+                AppSetting::updateOrCreate([], [
+                    'retention_period' => $row['retention_period'] ?? 'disabled',
+                    'dispatch_enabled' => $row['dispatch_enabled'] ?? true,
+                    'dispatch_hours' => $row['dispatch_hours'] ?? ['09:00', '12:00', '15:00'],
+                ]);
+            }
+
+            if (isset($settings['appointment_reminder_preferences'])) {
+                $this->importReminderPreferences($settings['appointment_reminder_preferences']);
+            }
+
+            if (isset($settings['whatsapp_credentials'])) {
+                $this->importCredentials($settings['whatsapp_credentials']);
+            }
+
+            if (isset($settings['whatsapp_sender_numbers'])) {
+                $this->importSenderNumbers($settings['whatsapp_sender_numbers']);
+            }
+
+            if (isset($settings['twilio_content_templates'])) {
+                $this->importTemplates($settings['twilio_content_templates']);
+            }
+        });
+
+        $this->importStatus = 'Ajustes importados correctamente.';
+        $this->importStatusNonce++;
+        $this->confirmImport = false;
+        $this->importFile = null;
+    }
+
+    private function parseCsvFromZip(ZipArchive $zip, string $filename): array
+    {
+        $content = $zip->getFromName($filename);
+
+        if ($content === false) {
+            return [];
+        }
+
+        $handle = fopen('php://memory', 'r+');
+        fwrite($handle, $content);
+        rewind($handle);
+
+        $headings = fgetcsv($handle);
+        if ($headings === false) {
+            fclose($handle);
+
+            return [];
+        }
+
+        $rows = [];
+
+        while (($row = fgetcsv($handle)) !== false) {
+            $row = array_combine($headings, $row);
+            $rows[] = $this->unflattenFromCsv($row);
+        }
+
+        fclose($handle);
+
+        return $rows;
+    }
+
+    private function unflattenFromCsv(array $row): array
+    {
+        $result = [];
+
+        foreach ($row as $key => $value) {
+            if ($value === '' || $value === null) {
+                $result[$key] = null;
+            } elseif ($value === '1' && in_array($key, ['enabled', 'seleccionada', 'selected', 'dispatch_enabled'], true)) {
+                $result[$key] = true;
+            } elseif ($value === '0' && in_array($key, ['enabled', 'seleccionada', 'selected', 'dispatch_enabled'], true)) {
+                $result[$key] = false;
+            } elseif ($value !== '' && $this->isJsonString($value)) {
+                $result[$key] = json_decode($value, true);
+            } else {
+                $result[$key] = $value;
+            }
+        }
+
+        return $result;
+    }
+
+    private function isJsonString(string $value): bool
+    {
+        if ($value[0] !== '{' && $value[0] !== '[') {
+            return false;
+        }
+
+        $decoded = json_decode($value, true);
+
+        return json_last_error() === JSON_ERROR_NONE && is_array($decoded);
+    }
+
     public function render()
     {
-        return view('settings.settings-backup', [
-            'sections' => self::ALL_SECTIONS,
-        ]);
-    }
-
-    private function importSistemaOpcion(array $data): void
-    {
-        SistemaOpcion::updateOrCreate([], [
-            'retention_period' => $data['retention_period'] ?? 'disabled',
-        ]);
-    }
-
-    private function importDispatchSettings(array $data): void
-    {
-        WhatsAppDispatchSettings::updateOrCreate([], [
-            'enabled' => $data['enabled'] ?? true,
-            'hours' => $data['hours'] ?? ['09:00', '12:00', '15:00'],
-        ]);
+        return view('settings.settings-backup');
     }
 
     private function importReminderPreferences(array $records): void

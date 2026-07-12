@@ -67,9 +67,15 @@ Route::middleware('auth')->group(function () {
         Route::view('/admin/settings', 'settings.index')->name('settings.index');
         Route::view('/admin/imports', 'imports.index')->name('imports.index');
         Route::get('/admin/export/appointments', [ExportController::class, 'appointments'])->name('admin.export.appointments');
+        Route::get('/admin/export/appointments-json', [ExportController::class, 'appointmentsJson'])->name('admin.export.appointments-json');
         Route::get('/admin/export/clients', [ExportController::class, 'clients'])->name('admin.export.clients');
+        Route::get('/admin/export/clients-json', [ExportController::class, 'clientsJson'])->name('admin.export.clients-json');
         Route::get('/admin/export/users', [ExportController::class, 'users'])->name('admin.export.users');
+        Route::get('/admin/export/users-json', [ExportController::class, 'usersJson'])->name('admin.export.users-json');
         Route::get('/admin/export/database', [ExportController::class, 'database'])->name('admin.export.database');
         Route::get('/admin/export/settings', [ExportController::class, 'settings'])->name('admin.export.settings');
+        Route::get('/admin/export/settings-csv', [ExportController::class, 'settingsCsv'])->name('admin.export.settings-csv');
+        Route::get('/admin/export/all-json', [ExportController::class, 'allJson'])->name('admin.export.all-json');
+        Route::get('/admin/export/all-csv', [ExportController::class, 'allCsv'])->name('admin.export.all-csv');
     });
 });

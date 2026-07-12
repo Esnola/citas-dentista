@@ -12,6 +12,9 @@ Aplicación Laravel para gestionar citas, pacientes y recordatorios por WhatsApp
 - Plantillas reutilizables para mensajes
 - Envío manual y envío programado
 - Pruebas automáticas para las partes principales del flujo
+- Backup e importación de ajustes (JSON + CSV ZIP)
+- Backup e importación de la base de datos completa (JSON + CSV ZIP)
+- Backup por tabla: clientes, citas, usuarios (JSON + CSV)
 
 ## Stack
 
@@ -90,6 +93,21 @@ La app soporta distintos drivers de envío mediante configuración. Revisa `conf
 - `app/Services/WhatsApp/`: lógica de envío
 - `database/migrations/`: esquema de la base de datos
 - `tests/Feature/`: pruebas funcionales del flujo
+
+## Backup e Import/Export
+
+Accesible desde `/admin/tools`:
+
+### Por tabla
+- Clientes, citas y usuarios: exportar JSON o CSV, importar JSON o CSV
+
+### Ajustes del sistema
+- Configuración de WhatsApp, recordatorios, plantillas, retención de datos
+- Exportar JSON o CSV ZIP, importar JSON (v1 + v2) o CSV ZIP
+
+### Base de datos completa
+- Exportar JSON o CSV ZIP (una tabla por archivo CSV)
+- Importar desde JSON o ZIP con CSVs
 
 ## Notas
 

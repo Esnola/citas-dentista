@@ -12,13 +12,12 @@ class ResetClientData extends Command
 {
     private const PROTECTED_TABLES = [
         'appointment_reminder_preferences',
+        'app_settings',
         'migrations',
-        'sistema_opciones',
         'sqlite_sequence',
         'twilio_content_templates',
         'users',
         'whatsapp_credentials',
-        'whatsapp_dispatch_settings',
         'whatsapp_sender_numbers',
         'whatsapp_messages',
     ];

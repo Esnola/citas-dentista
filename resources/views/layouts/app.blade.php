@@ -223,11 +223,11 @@
             <x-navegacion.aside-link route="admin.login-history" route-is="admin.login-history" color="rose"
                                      text="Conexiones" icono="reloj-agujas" class="sidebar-link"/>
             <x-navegacion.aside-link route="admin.tools" route-is="admin.tools" color="violet"
-                                     icono="excel" text="Import / Export" class="sidebar-link"/>
+                                     icono="seguridad" text="Backups/Seguridad" class="sidebar-link"/>
             <x-navegacion.aside-link route="settings.index" route-is="settings.*" color="cyan"
                                      text="Ajustes" icono="ajustes" class="sidebar-link"/>
           </div>
-
+          
           <form class="border-t border-white/10 pt-4" method="POST" action="{{ route('logout') }}">
             @csrf
             <button type="submit"

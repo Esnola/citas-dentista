@@ -3,8 +3,8 @@
 namespace Tests\Feature;
 
 use App\Models\Appointment;
+use App\Models\AppSetting;
 use App\Models\Client;
-use App\Models\SistemaOpcion;
 use App\Models\WhatsAppMessage;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
@@ -18,7 +18,7 @@ class PurgePastAppointmentsCommandTest extends TestCase
     {
         Carbon::setTestNow(Carbon::create(2026, 7, 11, 12, 0, 0, config('app.timezone')));
 
-        SistemaOpcion::get()->update([
+        AppSetting::get()->update([
             'retention_period' => '1_week',
         ]);
 
@@ -71,7 +71,7 @@ class PurgePastAppointmentsCommandTest extends TestCase
     {
         Carbon::setTestNow(Carbon::create(2026, 7, 11, 12, 0, 0, config('app.timezone')));
 
-        SistemaOpcion::get()->update([
+        AppSetting::get()->update([
             'retention_period' => '1_week',
         ]);
 
@@ -96,7 +96,7 @@ class PurgePastAppointmentsCommandTest extends TestCase
 
     public function test_it_skips_when_cleanup_is_disabled(): void
     {
-        SistemaOpcion::get()->update([
+        AppSetting::get()->update([
             'retention_period' => 'disabled',
         ]);
 
