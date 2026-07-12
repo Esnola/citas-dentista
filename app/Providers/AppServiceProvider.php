@@ -5,6 +5,7 @@ namespace App\Providers;
 use App\Livewire\DispatchBanner;
 use App\Livewire\Settings\AppointmentCleanupSettings;
 use App\Livewire\Settings\AppointmentReminderSettings;
+use App\Livewire\Settings\SettingsBackup;
 use App\Livewire\Settings\SettingsOverview;
 use App\Livewire\Settings\TwilioContentTemplateSettings;
 use App\Livewire\Settings\TwilioCredentialSettings;
@@ -34,5 +35,6 @@ class AppServiceProvider extends ServiceProvider
         Livewire::component('dispatch-banner', DispatchBanner::class);
         Livewire::component('twilio-credential-settings', TwilioCredentialSettings::class);
         Livewire::component('settings-overview', SettingsOverview::class);
+        Livewire::component('settings-backup', SettingsBackup::class);
     }
 }

@@ -32,6 +32,6 @@ class DatabaseSeeder extends Seeder
         //    User::factory(10)->create();
         $this->call(ClientSeeder::class);
         $this->call(AppointmentSeeder::class);
-        $this->call(TwilioContentTemplateSeeder::class);
+        $this->call(SettingsSeeder::class);
     }
 }

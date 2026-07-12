@@ -5,13 +5,101 @@ namespace App\Http\Controllers\Admin;
 use App\Exports\AppointmentsExport;
 use App\Exports\ClientsExport;
 use App\Exports\UsersExport;
+use App\Models\AppointmentReminderPreference;
+use App\Models\SistemaOpcion;
+use App\Models\TwilioContentTemplate;
+use App\Models\WhatsAppCredential;
+use App\Models\WhatsAppDispatchSettings;
+use App\Models\WhatsAppSenderNumber;
 use Illuminate\Routing\Controller;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use PDO;
 use ZipArchive;
 
 class ExportController extends Controller
 {
+    private const ENCRYPTED_FIELDS = [
+        'account_sid',
+        'auth_token',
+        'api_key_sid',
+        'api_key_secret',
+        'cloud_api_access_token',
+    ];
+
+    public function settings()
+    {
+        $data = [
+            'version' => 1,
+            'exported_at' => now()->toIso8601String(),
+            'settings' => $this->gatherSettingsData(),
+        ];
+
+        $json = json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+        $filename = 'settings-backup-'.now()->format('Y-m-d-His').'.json';
+
+        $path = storage_path("app/{$filename}");
+        file_put_contents($path, $json);
+
+        return response()
+            ->download($path, $filename, ['Content-Type' => 'application/json'])
+            ->deleteFileAfterSend(true);
+    }
+
+    private function gatherSettingsData(): array
+    {
+        $model = SistemaOpcion::query()->first();
+
+        $credential = WhatsAppCredential::query()
+            ->get()
+            ->map(function (WhatsAppCredential $credential): array {
+                $data = $credential->only([
+                    'id', 'driver', 'default_country_code', 'message_mode',
+                    'account_sid', 'auth_token', 'content_sid', 'test_recipient',
+                    'timeout', 'connect_timeout', 'cloud_api_base_url', 'cloud_api_version',
+                    'cloud_api_phone_number_id', 'cloud_api_access_token', 'cloud_api_timeout',
+                    'default_template', 'default_message', 'mode', 'api_key_sid',
+                    'api_key_secret', 'status_callback_url', 'selected',
+                ]);
+
+                foreach (self::ENCRYPTED_FIELDS as $field) {
+                    if (! empty($data[$field])) {
+                        $data[$field] = $this->decryptValue($data[$field]);
+                    }
+                }
+
+                return $data;
+            })
+            ->toArray();
+
+        return [
+            'sistema_opciones' => $model ? $model->only(['id', 'retention_period']) : null,
+            'whatsapp_dispatch_settings' => WhatsAppDispatchSettings::query()->first()?->only(['id', 'enabled', 'hours']),
+            'appointment_reminder_preferences' => AppointmentReminderPreference::query()
+                ->select(['id', 'channel', 'lead_days', 'enabled'])
+                ->get()
+                ->toArray(),
+            'whatsapp_credentials' => $credential,
+            'whatsapp_sender_numbers' => WhatsAppSenderNumber::query()
+                ->select(['id', 'whatsapp_credential_id', 'name', 'prefix', 'number', 'selected'])
+                ->get()
+                ->toArray(),
+            'twilio_content_templates' => TwilioContentTemplate::query()
+                ->select(['id', 'nombre', 'content_sid', 'seleccionada', 'content_variables'])
+                ->get()
+                ->toArray(),
+        ];
+    }
+
+    private function decryptValue(string $value): string
+    {
+        try {
+            return Crypt::decrypt($value);
+        } catch (\Throwable) {
+            return $value;
+        }
+    }
+
     public function appointments()
     {
         $export = new AppointmentsExport;

@@ -46,5 +46,13 @@
                 </div>
             </div>
         </div>
+
+        <div class="rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur">
+            <h2 class="text-xl font-semibold">Ajustes del sistema</h2>
+            <p class="mt-2 text-sm text-slate-400">Exporta o importa la configuración de WhatsApp, recordatorios, plantillas y más.</p>
+            <div class="mt-6">
+                <livewire:settings-backup/>
+            </div>
+        </div>
     </div>
 @endsection
