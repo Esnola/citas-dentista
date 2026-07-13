@@ -8,6 +8,7 @@ Aplicación Laravel para gestionar citas, pacientes y recordatorios por WhatsApp
 - Gestión de pacientes y citas
 - Programación de mensajes de WhatsApp
 - Seguimiento de envío, entrega, lectura y respuestas de WhatsApp
+- Historial de comunicaciones por cita (badge en columna Respuesta)
 - Importación de datos desde Excel
 - Plantillas reutilizables para mensajes
 - Envío manual y envío programado
@@ -23,6 +24,7 @@ Aplicación Laravel para gestionar citas, pacientes y recordatorios por WhatsApp
 - Flux UI
 - Tailwind CSS 4
 - PHPUnit 12
+- Ponytail (lazy senior dev plugin for agents)
 
 ## Requisitos
 
@@ -80,11 +82,20 @@ php artisan test --compact --filter=NombreDelTest
 
 ## Respuestas e historial
 
-En la lista de citas, la columna `Respuesta` muestra si el paciente confirmó, pidió reprogramar o envió un mensaje de texto. Cuando hay respuesta, el badge de esa columna abre el historial completo de comunicaciones de la cita. La columna de acciones queda reservada para enviar WhatsApp, editar y eliminar.
+En la lista de citas, la columna `Respuesta` muestra si el paciente confirmó (verde), pidió consultas (rojo) o envió un texto. Cuando hay respuesta, el badge abre el historial completo de comunicaciones de la cita. La columna de acciones queda reservada para enviar WhatsApp, editar y eliminar.
+
+Tres estados de respuesta:
+- **Confirmada** (confirm*) — verde, icono usuario-plus
+- **Consultar** (cualquier otro payload) — rojo, icono alerta
+- **Sin cambio** (sin payload) — usa campo de texto
 
 ## WhatsApp
 
 La app soporta distintos drivers de envío mediante configuración. Revisa `config/whatsapp.php` y las credenciales asociadas en `.env` para dejar activo el canal que uses.
+
+### Auto-dispatch
+
+El envío automático corre a las 09:00, 12:00 y 15:00 via `whatsapp:dispatch-due`. Usa lead_days configurados en `appointment_reminder_preferences`. Solo envía si la cita es futura, está activa y no ha sido enviada.
 
 ## Estructura útil
 
@@ -111,5 +122,5 @@ Accesible desde `/admin/tools`:
 
 ## Notas
 
-- El proyecto ya incluye skills y guías para seguir el trabajo desde otra sesión o equipo.
+- El proyecto usa Ponytail (`@dietrichgebert/ponytail`) para que los agentes escriban el mínimo código necesario — menos líneas, menos tokens, misma seguridad.
 - Si cambias frontend, recuerda ejecutar `npm run dev` o `npm run build`.

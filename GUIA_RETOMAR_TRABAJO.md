@@ -4,6 +4,22 @@ Proyecto: `citasdentista`
 
 Ruta local: `/Users/juanjose/PhpstormProjects/citasdentista`
 
+## Ponytail
+
+Este proyecto usa [`@dietrichgebert/ponytail`](https://github.com/DietrichGebert/ponytail) (configurado en `opencode.json`). Los agentes DEBEN aplicar la escalera Ponytail antes de escribir código:
+
+1. ¿Esto necesita existir? → Si no, saltar (YAGNI)
+2. ¿Ya existe en este codebase? → Reusar patrones/helpers existentes
+3. ¿Lo hace stdlib? → Usar funciones nativas de Laravel/PHP/Blade
+4. ¿Feature nativa de la plataforma? → Usar HTML/Livewire/Browser APIs primero
+5. ¿Dependencia instalada? → Usar Flux, Livewire, etc. — no añadir paquetes nuevos
+6. ¿Una línea? → Una línea
+7. Solo entonces: el mínimo que funciona
+
+**Nunca simplificar**: validación, manejo de errores, seguridad, accesibilidad o integridad de datos.
+
+**Niveles de intensidad**: `/ponytail lite|full|ultra|off`. Default: `full`.
+
 ## Estado actual
 
 Aplicacion Laravel 13 con Livewire 4, Flux UI y Tailwind CSS 4 para gestionar clientes, citas y envios de WhatsApp. PHP 8.4. MySQL en produccion, SQLite para tests.
@@ -22,7 +38,7 @@ Aplicacion Laravel 13 con Livewire 4, Flux UI y Tailwind CSS 4 para gestionar cl
 
 - **Livewire-first**: las rutas apuntan a vistas Blade que montan componentes Livewire
 - **Service layer WhatsApp**: `app/Services/WhatsApp/` separa la logica de envio de los modelos
-- **Config-based templates**: las plantillas de WhatsApp viven en `config/whatsapp.php`, no en BD (tabla `whatsapp_templates` eliminada)
+- **Config-based templates**: las plantillas de WhatsApp viven en `config/whatsapp.php`, no en BD
 - **Traits compartidos**: `NormalizesPhone` (Client, WhatsAppMessage, WhatsAppSender), `ValidatesSelectableDate` (AppointmentForm, ClientMessageScheduler)
 
 ### Modelos
@@ -30,13 +46,13 @@ Aplicacion Laravel 13 con Livewire 4, Flux UI y Tailwind CSS 4 para gestionar cl
 | Modelo | Descripcion |
 |---|---|
 | `Client` | Pacientes. Soft deletes. Normalizacion de telefono. |
-| `Appointment` | Citas. Soft deletes. Campos: `activo`, `cita_activa`, `enviado`, `entregado`, `confirmada`, `pendiente_reprogramacion`. Timestamps: `whatsapp_sent_at`, `whatsapp_delivered_at`, `whatsapp_read_at`. |
-| `WhatsAppMessage` | Mensajes WhatsApp. Campos: `status` (pending/sent/failed), `respuesta` (Confirmar/Reprogramar), `responded_at`, `provider_payload`, `metadata`. |
+| `Appointment` | Citas. Soft deletes. Campos: `activo`, `cita_activa`, `enviado`, `entregado`, `confirmada`, `pendiente_reprogramacion`. Timestamps: `whatsapp_sent_at`, `whatsapp_delivered_at`, `whatsapp_read_at`, `last_inbound_seen_at`. |
+| `WhatsAppMessage` | Mensajes WhatsApp. Campos: `direction` (outbound/inbound), `parent_id` (self-FK), `status` (pending/sent/failed), `respuesta`, `responded_at`, `provider_payload`, `metadata`. |
 | `WhatsAppTemplate` | Clase final (no Eloquent). Resuelve plantillas desde config. |
 | `AppointmentReminderPreference` | Preferencias de recordatorio por canal (whatsapp/email) y dias de anticipacion. |
-| `WhatsAppDispatchSettings` | Singleton. `enabled` (toggle envios programados), `hours` (json, horas de envio). |
-| `WhatsAppCredential` | Singleton. Credenciales Twilio en BD: `mode`, `from_number`, `test_recipient`, `api_key_sid` (encrypted), `api_key_secret` (encrypted). Fallback a .env. |
-| `TwilioContentTemplate` | Templates de contenido Twilio en BD. `content_sid`, `seleccionada`, `content_variables`. |
+| `AppSetting` | Singleton unificado (fusion de `sistema_opciones` + `whatsapp_dispatch_settings`). |
+| `WhatsAppCredential` | Credenciales API en BD: `driver`, `account_sid` (encrypted), `auth_token` (encrypted), `webhook_enabled`, `poll_interval`. Fallback a .env. |
+| `TwilioContentTemplate` | Templates de contenido Twilio en BD. `content_sid`, `content_variables`. |
 | `User` | Usuarios. Campo `is_admin` para guard de administracion. |
 | `LoginHistory` | Registro de historial de login de usuarios. |
 
@@ -59,14 +75,19 @@ Aplicacion Laravel 13 con Livewire 4, Flux UI y Tailwind CSS 4 para gestionar cl
 | `TwilioContentTemplateSettings` | Gestionar templates de contenido Twilio |
 | `TwilioCredentialSettings` | Credenciales Twilio: modo sandbox/sender, API key, remitente |
 | `DispatchBanner` | Banner reactivo: aviso cuando envios automaticos deshabilitados |
+| `TableBackup` | Exportar/importar por tabla (clients, appointments, users) |
+| `SettingsBackup` | Exportar/importar ajustes del sistema |
+| `DatabaseBackup` | Exportar/importar base de datos completa |
 
 ### Comandos Artisan
 
 | Comando | Funcion | Programacion |
 |---|---|---|
-| `whatsapp:dispatch-due` | Encola y envia mensajes WhatsApp pendientes. Verifica `WhatsAppDispatchSettings.enabled`. | Cada minuto (con check de enabled + horas en BD) |
+| `whatsapp:dispatch-due` | Encola y envia mensajes WhatsApp pendientes. Verifica `AppSetting.dispatch_enabled`. | 09:00, 12:00, 15:00 (con withoutOverlapping) |
 | `whatsapp:sync-delivery-status` | Sincroniza estado de entrega desde Twilio API | Cada minuto (sin overlap) |
 | `whatsapp:backfill-delivery-state` | Backfill de estados de entrega desde mensajes almacenados | Manual |
+| `settings:export` | Exporta ajustes a JSON | Manual |
+| `settings:import` | Importa ajustes desde JSON (v1 + v2) | Manual |
 
 ### Servicios WhatsApp
 
@@ -74,8 +95,43 @@ Aplicacion Laravel 13 con Livewire 4, Flux UI y Tailwind CSS 4 para gestionar cl
 |---|---|
 | `WhatsAppSender` | Envia mensajes via Twilio/Cloud API/log. Modos: sandbox, sender, service, auto. |
 | `AppointmentImmediateSender` | Envio inmediato desde UI (dispatchSync para feedback al usuario) |
-| `AppointmentDeliveryStatusSyncer` | Sincroniza estados: via webhook Twilio, polling API, o sync manual desde UI |
-| `WhatsAppResponseHandler` | Procesa respuestas del cliente (Confirmar/Reprogramar) |
+| `AppointmentDeliveryStatusSyncer` | Sincroniza estados: via webhook Twilio, polling API, sync manual desde UI, e inbound responses |
+| `WhatsAppResponseHandler` | Procesa respuestas del cliente (3 estados: confirm*, otro payload, texto) |
+
+### Respuestas de WhatsApp (3 estados)
+
+El sistema de matching de respuestas usa 3 estados:
+
+1. **Confirmada** — payload del botón empieza con "confirm" → verde, icono usuario-plus
+2. **Consultar** — cualquier otro payload → rojo, icono alerta
+3. **Sin cambio** — sin payload → usa campo de texto `respuesta`
+
+- `responseStatusLabel()` en `Appointment` lee del último inbound message
+- `WhatsAppResponseHandler::process()` crea registro inbound Y actualiza flags de la cita
+- Inbound messages se almacenan con `direction=inbound` y `parent_id` apuntando al outbound original
+- Quick Reply button clicks llegan via `/webhooks/twilio/whatsapp-inbound`
+
+### Historial de comunicaciones
+
+- Cada respuesta es un registro SEPARATE en `whatsapp_messages` (no overwrite)
+- Columnas: `direction` (outbound/inbound), `parent_id` (self-FK)
+- Modal Alpine para ver historial completo
+- Badge en columna `Respuesta` abre el historial
+
+### Backup / Import / Export
+
+Accesible desde `/admin/tools`:
+
+#### Por tabla
+- Clientes, citas y usuarios: exportar JSON o CSV, importar JSON o CSV
+
+#### Ajustes del sistema
+- Configuracion de WhatsApp, recordatorios, plantillas, retencion de datos
+- Exportar JSON o CSV ZIP, importar JSON (v1 + v2) o CSV ZIP
+
+#### Base de datos completa
+- Exportar JSON o CSV ZIP (una tabla por archivo CSV)
+- Importar desde JSON o ZIP con CSVs
 
 ### Rutas principales
 
@@ -100,42 +156,18 @@ Aplicacion Laravel 13 con Livewire 4, Flux UI y Tailwind CSS 4 para gestionar cl
 | `/admin/imports` | Importar CSV (admin) |
 | `/admin/export/*` | Exportar CSV: clientes, citas, usuarios, base de datos |
 | `/webhooks/twilio/whatsapp-status` | Webhook de estado de Twilio |
+| `/webhooks/twilio/whatsapp-inbound` | Webhook de mensajes entrantes Twilio |
 
 ### Webhook de Twilio
 
 `POST /webhooks/twilio/whatsapp-status`
 - Verifica firma de Twilio
 - Sincroniza estado de entrega via `AppointmentDeliveryStatusSyncer::syncFromTwilioWebhook()`
-- No recarga la pagina — el usuario navega manualmente para ver cambios
 
-### Respuestas del cliente
-
-Las plantillas pueden incluir botones de respuesta (config en `config/whatsapp.php` > `response_actions`):
-- **Confirmar** -> marca la cita como `confirmada = true`
-- **Reprogramar** -> marca la cita como `pendiente_reprogramacion = true`
-
-Esto se procesa via `WhatsAppResponseHandler` y se sincroniza en el webhook o polling.
-
-En la UI de citas de cliente, `resources/views/livewire/client-appointments.blade.php` muestra la respuesta en la columna `Respuesta`:
-- `Confirmada`
-- `Reprogramar`
-- `Leer Mensaje`
-
-Ese badge es el boton que abre `openHistory({{ $appointment->id }})`. El boton `Historial` ya no existe en la columna de acciones (`resources/views/components/tabla/botones-maniobra.blade.php`), que queda para enviar WhatsApp, editar y eliminar.
-
-### Ajustes (drag-and-drop)
-
-La pagina de ajustes (`/admin/settings`) tiene secciones reordenables y plegables:
-1. **Resumen**: driver, plantilla, credenciales Twilio, modo
-2. **Twilio Sandbox**: guia rapida
-3. **Estado actual**: credenciales, sender, destino de prueba
-4. **Prueba de conexion**: envio real de WhatsApp
-5. **Tiempos de envio**: configuracion de recordatorios WhatsApp/email
-
-### Herramientas admin (`/admin/tools`)
-
-- Importar CSV (clientes)
-- Exportar: clientes CSV, citas CSV, usuarios CSV, base de datos ZIP (SQLite)
+`POST /webhooks/twilio/whatsapp-inbound`
+- Procesa mensajes entrantes (Quick Reply button clicks)
+- Usa `WhatsAppResponseHandler::process()` para crear registro inbound
+- Fields: `ButtonText`, `ButtonPayload`, `ButtonType`, `Body`, `OriginalRepliedMessageSid`
 
 ### Dashboard
 
@@ -198,9 +230,6 @@ php artisan whatsapp:sync-delivery-status --no-interaction
 
 # Limpiar cache despues de cambiar .env
 php artisan config:clear --no-interaction
-
-# Validar configuracion Twilio sin mostrar secretos
-php artisan tinker --execute '$twilio = config("whatsapp.twilio"); $sender = app(\App\Services\WhatsApp\WhatsAppSender::class); echo json_encode(["driver" => config("whatsapp.driver"), "mode" => $twilio["mode"] ?? null, "resolved_mode" => $sender->resolveTwilioMode(), "has_account_sid" => filled($twilio["account_sid"] ?? null), "has_auth_token" => filled($twilio["auth_token"] ?? null), "has_from" => filled($twilio["from"] ?? null), "has_messaging_service_sid" => filled($twilio["messaging_service_sid"] ?? null), "has_test_recipient" => filled($twilio["test_recipient"] ?? null)], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);'
 ```
 
 ## Pruebas relacionadas con WhatsApp
@@ -213,7 +242,7 @@ php artisan test --compact tests/Feature/WhatsAppTwilioDispatchTest.php tests/Fe
 
 ### WhatsApp
 1. Registrar sender de WhatsApp en Twilio para usar templates custom en español con botones (error 63027 en sandbox).
-2. Resolver error 63112 (WABA deshabilitada) si persiste después de registrar sender.
+2. Resolver error 63112 (WABA deshabilitada) si persiste despues de registrar sender.
 
 ### Correos
 3. Preparar plantilla de correo de WhatsApp.

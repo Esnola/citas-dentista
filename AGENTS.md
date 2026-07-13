@@ -2,6 +2,22 @@
 
 Laravel 13 app for dental appointment management with WhatsApp reminders. Livewire 4 + Flux UI + Tailwind CSS 4. PHPUnit 12. PHP 8.4. MySQL production, SQLite for tests.
 
+## Ponytail — Lazy Senior Dev
+
+This project uses [`@dietrichgebert/ponytail`](https://github.com/DietrichGebert/ponytail) plugin (configured in `opencode.json`). Before writing any code, agents MUST apply the Ponytail ladder:
+
+1. **Does this need to exist?** → Skip if speculative (YAGNI)
+2. **Already in this codebase?** → Reuse existing patterns/helpers
+3. **Stdlib does it?** → Use built-in Laravel/PHP/Blade features
+4. **Native platform feature?** → Use HTML/Livewire/Browser APIs first
+5. **Installed dependency?** → Use Flux, Livewire, etc. — don't add new packages
+6. **One line?** → One line
+7. **Only then:** minimum code that works
+
+**Never simplify away**: validation, error handling, security, accessibility, or data integrity.
+
+**Intensity levels**: `/ponytail lite|full|ultra|off`. Default: `full`.
+
 ## Commands
 
 ```bash
@@ -32,7 +48,7 @@ npm run build / npm run dev                             # frontend assets
 ### Settings tables
 - `app_settings` — single-row: `retention_period`, `dispatch_enabled`, `dispatch_hours` (merged from old `sistema_opciones` + `whatsapp_dispatch_settings`)
 - `appointment_reminder_preferences` — multi-row: channel + lead_days + enabled
-- `whatsapp_credentials` — API config with 5 encrypted fields (`account_sid`, `auth_token`, `api_key_sid`, `api_key_secret`, `cloud_api_access_token`)
+- `whatsapp_credentials` — API config with 5 encrypted fields (`account_sid`, `auth_token`, `api_key_sid`, `api_key_secret`, `cloud_api_access_token`) + `webhook_enabled`, `poll_interval`
 - `whatsapp_sender_numbers` — FK to `whatsapp_credentials`, cascade delete
 - `twilio_content_templates` — unique `content_sid`, JSON `content_variables`
 
