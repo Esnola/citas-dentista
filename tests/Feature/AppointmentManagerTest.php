@@ -2306,6 +2306,56 @@ class AppointmentManagerTest extends TestCase
             ->assertSet('filter_entregado', false);
     }
 
+    public function test_client_appointments_unsent_filter_shows_inactive_unsent_appointments(): void
+    {
+        Carbon::setTestNow('2026-06-23 09:00:00');
+
+        $client = Client::query()->create([
+            'nombre' => 'Ana',
+            'apellidos' => 'Pérez',
+            'telefono' => '+34600111222',
+        ]);
+
+        Appointment::query()->create([
+            'client_id' => $client->id,
+            'fecha' => '2026-07-01',
+            'hora' => '09:00',
+            'enviado' => true,
+            'activo' => false,
+        ]);
+        Appointment::query()->create([
+            'client_id' => $client->id,
+            'fecha' => '2026-07-02',
+            'hora' => '10:00',
+            'enviado' => false,
+            'activo' => true,
+        ]);
+        Appointment::query()->create([
+            'client_id' => $client->id,
+            'fecha' => '2026-07-03',
+            'hora' => '11:00',
+            'enviado' => false,
+            'activo' => true,
+        ]);
+        Appointment::query()->create([
+            'client_id' => $client->id,
+            'fecha' => '2026-07-04',
+            'hora' => '12:00',
+            'enviado' => false,
+            'activo' => false,
+        ]);
+
+        Livewire::test(ClientAppointments::class, ['clientId' => $client->id])
+            ->call('toggleWhatsappFilter', 'unsent')
+            ->assertSet('whatsappFilter', 'unsent')
+            ->assertDontSee('09:00')
+            ->assertDontSee('10:00')
+            ->assertDontSee('11:00')
+            ->assertSee('12:00');
+
+        Carbon::setTestNow();
+    }
+
     public function test_appointment_list_filters_delivered_appointments(): void
     {
         $client = Client::query()->create([

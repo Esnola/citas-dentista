@@ -504,7 +504,10 @@ class ClientAppointments extends Component
             )
             ->when($this->whatsappFilter === 'sent', fn ($q) => $q->where('enviado', true))
             ->when($this->whatsappFilter === 'delivered', fn ($q) => $q->where('entregado', true))
-            ->when($this->whatsappFilter === 'unsent', fn ($q) => $q->where('activo', false))
+            ->when($this->whatsappFilter === 'unsent', fn ($q) => $q
+                ->where('appointments.enviado', false)
+                ->where('appointments.activo', false)
+            )
             ->orderBy('appointments.fecha', $this->sort_direction)
             ->orderBy('appointments.hora', $this->sort_direction);
     }
