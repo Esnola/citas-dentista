@@ -29,6 +29,9 @@ Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
 Route::middleware('auth')->group(function () {
     Route::view('/dashboard', 'dashboard')->name('dashboard');
     Route::view('/agenda', 'agenda.index')->name('agenda.index');
+    Route::view('/agenda/{date}', 'agenda.day')
+        ->where('date', '\d{4}-\d{2}-\d{2}')
+        ->name('agenda.day');
     Route::view('/calendario', 'calendar.index')->name('calendar.index');
     Route::view('/clients', 'clients.index')->name('clients.index');
     Route::view('/clients/list', 'clients.list')->name('clients.list');

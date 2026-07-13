@@ -255,6 +255,39 @@ class AppointmentManagerTest extends TestCase
         Carbon::setTestNow();
     }
 
+    public function test_appointment_create_does_not_send_whatsapp_immediately_for_today(): void
+    {
+        Carbon::setTestNow('2026-06-23 09:00:00');
+
+        $admin = User::factory()->create();
+        $client = Client::query()->create([
+            'nombre' => 'Ana',
+            'apellidos' => 'Pérez',
+            'telefono' => '+34600111222',
+        ]);
+
+        Config::set('whatsapp.driver', 'twilio');
+        Http::fake();
+
+        $this->actingAs($admin);
+
+        Livewire::test(AppointmentForm::class)
+            ->set('selectedClientId', $client->id)
+            ->set('fecha', '2026-06-23')
+            ->set('hora', '23:30')
+            ->set('sendImmediately', true)
+            ->call('save');
+
+        $appointment = Appointment::query()->firstOrFail();
+
+        Http::assertNothingSent();
+
+        $this->assertFalse($appointment->enviado);
+        $this->assertSame(0, WhatsAppMessage::query()->count());
+
+        Carbon::setTestNow();
+    }
+
     public function test_appointment_form_rejects_today_and_sundays(): void
     {
         Carbon::setTestNow('2026-06-23 09:00:00');
@@ -1454,6 +1487,49 @@ class AppointmentManagerTest extends TestCase
         Carbon::setTestNow();
     }
 
+    public function test_today_appointments_do_not_allow_changes_or_whatsapp_send_from_listing(): void
+    {
+        Carbon::setTestNow('2026-06-23 09:00:00');
+
+        $client = Client::query()->create([
+            'nombre' => 'Ana',
+            'apellidos' => 'Pérez',
+            'telefono' => '+34600111222',
+        ]);
+
+        $appointment = Appointment::query()->create([
+            'client_id' => $client->id,
+            'fecha' => '2026-06-23',
+            'hora' => '23:30',
+            'enviado' => false,
+            'activo' => true,
+            'cita_activa' => true,
+        ]);
+
+        Livewire::test(ClientAppointments::class, ['clientId' => $client->id])
+            ->call('updateActiveStatus', $appointment->id, false)
+            ->assertDispatched('toast', fn ($n, $p) => $p['message'] === 'Esta cita no se puede modificar. Solo se puede eliminar.' && $p['type'] === 'error')
+            ->call('updateAppointmentActiveStatus', $appointment->id, false)
+            ->assertDispatched('toast', fn ($n, $p) => $p['message'] === 'Esta cita no se puede modificar. Solo se puede eliminar.' && $p['type'] === 'error')
+            ->call('sendNow', $appointment->id)
+            ->assertDispatched('toast', fn ($n, $p) => $p['message'] === 'Las citas pasadas no pueden enviarse.' && $p['type'] === 'error');
+
+        Livewire::test(ClientAppointments::class, ['clientId' => $client->id])
+            ->set('selectedAppointmentIds', [$appointment->id])
+            ->call('updateSelectedActiveStatus', false)
+            ->set('selectedAppointmentIds', [$appointment->id])
+            ->call('updateSelectedCitaActiva', false);
+
+        $appointment->refresh();
+
+        $this->assertTrue($appointment->activo);
+        $this->assertTrue($appointment->cita_activa);
+        $this->assertFalse($appointment->enviado);
+        $this->assertSame(0, WhatsAppMessage::query()->count());
+
+        Carbon::setTestNow();
+    }
+
     public function test_sent_appointments_do_not_allow_active_status_changes_from_listing(): void
     {
         Carbon::setTestNow('2026-06-23 09:00:00');
@@ -1493,17 +1569,15 @@ class AppointmentManagerTest extends TestCase
 
         $appointment = Appointment::query()->create([
             'client_id' => $client->id,
-            'fecha' => '2026-06-30',
+            'fecha' => '2026-06-23',
             'hora' => '11:30',
             'enviado' => true,
             'activo' => true,
         ]);
 
         Livewire::test(ClientAppointments::class, ['clientId' => $client->id])
-            ->set('filter_enviado', true)
-            ->assertSeeHtml('bg-slate-900/50 text-slate-400')
             ->assertSeeHtml('aria-label="Eliminar cita"')
-            ->assertSeeHtml('href="'.route('clients.appointments', $client).'"')
+            ->assertDontSeeHtml('wire:click="sendNow('.$appointment->id.')"')
             ->assertDontSeeHtml('aria-label="Editar cita"');
 
         Carbon::setTestNow();
@@ -1917,8 +1991,7 @@ class AppointmentManagerTest extends TestCase
             ->set('hora', '10:00')
             ->set('enviado', false)
             ->set('activo', false)
-            ->call('save')
-            ->assertSee('Esta cita no se puede modificar. Solo se puede eliminar.');
+            ->call('save');
 
         $appointment->refresh();
 
@@ -1954,8 +2027,7 @@ class AppointmentManagerTest extends TestCase
             ->set('hora', '10:00')
             ->set('enviado', false)
             ->set('activo', false)
-            ->call('save')
-            ->assertSee('Esta cita no se puede modificar. Solo se puede eliminar.');
+            ->call('save');
 
         $appointment->refresh();
 

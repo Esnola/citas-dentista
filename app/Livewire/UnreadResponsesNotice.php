@@ -66,8 +66,9 @@ class UnreadResponsesNotice extends Component
                 return [
                     'appointment_id' => $appointment->id,
                     'client_name' => $appointment->client?->full_name ?? 'Cliente',
-                    'response' => $latestInbound?->responseValue() ?? '',
+                    'response_badge' => $this->responseBadge($latestInbound),
                     'responded_at' => $latestInbound?->responded_at ?? $latestInbound?->created_at,
+                    'client_url' => route('clients.appointments', $appointment->client_id),
                     'url' => route('clients.appointments', [
                         'client' => $appointment->client_id,
                         'history' => $appointment->id,
@@ -79,6 +80,42 @@ class UnreadResponsesNotice extends Component
             'items' => $appointments,
             'pollInterval' => WhatsAppCredential::webhookEnabled() ? 2 : WhatsAppCredential::pollInterval(),
         ]);
+    }
+
+    /** @return array{label: string, classes: string, icono: string}|null */
+    private function responseBadge(?WhatsAppMessage $message): ?array
+    {
+        if (! $message) {
+            return null;
+        }
+
+        if ($message->isConfirmed()) {
+            return [
+                'label' => 'Cita Confirmada',
+                'classes' => 'bg-emerald-500/15 text-emerald-300 border border-emerald-400/30',
+                'icono' => 'usuario-plus',
+            ];
+        }
+
+        if ($message->isRescheduleRequested()) {
+            return [
+                'label' => 'Cambiar Cita',
+                'classes' => 'bg-red-500/15 text-red-300 border border-red-400/30',
+                'icono' => 'alert',
+            ];
+        }
+
+        $label = $message->responseValue();
+
+        if (! $label) {
+            return null;
+        }
+
+        return [
+            'label' => $label,
+            'classes' => 'bg-sky-500/20 text-sky-200 border border-sky-400/40 ring-2 ring-sky-300/20',
+            'icono' => 'ojo',
+        ];
     }
 
     private function shouldSyncFromTwilio(): bool

@@ -155,8 +155,8 @@ class ClientAppointments extends Component
         $appointmentIds = Appointment::query()
             ->where('client_id', $this->clientId)
             ->whereKey(array_map('intval', $this->selectedAppointmentIds))
+            ->whereDate('fecha', '>', now(config('app.timezone'))->toDateString())
             ->pending()
-            ->upcoming()
             ->pluck('id');
 
         Appointment::query()->whereKey($appointmentIds)->update(['activo' => $activo]);
@@ -189,6 +189,7 @@ class ClientAppointments extends Component
         $appointmentIds = Appointment::query()
             ->where('client_id', $this->clientId)
             ->whereKey(array_map('intval', $this->selectedAppointmentIds))
+            ->whereDate('fecha', '>', now(config('app.timezone'))->toDateString())
             ->pluck('id');
 
         Appointment::query()->whereKey($appointmentIds)->update(['cita_activa' => $citaActiva]);
@@ -285,7 +286,7 @@ class ClientAppointments extends Component
             return;
         }
 
-        if (! $appointment->scheduledFor()->isFuture()) {
+        if (! $appointment->isFuture()) {
             $this->dispatch('toast', message: 'Las citas pasadas no pueden enviarse.', type: 'error');
 
             return;

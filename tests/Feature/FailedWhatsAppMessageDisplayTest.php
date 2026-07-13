@@ -329,7 +329,7 @@ class FailedWhatsAppMessageDisplayTest extends TestCase
         Livewire::test(ClientAppointments::class, ['clientId' => $client->id])
             ->call('openHistory', $appointment->id)
             ->assertSee('Historial de la cita')
-            ->assertSee('Confirmada')
+            ->assertSee('Cita Confirmada')
             ->assertDontSee('Confirmar Cita');
     }
 
@@ -406,7 +406,7 @@ class FailedWhatsAppMessageDisplayTest extends TestCase
 
         Livewire::test(ClientAppointments::class, ['clientId' => $client->id])
             ->call('openHistory', $appointment->id)
-            ->assertSee('Confirmada')
+            ->assertSee('Cita Confirmada')
             ->assertDontSee('Confirmar Cita');
     }
 
@@ -474,7 +474,7 @@ class FailedWhatsAppMessageDisplayTest extends TestCase
 
         Livewire::test(ClientAppointments::class, ['clientId' => $client->id])
             ->call('openHistory', $appointment->id)
-            ->assertSee('Confirmada')
+            ->assertSee('Cita Confirmada')
             ->assertDontSee('Respuesta: Confirmar Cita');
     }
 

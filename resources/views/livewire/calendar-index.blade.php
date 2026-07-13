@@ -13,7 +13,7 @@
               wire:click="previousMonth"
               class="flex size-11 items-center justify-center text-slate-300 transition hover:bg-white/10 hover:text-white"
               aria-label="Mes anterior">
-        <x-iconos.volver clase="size-4"/>
+        <x-iconos.down clase="size-4 rotate-90"/>
       </button>
       <button type="button"
               wire:click="currentMonth"
@@ -58,11 +58,12 @@
               $isCurrentMonth = $day['is_current_month'];
               $isSunday = $day['is_sunday'];
               $isToday = $date->isToday();
+              $isPast = $isCurrentMonth && ! $isSunday && $date->lt(now(config('app.timezone'))->startOfDay());
             @endphp
 
-            <div class="relative flex min-h-28 flex-col border-r border-white/10 p-3 transition-colors last:border-r-0 sm:min-h-32 md:min-h-36 lg:min-h-40 {{ $isCurrentMonth && ! $isSunday ? 'bg-slate-900/45 hover:bg-slate-900/70' : 'bg-slate-950/55 text-slate-600' }}">
+            <div class="relative flex min-h-28 flex-col border-r border-white/10 p-3 transition-colors last:border-r-0 sm:min-h-32 md:min-h-36 lg:min-h-40 {{ $isPast ? 'bg-zinc-950/35 text-slate-600 hover:bg-zinc-950/45' : ($isCurrentMonth && ! $isSunday ? 'bg-slate-900/45 hover:bg-slate-900/70' : 'bg-slate-950/55 text-slate-600') }}">
               <div class="flex items-start justify-between gap-2">
-                <span class="grid size-14 place-items-center text-xl font-bold leading-none {{ $isToday && ! $isSunday ? 'rounded-full bg-sky-600/50 text-white shadow-sm shadow-sky-500/20' : ($isCurrentMonth && ! $isSunday ? 'text-slate-100/70' : 'text-slate-600/50') }}">
+                <span class="grid size-14 place-items-center text-xl font-bold leading-none {{ $isToday && ! $isSunday ? 'rounded-full bg-sky-600/50 text-white shadow-sm shadow-sky-500/20' : ($isPast ? 'text-slate-700/70' : ($isCurrentMonth && ! $isSunday ? 'text-slate-100/70' : 'text-slate-600/50')) }}">
                   {{ $date->format('j') }}
                 </span>
               </div>
@@ -70,17 +71,17 @@
               @if (! $isSunday)
                 <div class="grid flex-1 place-items-center">
                   <div class="text-center">
-                    <span class="block text-4xl font-black leading-none {{ $appointmentsCount > 0 && $isCurrentMonth ? 'text-sky-300/60' : 'text-slate-700' }}">
+                    <span class="block text-4xl font-black leading-none {{ $appointmentsCount > 0 && $isCurrentMonth && ! $isPast ? 'text-sky-300/60' : ($isPast ? 'text-slate-700/60' : 'text-slate-700') }}">
                       {{ $appointmentsCount }}
                     </span>
-                    <span class="mt-1 block text-[10px] font-black uppercase tracking-wide {{ $appointmentsCount > 0 && $isCurrentMonth ? 'text-sky-300' : 'text-slate-600' }}">
+                    <span class="mt-1 block text-[10px] font-black uppercase tracking-wide {{ $appointmentsCount > 0 && $isCurrentMonth && ! $isPast ? 'text-sky-300' : ($isPast ? 'text-slate-700/60' : 'text-slate-600') }}">
                       Total {{ Str::plural('cita', $appointmentsCount) }}
                     </span>
                     <div class="mt-3 rounded-lg border border-white/10 bg-slate-950/35 px-3 py-1.5">
-                      <span class="block text-xl font-black leading-none {{ $inactiveAppointmentsCount > 0 && $isCurrentMonth ? 'text-amber-600/50' : 'text-slate-70/500' }}">
+                      <span class="block text-xl font-black leading-none {{ $inactiveAppointmentsCount > 0 && $isCurrentMonth && ! $isPast ? 'text-amber-600/50' : ($isPast ? 'text-slate-700/50' : 'text-slate-700/50') }}">
                         {{ $inactiveAppointmentsCount }}
                       </span>
-                      <span class="mt-0.5 block text-[9px] font-black uppercase tracking-wide {{ $inactiveAppointmentsCount > 0 && $isCurrentMonth ? 'text-amber-600/50' : 'text-slate-600/50' }}">
+                      <span class="mt-0.5 block text-[9px] font-black uppercase tracking-wide {{ $inactiveAppointmentsCount > 0 && $isCurrentMonth && ! $isPast ? 'text-amber-600/50' : ($isPast ? 'text-slate-700/50' : 'text-slate-600/50') }}">
                         No activas
                       </span>
                     </div>

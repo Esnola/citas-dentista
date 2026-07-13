@@ -1,6 +1,6 @@
 <td class="px-4 py-3 text-right" onclick="event.stopPropagation()">
   <div class="flex justify-end items-center gap-2">
-    @if (! $appointment->enviado && $appointment->activo && $appointment->cita_activa && $appointment->scheduledFor()->isFuture())
+    @if (! $appointment->enviado && $appointment->activo && $appointment->cita_activa && $appointment->isFuture())
       <x-botones.icono-buton
               color="emerald"
               icon="whatsapp"
@@ -10,12 +10,14 @@
               wire:target="sendNow({{ $appointment->id }})"
       />
     @endif
-    <x-botones.icono-buton
-            color="blue"
-            icon="lapiz"
-            label="Editar cita"
-            onclick="window.location='{{ $editUrl }}'"
-    />
+    @if (! $appointment->enviado && $appointment->canBeChanged())
+      <x-botones.icono-buton
+              color="blue"
+              icon="lapiz"
+              label="Editar cita"
+              onclick="window.location='{{ $editUrl }}'"
+      />
+    @endif
     <x-botones.icono-buton
             color="red"
             icon="papelera"

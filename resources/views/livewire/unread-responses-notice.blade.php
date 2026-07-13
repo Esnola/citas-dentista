@@ -1,7 +1,7 @@
 <div wire:poll.{{ $pollInterval }}s="pollUpdates">
   @if ($items->isNotEmpty())
     <div
-        x-data="{
+            x-data="{
             x: 16,
             y: 16,
             dragging: false,
@@ -41,18 +41,19 @@
                 this.y = Math.min(Math.max(8, this.y), maxY);
             },
         }"
-        x-on:pointermove.window="drag($event)"
-        x-on:pointerup.window="stopDrag()"
-        x-on:pointercancel.window="stopDrag()"
-        x-on:mouseleave.window="stopDrag()"
-        x-bind:style="`left:${x}px; top:${y}px;`"
-        x-ref="panel"
-        class="fixed z-100 w-[22rem] max-w-[calc(100vw-2rem)]"
+            x-on:pointermove.window="drag($event)"
+            x-on:pointerup.window="stopDrag()"
+            x-on:pointercancel.window="stopDrag()"
+            x-on:mouseleave.window="stopDrag()"
+            x-bind:style="`left:${x}px; top:${y}px;`"
+            x-ref="panel"
+            class="fixed z-100 w-88 max-w-[calc(100vw-2rem)]"
     >
-      <section class="overflow-hidden rounded-3xl border-2 border-orange-300/70 bg-slate-950/95 shadow-[0_0_0_1px_rgba(253,186,116,0.22),0_18px_60px_rgba(249,115,22,0.18)] backdrop-blur-xl">
+      <section
+              class="overflow-hidden rounded-3xl border-2 border-orange-300/70 bg-slate-950/95 shadow-[0_0_0_1px_rgba(253,186,116,0.22),0_18px_60px_rgba(249,115,22,0.18)] backdrop-blur-xl">
         <div
-            x-on:pointerdown.prevent="startDrag($event)"
-            class="flex cursor-grab items-center justify-between gap-3 border-b border-orange-200/15 bg-linear-to-r from-orange-400/18 via-amber-300/10 to-transparent px-4 py-3 active:cursor-grabbing"
+                x-on:pointerdown.prevent="startDrag($event)"
+                class="flex cursor-grab items-center justify-between gap-3 border-b border-orange-200/15 bg-linear-to-r from-orange-400/18 via-amber-300/10 to-transparent px-4 py-3 active:cursor-grabbing"
         >
           <div class="flex min-w-0 items-center gap-3">
             <span class="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-orange-300/18 text-orange-100 shadow-lg shadow-orange-950/30 ring-1 ring-inset ring-orange-200/35">
@@ -70,26 +71,28 @@
         <div class="max-h-[55vh] overflow-y-auto px-3 py-3">
           <div class="space-y-2">
             @foreach ($items as $item)
-              <a
-                  wire:key="unread-response-{{ $item['appointment_id'] }}"
-                  href="{{ $item['url'] }}"
-                  class="block rounded-2xl border border-white/10 bg-white/5 px-3 py-3 transition hover:border-orange-300/45 hover:bg-orange-400/10"
-              >
-                <div class="flex items-start justify-between gap-3">
-                  <div class="min-w-0">
-                    <p class="truncate text-sm font-semibold text-orange-50">{{ $item['client_name'] }}</p>
-                    @if ($item['response'] !== '')
-                      <p class="mt-1 line-clamp-2 text-xs text-slate-300">{{ $item['response'] }}</p>
-                    @endif
-                  </div>
-                  <span class="shrink-0 rounded-full bg-orange-300/12 px-2 py-0.5 text-[10px] font-semibold text-orange-100 ring-1 ring-inset ring-orange-300/30">
-                    Ver
-                  </span>
+              <div class="flex items-start justify-between gap-3">
+                <div class="min-w-0">
+                  <p class="truncate text-sm font-semibold text-orange-50">{{ $item['client_name'] }}</p>
+                  @if ($item['response_badge'])
+                    <span class="mt-1 inline-flex max-w-full items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold {{ $item['response_badge']['classes'] }}">
+                      <span class="truncate">{{ $item['response_badge']['label'] }}</span>
+                    </span>
+                  @endif
                 </div>
-                @if ($item['responded_at'])
-                  <p class="mt-2 text-[10px] text-slate-500">{{ $item['responded_at']->format('d/m/Y H:i') }}</p>
-                @endif
-              </a>
+                <div class="flex shrink-0 items-center gap-1.5">
+                  <a wire:key="unread-response-history-{{ $item['appointment_id'] }}"
+                     href="{{ $item['url'] }}"
+                     class="rounded-full bg-sky-300/12 px-3 py-1 text-[10px] font-semibold text-sky-100 ring-1 ring-inset ring-sky-300/30 hover:bg-sky-200/20 hover:scale-105 transition">
+                    Chat
+                  </a>
+                  <a wire:key="unread-response-appointments-{{ $item['appointment_id'] }}"
+                     href="{{ $item['client_url'] }}"
+                     class="rounded-full bg-orange-300/12 px-3 py-1 text-[10px] font-semibold text-orange-100 ring-1 ring-inset ring-orange-300/30 hover:bg-orange-200/20 hover:scale-105 transition">
+                    Citas
+                  </a>
+                </div>
+              </div>
             @endforeach
           </div>
         </div>

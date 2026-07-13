@@ -74,7 +74,7 @@
                         $clinicalStatus = match (true) {
                             $isInactive => ['Cancelada', 'bg-red-500/10 text-red-300 ring-red-400/20'],
                             $appointment->pendiente_reprogramacion => ['Reprogramación pendiente', 'bg-amber-500/10 text-amber-300 ring-amber-400/20'],
-                            $appointment->confirmada => ['Confirmada', 'bg-emerald-400/10 text-emerald-300 ring-emerald-400/20'],
+                            $appointment->confirmada => ['Cita Confirmada', 'bg-emerald-400/10 text-emerald-300 ring-emerald-400/20'],
                             default => ['Finalizada', 'bg-slate-400/10 text-slate-300 ring-white/10'],
                         };
                     @endphp

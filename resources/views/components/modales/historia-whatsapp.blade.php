@@ -46,7 +46,7 @@
                     : 'bg-slate-800/60 border border-white/10';
             $displayMessage = $isInbound ? $msg->responseValue() : $msg->message;
             $buttonBadge = match (true) {
-                    $isInbound && $msg->isConfirmed() => ['clase' => 'cita-confirmada', 'texto' => 'Confirmada', 'icono' => 'usuario-plus'],
+                    $isInbound && $msg->isConfirmed() => ['clase' => 'cita-confirmada', 'texto' => 'Cita Confirmada', 'icono' => 'usuario-plus'],
                     $isInbound && $msg->isRescheduleRequested() => ['clase' => 'cambiar-cita', 'texto' => 'Cambiar cita', 'icono' => 'alert'],
                     default => null,
             };

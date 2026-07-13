@@ -107,6 +107,13 @@ class AppointmentForm extends Component
         if ($this->selectedAppointmentId) {
             $appointment = Appointment::query()->findOrFail($this->selectedAppointmentId);
 
+            if ($appointment->enviado || ! $appointment->canBeChanged()) {
+                session()->flash('status', 'Esta cita no se puede modificar. Solo se puede eliminar.');
+                $this->redirect($this->returnUrl ?: url()->previous());
+
+                return;
+            }
+
             $appointment->update($payload);
             session()->flash('status', 'Cita actualizada correctamente.');
             $this->redirect($this->returnUrl ?: url()->previous());
@@ -114,7 +121,7 @@ class AppointmentForm extends Component
             $appointment = Appointment::query()->create($payload);
             $this->selectedAppointmentId = $appointment->id;
 
-            if ((bool) $data['sendImmediately']) {
+            if ((bool) $data['sendImmediately'] && $appointment->isFuture()) {
                 $this->sendAppointmentNow(
                     $appointment,
                     $client,
@@ -202,10 +209,11 @@ class AppointmentForm extends Component
             return true;
         }
 
-        return (bool) Appointment::query()
+        $appointment = Appointment::query()
             ->whereKey($this->selectedAppointmentId)
-            ->first()
-            ?->canBeChanged();
+            ->first();
+
+        return (bool) $appointment && ! $appointment->enviado && $appointment->canBeChanged();
     }
 
     public function getCanSendAppointmentNowProperty(): bool

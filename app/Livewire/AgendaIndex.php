@@ -4,156 +4,59 @@ namespace App\Livewire;
 
 use App\Models\Appointment;
 use Carbon\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\View\View;
 use Livewire\Component;
 
 class AgendaIndex extends Component
 {
-    public int $selectedDateOffset = 0;
-
-    public ?int $expandedDateOffset = null;
-
-    public function selectDate(string $offset): void
-    {
-        $selectedOffset = (int) $offset;
-
-        $this->selectedDateOffset = $selectedOffset;
-        $this->expandedDateOffset = $this->expandedDateOffset === $selectedOffset ? null : $selectedOffset;
-    }
-
     public function render(): View
     {
         Carbon::setLocale('es');
-        $targetDate = $this->targetDate();
-        $resolvedDates = $this->resolvedDates();
-        $calendarDays = $this->calendarDays($resolvedDates);
+        $selectedMonth = now(config('app.timezone'))->startOfMonth();
 
         return view('livewire.agenda-index', [
-            'calendarDays' => $calendarDays,
-            'nextAppointments' => $calendarDays[$this->selectedDateOffset]['appointments'],
-            'targetDates' => $this->targetDates(),
-            'selectedDate' => $targetDate,
-            'sundayWarning' => $this->sundayWarning(),
-            'resolvedDates' => $resolvedDates,
-            'futureDayOptions' => range(2, 10),
-            'expandedDateOffset' => $this->expandedDateOffset,
+            'selectedMonth' => $selectedMonth,
+            'calendarWeeks' => $this->calendarWeeks($selectedMonth),
         ]);
     }
 
-    /** @return array<int, array{label: string, classes: string}> */
-    public function appointmentIncidences(Appointment $appointment): array
+    private function calendarWeeks(Carbon $selectedMonth): Collection
     {
-        $incidences = [];
+        $monthStart = $selectedMonth->copy()->startOfMonth();
+        $monthEnd = $selectedMonth->copy()->endOfMonth();
 
-        if (! $appointment->activo) {
-            $incidences[] = [
-                'label' => 'Desactivada',
-                'classes' => 'border-red-500/20 bg-red-500/10 text-red-300',
-            ];
-        }
-
-        if (! $appointment->enviado) {
-            $incidences[] = [
-                'label' => 'Sin enviar',
-                'classes' => 'border-amber-500/20 bg-amber-500/10 text-amber-300',
-            ];
-        } elseif (! $appointment->entregado) {
-            $incidences[] = [
-                'label' => 'No entregada',
-                'classes' => 'border-orange-500/20 bg-orange-500/10 text-orange-300',
-            ];
-        } elseif ($appointment->whatsapp_read_at) {
-            $incidences[] = [
-                'label' => 'Leída',
-                'icono' => true,
-                'classes' => 'border-green-500/20 bg-green-500/10 text-green-300',
-            ];
-        }
-
-        return $incidences;
-    }
-
-    private function targetDate(): Carbon
-    {
-        return $this->resolvedDates()[$this->selectedDateOffset];
-    }
-
-    private function resolvedDates(): array
-    {
-        $now = now(config('app.timezone'));
-        $dates = [0 => $now->copy()->startOfDay()];
-
-        for ($offset = 1; $offset <= 10; $offset++) {
-            $date = $now->copy()->addDays($offset);
-
-            if ($date->isSunday()) {
-                $date->addDay();
-            }
-
-            if (isset($dates[$offset - 1]) && $date->toDateString() === $dates[$offset - 1]->toDateString()) {
-                $date->addDay();
-                if ($date->isSunday()) {
-                    $date->addDay();
-                }
-            }
-
-            $dates[$offset] = $date;
-        }
-
-        return $dates;
-    }
-
-    private function targetDates(): array
-    {
-        $resolved = $this->resolvedDates();
-
-        return collect([0, 1])
-            ->mapWithKeys(fn (int $offset) => [
-                $offset => [
-                    'offset' => $offset,
-                    'label' => $offset === 0 ? 'Hoy' : 'Mañana',
-                    'date' => $resolved[$offset],
-                ],
-            ])
-            ->all();
-    }
-
-    private function calendarDays(array $resolvedDates): array
-    {
         $appointmentsByDate = Appointment::query()
             ->with('client')
             ->whereBetween('fecha', [
-                $resolvedDates[0]->toDateString(),
-                $resolvedDates[array_key_last($resolvedDates)]->toDateString(),
+                $monthStart->toDateString(),
+                $monthEnd->toDateString(),
             ])
             ->orderBy('fecha')
             ->orderBy('hora')
             ->get()
             ->groupBy(fn (Appointment $appointment): string => $appointment->fecha->toDateString());
 
-        return collect($resolvedDates)
-            ->mapWithKeys(fn (Carbon $date, int $offset): array => [
-                $offset => [
-                    'offset' => $offset,
-                    'date' => $date,
-                    'appointments' => $appointmentsByDate->get($date->toDateString(), collect()),
-                ],
-            ])
-            ->all();
-    }
+        $days = collect();
+        $firstCalendarDay = $monthStart->copy()->startOfWeek(Carbon::MONDAY);
+        $lastCalendarDay = $monthEnd->copy()->endOfWeek(Carbon::SATURDAY);
 
-    private function sundayWarning(): ?string
-    {
-        if ($this->selectedDateOffset === 0) {
-            return null;
+        for ($date = $firstCalendarDay; $date->lte($lastCalendarDay); $date->addDay()) {
+            if ($date->isSunday()) {
+                continue;
+            }
+
+            $dateKey = $date->toDateString();
+            $isCurrentMonth = $date->isSameMonth($selectedMonth);
+
+            $days->push([
+                'date' => $date->copy(),
+                'is_current_month' => $isCurrentMonth,
+                'is_today' => $date->isToday(),
+                'appointments' => $isCurrentMonth ? $appointmentsByDate->get($dateKey, collect()) : collect(),
+            ]);
         }
 
-        $rawDate = now(config('app.timezone'))->addDays($this->selectedDateOffset);
-
-        if (! $rawDate->isSunday()) {
-            return null;
-        }
-
-        return 'La fecha seleccionada es domingo, mostrando las citas del '.$this->targetDate()->translatedFormat('l d');
+        return $days->chunk(6);
     }
 }

@@ -172,18 +172,17 @@
         @forelse ($appointments as $appointment)
           @php
             $editUrl = route('appointments.edit', $appointment);
-            $esPasado = ! $appointment->isFuture();
+            $canModify = ! $appointment->enviado && $appointment->canBeChanged();
+            $esPasado = ! $canModify;
             $esActiva = $appointment->cita_activa;
-            $rowClasses = ['cursor-pointer transition-colors hover:bg-white/5 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-400/60 focus-visible:bg-white/5',
-           'bg-slate-400/15' => $esPasado,
-           'bg-red-500/5' => ! $esActiva
-           ];
           @endphp
           <tr wire:key="appointment-{{ $appointment->id }}"
+              @if ($canModify)
               role="link" tabindex="0"
               onclick="window.location='{{ $editUrl }}'"
               onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();window.location='{{ $editUrl }}';}else if(event.key==='ArrowDown'){event.preventDefault();this.nextElementSibling?.focus();}else if(event.key==='ArrowUp'){event.preventDefault();this.previousElementSibling?.focus();}"
-              class="cursor-pointer transition-colors hover:bg-white/5 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-400/60 focus-visible:bg-white/5 {{ $esPasado ? 'bg-slate-400/15' : '' }}
+              @endif
+              class="{{ $canModify ? 'cursor-pointer hover:bg-white/5 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-400/60 focus-visible:bg-white/5' : '' }} transition-colors {{ $esPasado ? 'bg-slate-400/15' : '' }}
               {{ ! $esActiva ? 'bg-red-500/5' : '' }}"
 
 
@@ -198,10 +197,16 @@
                      aria-label="Seleccionar cita de {{ $appointment->client?->full_name }}">
             </td>
             <td class="px-4 py-3">
-              <a href="{{ $editUrl }}" tabindex="-1"
-                 class="inline-flex items-center gap-2 font-medium {{ ($esPasado || ! $esActiva) ? 'text-slate-400 hover:text-slate-300' : 'text-emerald-300 hover:text-emerald-200' }}">
-                <span>{{ $appointment->client?->nombre }} {{ $appointment->client?->apellidos }}</span>
-              </a>
+              @if ($canModify)
+                <a href="{{ $editUrl }}" tabindex="-1"
+                   class="inline-flex items-center gap-2 font-medium {{ ! $esActiva ? 'text-slate-400 hover:text-slate-300' : 'text-emerald-300 hover:text-emerald-200' }}">
+                  <span>{{ $appointment->client?->nombre }} {{ $appointment->client?->apellidos }}</span>
+                </a>
+              @else
+                <span class="inline-flex items-center gap-2 font-medium text-slate-400">
+                  {{ $appointment->client?->nombre }} {{ $appointment->client?->apellidos }}
+                </span>
+              @endif
             </td>
             <td class="px-4 py-3 text-center text-xs">
               <div class="flex flex-col items-center gap-1">
@@ -286,7 +291,7 @@
 
                 if($retorno === 'confirmada'){
                     $icono =  'usuario-plus';
-                    $displayResponseLabel = 'Confirmada';
+                    $displayResponseLabel = 'Cita Confirmada';
                     $responseClasses = 'bg-emerald-500/15 text-emerald-300 border border-emerald-400/30';
                     }
                 elseif($retorno === 'cambiar'){
@@ -340,7 +345,7 @@
               @endif
             </td>
             <td class="px-4 py-3 text-center" onclick="event.stopPropagation()">
-              @if ($appointment->enviado && $appointment->scheduledFor()->isFuture())
+              @if ($appointment->enviado && $appointment->isFuture())
                 <x-botones.icono-buton
                         color="sky"
                         icon="historial"
@@ -352,7 +357,7 @@
                         wire:target="openHistory({{ $appointment->id }})"
                 />
               @else
-                @if($appointment->scheduledFor()->isFuture())
+                @if($appointment->isFuture())
                   <x-formularios.toggle
                           :checked="$appointment->activo"
                           wire:change="updateActiveStatus({{ $appointment->id }}, $event.target.checked)"/>

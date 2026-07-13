@@ -339,7 +339,7 @@ class ClientManagerTest extends TestCase
             ->assertSee('1 cita')
             ->assertSee('Lunes, 22 de junio de 2026')
             ->assertSee('09:00')
-            ->assertSee('Confirmada')
+            ->assertSee('Cita Confirmada')
             ->assertSee('WhatsApp entregado')
             ->assertDontSee('01/07/2026')
             ->assertDontSee('10:15')

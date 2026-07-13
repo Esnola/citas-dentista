@@ -57,7 +57,7 @@
         ])->merge(['href' => route($route) ]) }}
 >
   @if($icono)
-    <x-dynamic-component :component="'iconos.' . $icono" :clase="$iconoClase"/>
+    @include('components.iconos.'.$icono, $iconoClase ? ['clase' => $iconoClase] : [])
   @else
     <span class=" size-2 rounded-full {{ $palette['dot'] }}"></span>
   @endif
