@@ -81,7 +81,7 @@ class ClientCsvImporter extends Component
     {
         return view('livewire.client-csv-importer', [
             'previewRows' => $this->previewRows,
-        ]);
+        ])->extends('layouts.app')->section('content');
     }
 
     private function setStatus(string $message, string $type = 'success'): void

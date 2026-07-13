@@ -362,7 +362,7 @@ class BackupRoundTripTest extends TestCase
                 'whatsapp_credentials' => [],
                 'whatsapp_sender_numbers' => [],
                 'twilio_content_templates' => [
-                    ['nombre' => 'Test', 'content_sid' => 'HXimported123456789012345678', 'seleccionada' => false, 'content_variables' => null],
+                    ['nombre' => 'Test', 'content_sid' => 'HXimported123456789012345678', 'content_variables' => null],
                 ],
             ],
         ];

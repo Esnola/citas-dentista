@@ -44,7 +44,7 @@ class SendWhatsAppMessage implements ShouldQueue
             ],
         ]);
 
-        if ($this->isAcceptedStatus($providerStatus) && $message->appointment) {
+        if ($this->isAcceptedStatus($providerStatus) && $message->appointment && ! $this->shouldSkipAppointmentStatusUpdate($message)) {
             $message->appointment->update([
                 'enviado' => true,
                 'whatsapp_sent_at' => now(),
@@ -82,5 +82,10 @@ class SendWhatsAppMessage implements ShouldQueue
     private function isAcceptedStatus(string $providerStatus): bool
     {
         return in_array($providerStatus, ['sent', 'delivered', 'accepted', 'queued', 'sending'], true);
+    }
+
+    private function shouldSkipAppointmentStatusUpdate(WhatsAppMessage $message): bool
+    {
+        return data_get($message->metadata, 'twilio_template_scope') === WhatsAppSender::TEMPLATE_SCOPE_APPOINTMENT_CREATED;
     }
 }

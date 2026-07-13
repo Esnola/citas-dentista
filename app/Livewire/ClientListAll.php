@@ -96,6 +96,6 @@ class ClientListAll extends Component
                 ? Client::query()->find($this->clientPendingDeletionId)
                 : null,
             'hasClientSearch' => $this->hasClientSearch,
-        ]);
+        ])->extends('layouts.app')->section('content');
     }
 }

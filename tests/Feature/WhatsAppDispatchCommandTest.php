@@ -328,7 +328,6 @@ class WhatsAppDispatchCommandTest extends TestCase
                 '2' => '[DIA]',
                 '3' => '[HORA]',
             ],
-            'seleccionada' => true,
         ]);
     }
 }

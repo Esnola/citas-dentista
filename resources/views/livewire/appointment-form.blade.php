@@ -1,4 +1,4 @@
-<div class="mx-auto max-w-2xl ml-7.5 mt-25 grid gap-6">
+<div class="mx-auto max-w-3xl ml-7.5 mt-25 grid gap-6">
     <div class="rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur">
 
         {{-- Header --}}
@@ -61,17 +61,16 @@
                 @endif
 
                 @if ($hasClientSearch)
-                    <div class="mt-4 grid grid-cols-5 gap-2">
+                    <div class="mt-4 grid grid-cols-3 gap-2">
                         @forelse ($clients as $client)
                             <button
                                     type="button"
                                     wire:key="appointment-form-client-{{ $client->id }}"
                                     wire:click="selectClient({{ $client->id }})"
                                     @disabled(! $canChangeAppointment)
-                                    class="rounded-2xl border p-4 text-left transition-all duration-200 {{ $selectedClient?->id === $client->id ? 'border-emerald-400/60 bg-emerald-500/10 shadow-lg shadow-emerald-500/5' : 'border-white/10 bg-slate-950/40 hover:border-blue-400/40 hover:bg-blue-500/10' }}"
+                                    class="rounded-2xl border p-4 text-left transition-all duration-200 {{ $selectedClient?->id === $client->id ? 'border-emerald-400/60 bg-emerald-500/10 shadow-lg shadow-emerald-500/5' : 'border-amber-300/30 bg-slate-950/40 hover:border-blue-400/40 hover:bg-blue-500/10' }}"
                             >
                                 <span class="block font-medium text-sm">{{ $client->nombre }} {{ $client->apellidos }}</span>
-                                <span class="mt-1 block text-xs text-slate-400">{{ $client->telefono }}</span>
                             </button>
                         @empty
                             <p class="col-span-5 rounded-2xl border border-white/10 bg-slate-950/40 p-4 text-sm text-slate-400 text-center">
@@ -131,33 +130,51 @@
 
                         {{-- Client info card --}}
                         <div class="col-span-7 rounded-2xl border border-white/10 bg-slate-900/50 p-6">
+                          <div class="flex items-center jusitfy-center gap-8">
                             <div class="flex items-center gap-2 mb-5">
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4 text-sky-400">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z"/>
-                                </svg>
-                                <p class="text-xs font-semibold uppercase tracking-widest text-slate-400">Cliente</p>
+                              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
+                                   stroke="currentColor" class="size-4 text-sky-400">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                      d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z"/>
+                              </svg>
+                              <p class="text-xs font-semibold uppercase tracking-widest text-slate-400">Cliente</p>
                             </div>
-
-                            <div class="flex items-start justify-between">
-                                <div>
-                                    <p class="text-lg font-semibold text-white">{{ $selectedClient->nombre }} {{ $selectedClient->apellidos }}</p>
-                                    <p class="mt-1 text-sm text-slate-400">{{ $selectedClient->telefono }}</p>
-                                    <p class="mt-1 text-xs text-slate-500">Alta: {{ $selectedClient->created_at?->format('d/m/Y H:i') }}</p>
-                                </div>
+                            <div class="flex items-center gap-2 mb-5">
+                              <x-iconos.telefono-mesa clase="size-4 text-green-500/50"/>
+                              <p class="text-xs font-semibold uppercase tracking-widest text-slate-400">{{ $selectedClient->telefono }}</p>
                             </div>
+                          </div>
+                          <p class="text-lg font-semibold text-white">{{ $selectedClient->nombre }} {{ $selectedClient->apellidos }}</p>
 
-                            @if (! $selectedAppointment)
-                                <div class="mt-5 pt-5 border-t border-white/5">
+                            <div class="mt-5 space-y-4 border-t border-white/5 pt-5">
+                                @if (! $selectedAppointment)
+                                    <div class="flex items-start justify-between gap-4 rounded-2xl border border-white/10 bg-slate-950/40 px-4 py-3">
+                                        <div>
+                                            <p class="text-sm font-medium text-slate-100">Whatsapp al crear</p>
+                                            <p class="mt-1 text-xs text-slate-400">Envía el primer mensaje al guardar la cita.</p>
+                                        </div>
+                                        <x-formularios.toggle
+                                            wire:model="sendImmediately"
+                                            :disabled="! $canChangeAppointment"
+                                            :locked="! $canChangeAppointment"
+                                        />
+                                    </div>
+                                    <flux:error name="sendImmediately"/>
+                                @endif
+
+                                <div class="flex items-start justify-between gap-4 rounded-2xl border border-white/10 bg-slate-950/40 px-4 py-3">
+                                    <div>
+                                        <p class="text-sm font-medium text-slate-100">Comunicaciones</p>
+                                        <p class="mt-1 text-xs text-slate-400">Permite recordatorios y envíos manuales para esta cita.</p>
+                                    </div>
                                     <x-formularios.toggle
-                                        wire:model="sendImmediately"
-                                        texto="Enviar WhatsApp ahora"
-                                        variant="sky"
+                                        wire:model="activo"
                                         :disabled="! $canChangeAppointment"
                                         :locked="! $canChangeAppointment"
                                     />
-                                    <flux:error name="sendImmediately"/>
                                 </div>
-                            @endif
+                                <flux:error name="activo"/>
+                            </div>
                         </div>
                     </div>
 
@@ -206,3 +223,5 @@
         @endif
     </div>
 </div>
+
+@vite(['resources/js/data-picker.js'])

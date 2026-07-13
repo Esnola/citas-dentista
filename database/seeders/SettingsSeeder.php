@@ -23,6 +23,8 @@ class SettingsSeeder extends Seeder
             'retention_period' => 'disabled',
             'dispatch_enabled' => true,
             'dispatch_hours' => ['09:00', '12:00', '15:00'],
+            'twilio_template_appointment_reminder_id' => null,
+            'twilio_template_appointment_created_id' => null,
         ]);
     }
 

@@ -430,7 +430,7 @@ class AppointmentManagerTest extends TestCase
 
         Livewire::test(ClientAppointments::class, ['clientId' => $client->id])
             ->call('updateActiveStatus', $appointment->id, false)
-            ->assertDispatched('toast', fn ($n, $p) => $p['message'] === 'Estado pendiente actualizado.' && $p['type'] === 'success');
+            ->assertDispatched('toast', fn ($n, $p) => $p['message'] === 'Estado de comunicaciones actualizado.' && $p['type'] === 'success');
 
         $this->assertFalse($appointment->refresh()->activo);
         $this->assertSame(0, WhatsAppMessage::query()->where('appointment_id', $appointment->id)->count());
@@ -458,11 +458,47 @@ class AppointmentManagerTest extends TestCase
 
         Livewire::test(ClientAppointments::class, ['clientId' => $client->id])
             ->assertSee('Cita activa')
+            ->assertSee('Comunicaciones')
             ->assertSeeHtml('wire:change="updateAppointmentActiveStatus('.$appointment->id.', $event.target.checked)"')
             ->call('updateAppointmentActiveStatus', $appointment->id, false)
             ->assertDispatched('toast', fn ($n, $p) => $p['message'] === 'Estado de la cita actualizado.' && $p['type'] === 'success');
 
         $this->assertFalse($appointment->refresh()->cita_activa);
+
+        Carbon::setTestNow();
+    }
+
+    public function test_appointment_create_can_send_initial_whatsapp_with_communications_disabled(): void
+    {
+        Carbon::setTestNow('2026-06-23 09:00:00');
+
+        $admin = User::factory()->create();
+        $client = Client::query()->create([
+            'nombre' => 'Ana',
+            'apellidos' => 'Pérez',
+            'telefono' => '+34600111222',
+        ]);
+
+        Config::set('whatsapp.driver', 'log');
+
+        $this->actingAs($admin);
+
+        Livewire::test(AppointmentForm::class)
+            ->set('selectedClientId', $client->id)
+            ->set('fecha', '2026-06-30')
+            ->set('hora', '11:30')
+            ->set('activo', false)
+            ->set('sendImmediately', true)
+            ->call('save');
+
+        $appointment = Appointment::query()->firstOrFail();
+
+        $message = WhatsAppMessage::query()->firstOrFail();
+
+        $this->assertFalse($appointment->refresh()->activo);
+        $this->assertFalse($appointment->enviado);
+        $this->assertSame(WhatsAppMessage::STATUS_SENT, $message->status);
+        $this->assertSame('appointment_created', $message->metadata['twilio_template_scope']);
 
         Carbon::setTestNow();
     }

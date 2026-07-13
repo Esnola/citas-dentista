@@ -7,6 +7,14 @@ use App\Http\Controllers\AppointmentIndexController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\Webhooks\TwilioWhatsAppStatusController;
+use App\Livewire\AgendaIndex;
+use App\Livewire\AppointmentForm;
+use App\Livewire\CalendarIndex;
+use App\Livewire\ClientAppointments;
+use App\Livewire\ClientCsvImporter;
+use App\Livewire\ClientForm;
+use App\Livewire\ClientListAll;
+use App\Livewire\DashboardOverview;
 use App\Models\Appointment;
 use App\Models\WhatsAppMessage;
 use Illuminate\Http\Request;
@@ -27,23 +35,23 @@ Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
     ->name('logout');
 
 Route::middleware('auth')->group(function () {
-    Route::view('/dashboard', 'dashboard')->name('dashboard');
-    Route::view('/agenda', 'agenda.index')->name('agenda.index');
+    Route::get('/dashboard', DashboardOverview::class)->name('dashboard');
+    Route::get('/agenda', AgendaIndex::class)->name('agenda.index');
     Route::view('/agenda/{date}', 'agenda.day')
         ->where('date', '\d{4}-\d{2}-\d{2}')
         ->name('agenda.day');
-    Route::view('/calendario', 'calendar.index')->name('calendar.index');
+    Route::get('/calendario', CalendarIndex::class)->name('calendar.index');
     Route::view('/clients', 'clients.index')->name('clients.index');
-    Route::view('/clients/list', 'clients.list')->name('clients.list');
-    Route::view('/clients/create', 'clients.form')->name('clients.create');
-    Route::view('/clients/{client}/edit', 'clients.form')->name('clients.edit');
-    Route::view('/clients/{client}/appointments', 'appointments.client')
+    Route::get('/clients/list', ClientListAll::class)->name('clients.list');
+    Route::get('/clients/create', ClientForm::class)->name('clients.create');
+    Route::get('/clients/{client}/edit', ClientForm::class)->name('clients.edit');
+    Route::get('/clients/{client}/appointments', ClientAppointments::class)
         ->whereNumber('client')
         ->name('clients.appointments');
     Route::get('/appointments', AppointmentIndexController::class)->name('appointments.index');
 
-    Route::view('/appointments/create', 'appointments.form')->name('appointments.create');
-    Route::view('/appointments/{appointment}/edit', 'appointments.form')->name('appointments.edit');
+    Route::get('/appointments/create', AppointmentForm::class)->name('appointments.create');
+    Route::get('/appointments/{appointment}/edit', AppointmentForm::class)->name('appointments.edit');
 
     Route::post('/appointments/{appointment}/toggle', function (Appointment $appointment, Request $request) {
         abort_unless($appointment->canBeChanged(), 403);
@@ -69,7 +77,7 @@ Route::middleware('auth')->group(function () {
 
         Route::view('/admin/tools', 'admin.tools.index')->name('admin.tools');
         Route::view('/admin/settings', 'settings.index')->name('settings.index');
-        Route::view('/admin/imports', 'imports.index')->name('imports.index');
+        Route::get('/admin/imports', ClientCsvImporter::class)->name('imports.index');
         Route::get('/admin/export/appointments', [ExportController::class, 'appointments'])->name('admin.export.appointments');
         Route::get('/admin/export/appointments-json', [ExportController::class, 'appointmentsJson'])->name('admin.export.appointments-json');
         Route::get('/admin/export/clients', [ExportController::class, 'clients'])->name('admin.export.clients');

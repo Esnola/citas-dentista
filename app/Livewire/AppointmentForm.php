@@ -33,7 +33,7 @@ class AppointmentForm extends Component
 
     public bool $activo = true;
 
-    public bool $sendImmediately = false;
+    public bool $sendImmediately = true;
 
     public bool $isEditing = false;
 
@@ -127,7 +127,9 @@ class AppointmentForm extends Component
                     $client,
                     $sender,
                     'Cita creada correctamente y WhatsApp enviado ahora.',
-                    'Cita creada, pero no se pudo enviar el WhatsApp.'
+                    'Cita creada, pero no se pudo enviar el WhatsApp.',
+                    false,
+                    WhatsAppSender::TEMPLATE_SCOPE_APPOINTMENT_CREATED,
                 );
 
                 return;
@@ -164,7 +166,7 @@ class AppointmentForm extends Component
         }
 
         if (! $appointment->activo) {
-            session()->flash('status', 'Las citas inactivas no pueden enviarse.');
+            session()->flash('status', 'Las citas con comunicaciones desactivadas no pueden enviarse.');
             $this->redirect(url()->previous());
 
             return;
@@ -185,7 +187,8 @@ class AppointmentForm extends Component
             $sender,
             'WhatsApp enviado ahora correctamente.',
             'No se pudo enviar el WhatsApp.',
-            true
+            true,
+            WhatsAppSender::TEMPLATE_SCOPE_APPOINTMENT_REMINDER,
         );
     }
 
@@ -269,7 +272,7 @@ class AppointmentForm extends Component
             'hasClientSearch' => $this->hasClientSearch,
             'hasMoreThanTenClientResults' => $clientResultsCount > 10,
             'minimumSelectableDate' => $this->minimumSelectableDate(),
-        ]);
+        ])->extends('layouts.app')->section('content');
     }
 
     protected function rules(): array
@@ -302,8 +305,9 @@ class AppointmentForm extends Component
         string $successMessage,
         string $failureMessage,
         bool $showReturnAfterSuccess = false,
+        string $templateScope = WhatsAppSender::TEMPLATE_SCOPE_APPOINTMENT_REMINDER,
     ): void {
-        $result = $this->immediateSender->send($appointment, $client, $sender, $successMessage, $failureMessage);
+        $result = $this->immediateSender->send($appointment, $client, $sender, $successMessage, $failureMessage, $templateScope);
 
         if ($result['sent']) {
             $appointment->refresh();

@@ -18,7 +18,7 @@ class AgendaIndex extends Component
         return view('livewire.agenda-index', [
             'selectedMonth' => $selectedMonth,
             'calendarWeeks' => $this->calendarWeeks($selectedMonth),
-        ]);
+        ])->extends('layouts.app')->section('content');
     }
 
     private function calendarWeeks(Carbon $selectedMonth): Collection

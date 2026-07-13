@@ -323,6 +323,8 @@ class DatabaseBackup extends Component
                 'dispatch_hours' => is_string($record['dispatch_hours'] ?? null)
                     ? json_decode($record['dispatch_hours'], true)
                     : ($record['dispatch_hours'] ?? ['09:00', '12:00', '15:00']),
+                'twilio_template_appointment_reminder_id' => $record['twilio_template_appointment_reminder_id'] ?? null,
+                'twilio_template_appointment_created_id' => $record['twilio_template_appointment_created_id'] ?? null,
             ]);
         }
     }
@@ -380,7 +382,6 @@ class DatabaseBackup extends Component
                 ['content_sid' => $record['content_sid']],
                 [
                     'nombre' => $record['nombre'] ?? '',
-                    'seleccionada' => $record['seleccionada'] ?? false,
                     'content_variables' => is_string($record['content_variables'] ?? null)
                         ? json_decode($record['content_variables'], true)
                         : ($record['content_variables'] ?? []),

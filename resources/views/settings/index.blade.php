@@ -11,7 +11,6 @@
     $twilioApiKeySid = (string) $credential->resolveApiKeySid();
     $twilioApiKeySecret = (string) $credential->resolveApiKeySecret();
     $twilioFrom = (string) $credential->resolveFrom();
-    $twilioContentSid = (string) app(WhatsAppSender::class)->twilioContentSid();
     $twilioUsesApiKey = filled($twilioApiKeySid) && filled($twilioApiKeySecret);
     $twilioHasCredentials = filled($twilioAccountSid) && ($twilioUsesApiKey || filled($twilioAuthToken));
     $selectedSenderNumber = $credential->selectedSenderNumber();

@@ -35,9 +35,11 @@ class WhatsAppConnectionTest extends Component
 
     public function mount(): void
     {
-        $this->recipient = (string) $this->previewCredential()->resolveTestRecipient();
+        $credential = $this->previewCredential();
+        $this->recipient = (string) $credential->resolveTestRecipient();
+        $this->body = $credential->resolveDefaultMessage();
         $this->mode = $this->initialTwilioMode();
-        $this->templateId = (string) (TwilioContentTemplate::selectedOrFirst()?->id ?? '');
+        $this->templateId = (string) (TwilioContentTemplate::query()->value('id') ?? '');
     }
 
     #[On('credentialsChanged')]
@@ -49,7 +51,7 @@ class WhatsAppConnectionTest extends Component
     #[On('templateChanged')]
     public function refreshTemplatePreview(): void
     {
-        $this->templateId = (string) (TwilioContentTemplate::selectedOrFirst()?->id ?? '');
+        $this->templateId = (string) (TwilioContentTemplate::query()->value('id') ?? '');
     }
 
     public function updatedTestType(string $value): void
@@ -61,7 +63,7 @@ class WhatsAppConnectionTest extends Component
         }
 
         if ($this->templateId === '') {
-            $this->templateId = (string) (TwilioContentTemplate::selectedOrFirst()?->id ?? '');
+            $this->templateId = (string) (TwilioContentTemplate::query()->value('id') ?? '');
         }
     }
 
@@ -95,7 +97,10 @@ class WhatsAppConnectionTest extends Component
             return;
         }
 
+        $credential = $this->previewCredential();
         $this->recipient = $savedRecipient;
+        $this->mode = 'sandbox';
+        $this->body = $credential->resolveDefaultMessage();
         $this->testType = 'text';
         $this->templateId = '';
 

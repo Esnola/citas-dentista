@@ -54,11 +54,13 @@ class ClientAppointments extends Component
         $this->deliveryStatusSyncer = $deliveryStatusSyncer;
     }
 
-    public function mount(int $clientId): void
+    public function mount(?int $client = null, ?int $clientId = null): void
     {
-        abort_unless(Client::query()->whereKey($clientId)->exists(), 404);
+        $resolvedClientId = $client ?? $clientId;
 
-        $this->clientId = $clientId;
+        abort_unless($resolvedClientId && Client::query()->whereKey($resolvedClientId)->exists(), 404);
+
+        $this->clientId = $resolvedClientId;
 
         $this->deliveryStatusesSyncedAt = Cache::get('appointment_delivery_statuses_synced_at');
         $historyAppointmentId = (int) request()->integer('history');
@@ -174,7 +176,7 @@ class ClientAppointments extends Component
         $this->dispatch('toast', message: sprintf(
             '%d cita(s) %s correctamente.',
             $appointmentIds->count(),
-            $activo ? 'activada(s)' : 'desactivada(s)'
+            $activo ? 'con comunicaciones activadas' : 'con comunicaciones desactivadas'
         ), type: 'success');
 
         $this->render();
@@ -248,7 +250,7 @@ class ClientAppointments extends Component
                 ->delete();
         }
 
-        $this->dispatch('toast', message: 'Estado pendiente actualizado.', type: 'success');
+        $this->dispatch('toast', message: 'Estado de comunicaciones actualizado.', type: 'success');
     }
 
     public function updateAppointmentActiveStatus(int $appointmentId, bool|string $citaActiva): void
@@ -293,7 +295,7 @@ class ClientAppointments extends Component
         }
 
         if (! $appointment->activo || ! $appointment->cita_activa) {
-            $this->dispatch('toast', message: 'Las citas inactivas no pueden enviarse.', type: 'error');
+            $this->dispatch('toast', message: 'Las citas con comunicaciones o actividad desactivadas no pueden enviarse.', type: 'error');
 
             return;
         }
@@ -478,7 +480,7 @@ class ClientAppointments extends Component
             'visibleAppointmentIds' => $visibleAppointmentIds,
             'allVisibleAppointmentsSelected' => $allVisibleAppointmentsSelected,
             'pollInterval' => WhatsAppCredential::pollInterval(),
-        ]);
+        ])->extends('layouts.app')->section('content');
     }
 
     private function appointmentsQuery(Client $selectedClient): Builder

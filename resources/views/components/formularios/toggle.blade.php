@@ -11,7 +11,7 @@
       'sky' => 'peer-checked:bg-sky-400 peer-focus-visible:ring-sky-300',
       'yellow' => 'peer-checked:bg-yellow-400 peer-focus-visible:ring-yellow-300',
       'rose' => 'peer-checked:bg-rose-400 peer-focus-visible:ring-rose-300',
-      default => 'peer-checked:bg-emerald-400 peer-focus-visible:ring-emerald-300',
+      default => 'peer-checked:bg-emerald-300/80 peer-focus-visible:ring-emerald-300',
   };
 
   $isLocked = (bool) $locked;

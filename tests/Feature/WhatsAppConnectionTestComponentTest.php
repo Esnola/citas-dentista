@@ -55,7 +55,6 @@ class WhatsAppConnectionTestComponentTest extends TestCase
                 '1' => '[NOMBRE]',
                 '2' => '[DIA]',
             ],
-            'seleccionada' => true,
         ]);
 
         $sender = Mockery::mock(WhatsAppSender::class);
@@ -297,7 +296,6 @@ class WhatsAppConnectionTestComponentTest extends TestCase
                 '2' => '[DIA]',
                 '3' => '[HORA]',
             ],
-            'seleccionada' => true,
         ]);
 
         config()->set('whatsapp.driver', 'twilio');

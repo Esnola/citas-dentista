@@ -41,7 +41,7 @@ class CalendarIndex extends Component
         return view('livewire.calendar-index', [
             'selectedMonth' => $selectedMonth,
             'calendarWeeks' => $this->calendarWeeks($selectedMonth),
-        ]);
+        ])->extends('layouts.app')->section('content');
     }
 
     private function selectedMonth(): Carbon

@@ -192,7 +192,7 @@ class ClientForm extends Component
         return view('livewire.client-form', [
             'selectedClient' => $this->selectedClient,
             'appointmentHistory' => $appointmentHistory,
-        ]);
+        ])->extends('layouts.app')->section('content');
     }
 
     protected function rules(): array

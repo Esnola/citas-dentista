@@ -106,6 +106,8 @@ class SettingsImport extends Command
             'retention_period' => $retentionPeriod,
             'dispatch_enabled' => $dispatchEnabled,
             'dispatch_hours' => $dispatchHours,
+            'twilio_template_appointment_reminder_id' => null,
+            'twilio_template_appointment_created_id' => null,
         ]);
 
         $this->importReminderPreferences($settings['appointment_reminder_preferences'] ?? []);
@@ -122,6 +124,8 @@ class SettingsImport extends Command
                 'retention_period' => $data['retention_period'] ?? 'disabled',
                 'dispatch_enabled' => $data['dispatch_enabled'] ?? true,
                 'dispatch_hours' => $data['dispatch_hours'] ?? ['09:00', '12:00', '15:00'],
+                'twilio_template_appointment_reminder_id' => $data['twilio_template_appointment_reminder_id'] ?? null,
+                'twilio_template_appointment_created_id' => $data['twilio_template_appointment_created_id'] ?? null,
             ]);
         }
 
@@ -144,7 +148,7 @@ class SettingsImport extends Command
         } else {
             if (! empty($settings['app_settings'])) {
                 $app = $settings['app_settings'];
-                $this->line('  - app_settings: retention = '.$app['retention_period'].', dispatch = '.($app['dispatch_enabled'] ? 'on' : 'off'));
+                $this->line('  - app_settings: retention = '.$app['retention_period'].', dispatch = '.($app['dispatch_enabled'] ? 'on' : 'off').', reminder_template = '.($app['twilio_template_appointment_reminder_id'] ?? 'null').', created_template = '.($app['twilio_template_appointment_created_id'] ?? 'null'));
             }
         }
 
@@ -214,7 +218,6 @@ class SettingsImport extends Command
                 ['content_sid' => $record['content_sid']],
                 [
                     'nombre' => $record['nombre'] ?? '',
-                    'seleccionada' => $record['seleccionada'] ?? false,
                     'content_variables' => $record['content_variables'] ?? [],
                 ],
             );

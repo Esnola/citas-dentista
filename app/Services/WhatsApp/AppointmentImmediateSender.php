@@ -21,6 +21,7 @@ class AppointmentImmediateSender
         WhatsAppSender $sender,
         string $successMessage,
         string $failureMessage,
+        string $templateScope = WhatsAppSender::TEMPLATE_SCOPE_APPOINTMENT_REMINDER,
     ): array {
         $scheduledFor = $appointment->scheduledFor();
         $message = WhatsAppMessage::query()->create([
@@ -44,6 +45,7 @@ class AppointmentImmediateSender
                 'origin_appointment_id' => $appointment->id,
                 'immediate_send' => true,
                 'immediate_sent_at' => now()->toDateTimeString(),
+                'twilio_template_scope' => $templateScope,
             ],
         ]);
 

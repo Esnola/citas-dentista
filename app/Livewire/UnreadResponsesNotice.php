@@ -76,7 +76,7 @@ class UnreadResponsesNotice extends Component
                 ];
             });
 
-        return view('livewire.unread-responses-notice', [
+        return view('livewire.avisos.unread-responses-notice', [
             'items' => $appointments,
             'pollInterval' => WhatsAppCredential::webhookEnabled() ? 2 : WhatsAppCredential::pollInterval(),
         ]);

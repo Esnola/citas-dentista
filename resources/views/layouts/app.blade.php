@@ -37,7 +37,7 @@
 
       html.sidebar-collapsed .sidebar-shell,
       .sidebar-shell[data-collapsed="true"] {
-          width: 5rem;
+          width: 6rem;
           background-color: rgb(2 6 23 / 0.85);
       }
 

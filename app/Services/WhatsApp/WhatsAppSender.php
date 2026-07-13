@@ -2,6 +2,7 @@
 
 namespace App\Services\WhatsApp;
 
+use App\Models\AppSetting;
 use App\Models\TwilioContentTemplate;
 use App\Models\WhatsAppCredential;
 use App\Models\WhatsAppMessage;
@@ -17,6 +18,10 @@ use Throwable;
 class WhatsAppSender
 {
     use NormalizesPhone;
+
+    public const TEMPLATE_SCOPE_APPOINTMENT_REMINDER = 'appointment_reminder';
+
+    public const TEMPLATE_SCOPE_APPOINTMENT_CREATED = 'appointment_created';
 
     private const TWILIO_AUTO_MODE = 'auto';
 
@@ -223,8 +228,9 @@ class WhatsAppSender
     ): array {
         $credential = WhatsAppCredential::get();
         $from = $credential->resolveFrom();
-        $template = $this->twilioContentTemplate($templateId);
-        $contentSid = $template?->content_sid ?: $this->twilioContentSid();
+        $scope = $this->twilioTemplateScope($message);
+        $template = $this->twilioContentTemplate($templateId, $scope);
+        $contentSid = $template?->content_sid ?: $this->twilioContentSid($scope);
         $resolvedMode = $this->resolveTwilioMode($mode);
         $usesTemplate = $forceTemplate;
 
@@ -233,7 +239,7 @@ class WhatsAppSender
         }
 
         if ($validateConfiguration && $usesTemplate && ! $contentSid) {
-            throw new RuntimeException('No hay una plantilla de Twilio seleccionada. Debe existir una fila con seleccionada = 1 en twilio_content_templates, o un TWILIO_CONTENT_SID como respaldo.');
+            throw new RuntimeException('No hay una plantilla de Twilio disponible para este envío. Configura la asignación correspondiente en ajustes o usa un TWILIO_CONTENT_SID como respaldo.');
         }
 
         $body = trim($body);
@@ -305,7 +311,7 @@ class WhatsAppSender
     private function twilioContentVariables(?WhatsAppMessage $message, ?TwilioContentTemplate $template = null): array
     {
         Carbon::setLocale('es');
-        $template ??= TwilioContentTemplate::selectedOrFirst();
+        $template ??= $this->twilioContentTemplate(scope: $this->twilioTemplateScope($message));
         $variables = $template?->content_variables ?? [];
 
         if (! is_array($variables)) {
@@ -448,19 +454,34 @@ class WhatsAppSender
         ];
     }
 
-    public function twilioContentSid(): ?string
+    public function twilioContentSid(?string $scope = null): ?string
     {
-        return TwilioContentTemplate::selectedContentSid()
-            ?: WhatsAppCredential::get()->resolveContentSid();
+        return $this->twilioContentTemplate(scope: $scope)?->content_sid;
     }
 
-    public function twilioContentTemplate(?int $templateId = null): ?TwilioContentTemplate
+    public function twilioContentTemplate(?int $templateId = null, ?string $scope = null): ?TwilioContentTemplate
     {
         if ($templateId) {
             return TwilioContentTemplate::query()->find($templateId);
         }
 
-        return TwilioContentTemplate::selectedOrFirst();
+        if ($scope === self::TEMPLATE_SCOPE_APPOINTMENT_REMINDER) {
+            $configuredTemplateId = AppSetting::get()->twilio_template_appointment_reminder_id;
+
+            if ($configuredTemplateId) {
+                return TwilioContentTemplate::query()->find($configuredTemplateId);
+            }
+        }
+
+        if ($scope === self::TEMPLATE_SCOPE_APPOINTMENT_CREATED) {
+            $configuredTemplateId = AppSetting::get()->twilio_template_appointment_created_id;
+
+            if ($configuredTemplateId) {
+                return TwilioContentTemplate::query()->find($configuredTemplateId);
+            }
+        }
+
+        return TwilioContentTemplate::query()->orderBy('id')->first();
     }
 
     private function twilioStatusCallbackUrl(): string
@@ -481,5 +502,15 @@ class WhatsAppSender
     private function shouldUseTwilioTemplate(WhatsAppMessage $message): bool
     {
         return ! (bool) data_get($message->metadata, 'history_reply', false);
+    }
+
+    private function twilioTemplateScope(?WhatsAppMessage $message): ?string
+    {
+        $scope = (string) data_get($message?->metadata, 'twilio_template_scope', '');
+
+        return in_array($scope, [
+            self::TEMPLATE_SCOPE_APPOINTMENT_REMINDER,
+            self::TEMPLATE_SCOPE_APPOINTMENT_CREATED,
+        ], true) ? $scope : null;
     }
 }

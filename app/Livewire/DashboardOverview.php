@@ -55,6 +55,6 @@ class DashboardOverview extends Component
                 ->count(),
             'cancelledCount' => Appointment::query()->where('activo', false)->count(),
             'totalCount' => Appointment::query()->count(),
-        ]);
+        ])->extends('layouts.app')->section('content');
     }
 }

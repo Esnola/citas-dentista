@@ -88,7 +88,7 @@
           <x-formularios.select wire:model.live="templateId">
             @forelse ($templates as $template)
               <option value="{{ $template->id }}">
-                {{ $template->nombre }} · {{ $template->seleccionada ? ' · En uso' : '' }}
+                {{ $template->nombre }}
               </option>
             @empty
               <option value="">No hay plantillas guardadas</option>
@@ -102,7 +102,7 @@
         <p class="font-medium text-slate-200">Notas de prueba</p>
         <ul class="mt-2 space-y-1">
           <li>• `Plantilla` usa la plantilla elegida aquí y rellena sus variables con datos ficticios para la prueba.</li>
-          <li>• La vista previa se actualiza cuando cambias el sender predeterminado o la plantilla seleccionada.</li>
+          <li>• La vista previa se actualiza cuando cambias el sender predeterminado o las asignaciones de plantillas.</li>
           <li>• Si usas un número local, se normaliza a formato internacional.</li>
         </ul>
       </div>

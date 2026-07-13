@@ -55,12 +55,12 @@
               <button wire:click="updateSelectedActiveStatus(true)"
                       class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-emerald-200 transition-colors hover:bg-emerald-500/20 hover:text-emerald-100 cursor-pointer">
                 <x-iconos.check clase="size-4"/>
-                Activar Whatsapp
+                Activar comunicaciones
               </button>
               <button wire:click="updateSelectedActiveStatus(false)"
                       class="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm text-amber-200 transition-colors hover:bg-amber-500/20 hover:text-amber-100 cursor-pointer">
                 <x-iconos.inactivo clase="size-4"/>
-                Desactivar Whatsapp
+                Desactivar comunicaciones
               </button>
               <div class="my-2 border-t border-emerald-400/20"></div>
               <button wire:click="updateSelectedCitaActiva(true)"
@@ -163,7 +163,7 @@
           <th class="px-4 py-3 text-center">
             Respuesta
           </th>
-          <th class="px-4 py-3 text-xs text-center">Envío</th>
+          <th class="px-4 py-3 text-xs text-center">Comunicaciones</th>
           <th class="px-4 py-3 text-xs text-center">Cita activa</th>
           <th class="px-4 py-3 text-xs text-right">Acciones</th>
         </tr>
@@ -175,6 +175,10 @@
             $canModify = ! $appointment->enviado && $appointment->canBeChanged();
             $esPasado = ! $canModify;
             $esActiva = $appointment->cita_activa;
+            $statusAffectingLatestMessage = $appointment->latestWhatsAppMessage
+              && data_get($appointment->latestWhatsAppMessage->metadata, 'twilio_template_scope') !== \App\Services\WhatsApp\WhatsAppSender::TEMPLATE_SCOPE_APPOINTMENT_CREATED
+                ? $appointment->latestWhatsAppMessage
+                : null;
           @endphp
           <tr wire:key="appointment-{{ $appointment->id }}"
               @if ($canModify)
@@ -199,7 +203,7 @@
             <td class="px-4 py-3">
               @if ($canModify)
                 <a href="{{ $editUrl }}" tabindex="-1"
-                   class="inline-flex items-center gap-2 font-medium {{ ! $esActiva ? 'text-slate-400 hover:text-slate-300' : 'text-emerald-300 hover:text-emerald-200' }}">
+                   class="inline-flex items-center gap-2 font-medium {{ ! $esActiva ? 'text-slate-400 hover:text-slate-300' : 'text-emerald-200 hover:text-emerald-100' }}">
                   <span>{{ $appointment->client?->nombre }} {{ $appointment->client?->apellidos }}</span>
                 </a>
               @else
@@ -232,7 +236,7 @@
                   <h6 class="text-[10px] text-slate-400">
                     {{ $appointment->whatsapp_sent_at?->format('H:i d/m/Y') }}
                   </h6>
-                @elseif($appointment->latestWhatsAppMessage?->provider_message_id)
+                @elseif($statusAffectingLatestMessage?->provider_message_id)
                   <span class="flex items-center justify-center text-slate-300/40">
                     <x-iconos.doble-check/>
                   </span>
@@ -286,19 +290,23 @@
             </td>
             <td class="px-4 py-3 text-center text-xs" onclick="event.stopPropagation()" onkeydown="event.stopPropagation()">
               @php
+                $latestInboundResponse = $appointment->latestInboundAfterLastSent();
                 $buttonResponse = $appointment->latestButtonInboundResponse();
+                $latestResponseIsButton = $buttonResponse
+                  && $latestInboundResponse
+                  && $buttonResponse->is($latestInboundResponse);
                 $tieneMensaje = $appointment->hasTextResponse() ;
 
-                if($buttonResponse?->isConfirmed()){
+                if($latestResponseIsButton && $buttonResponse?->isConfirmed()){
                     $icono =  'usuario-plus';
                     $displayResponseLabel = 'Cita Confirmada';
                     $responseClasses = 'bg-emerald-500/15 text-emerald-300 border border-emerald-400/30';
                     }
-                elseif($buttonResponse?->isRescheduleRequested()){
+                elseif($latestResponseIsButton && $buttonResponse?->isRescheduleRequested()){
                   $icono = 'alert';
                   $displayResponseLabel = 'Hay Incidencia';
                   $responseClasses = 'bg-red-500/15 text-red-300 border border-red-400/30';
-                }elseif($buttonResponse){
+                }elseif($latestResponseIsButton && $buttonResponse){
                     $icono =  'ok';
                     $displayResponseLabel = $buttonResponse->responseValue() ?? '';
                     $responseClasses = 'bg-indigo-500/15 text-indigo-200 border border-indigo-400/30';
@@ -331,13 +339,13 @@
                     </button>
                   @endif
 
-                  @if ($appointment->hasUnreadInboundResponse())
+                  @if (! $latestResponseIsButton && $appointment->hasUnreadInboundResponse())
                     <span class="rounded-full bg-sky-500/15 px-2 py-0.5 text-[10px] font-semibold text-sky-200 ring-1 ring-inset ring-sky-400/30">
                       No leido
                     </span>
                   @endif
 
-                  @if ($appointment->wasRescheduled())
+                  @if (! $latestResponseIsButton && $appointment->wasRescheduled())
                     <span class="flex items-center gap-2 rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold text-amber-300 ring-1 ring-inset ring-amber-400/30">
                       <x-iconos.ajustes clase="size-5"/>
                       Reprogramada · {{ $appointment->changes_count }}
@@ -356,6 +364,7 @@
                         label="Historial"
                         texto="Historial"
                         especialtexto="text-xs!"
+                        class="mx-auto"
                         wire:click="openHistory({{ $appointment->id }})"
                         wire:loading.attr="disabled"
                         wire:target="openHistory({{ $appointment->id }})"
@@ -376,7 +385,7 @@
               @if($appointment->isFuture())
                 <x-formularios.toggle
                         :checked="$esActiva"
-                        offColor="bg-red-500"
+                        offColor="bg-rose-400/70"
                         wire:change="updateAppointmentActiveStatus({{ $appointment->id }}, $event.target.checked)"/>
               @else
                 <span class="inline-flex items-center gap-2 rounded-2xl border px-4 py-3 border-white/5 bg-slate-950/25 opacity-80">

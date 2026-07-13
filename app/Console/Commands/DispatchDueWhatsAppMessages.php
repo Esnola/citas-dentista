@@ -150,6 +150,7 @@ class DispatchDueWhatsAppMessages extends Command
                                 'origin_appointment_id' => $appointment->id,
                                 'channel' => AppointmentReminderPreference::CHANNEL_WHATSAPP,
                                 'lead_days' => $leadDays,
+                                'twilio_template_scope' => WhatsAppSender::TEMPLATE_SCOPE_APPOINTMENT_REMINDER,
                             ],
                         ]);
 

@@ -289,7 +289,6 @@ class WhatsAppTwilioDispatchTest extends TestCase
                 '3' => '[HORA]',
                 '4' => '[MENSAJE]',
             ],
-            'seleccionada' => true,
         ]);
         Config::set('whatsapp.twilio.status_callback_url', route('webhooks.twilio.whatsapp-status', absolute: true));
         Config::set('whatsapp.default_country_code', '+34');
@@ -454,7 +453,6 @@ class WhatsAppTwilioDispatchTest extends TestCase
                 '2' => '[DIA]',
                 '3' => '[HORA]',
             ],
-            'seleccionada' => true,
         ]);
     }
 }

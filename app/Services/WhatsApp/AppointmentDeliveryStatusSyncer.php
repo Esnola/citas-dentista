@@ -25,7 +25,7 @@ class AppointmentDeliveryStatusSyncer
         $messages = WhatsAppMessage::query()
             ->whereNotNull('appointment_id')
             ->when($clientId, fn ($query) => $query->where('client_id', $clientId))
-            ->get(['id', 'appointment_id', 'provider_message_id', 'sent_at', 'created_at', 'provider_payload']);
+            ->get(['id', 'appointment_id', 'provider_message_id', 'sent_at', 'created_at', 'provider_payload', 'metadata']);
 
         return $this->syncAppointmentsFromMessages($this->refreshMessages($messages, $force));
     }
@@ -39,7 +39,7 @@ class AppointmentDeliveryStatusSyncer
         $messages = WhatsAppMessage::query()
             ->whereNotNull('appointment_id')
             ->when($clientId, fn ($query) => $query->where('client_id', $clientId))
-            ->get(['id', 'appointment_id', 'sent_at', 'created_at', 'provider_payload']);
+            ->get(['id', 'appointment_id', 'sent_at', 'created_at', 'provider_payload', 'metadata']);
 
         return $this->syncAppointmentsFromMessages($messages);
     }
@@ -76,7 +76,7 @@ class AppointmentDeliveryStatusSyncer
         $messages = WhatsAppMessage::query()
             ->whereIn('appointment_id', $ids)
             ->whereNotNull('appointment_id')
-            ->get(['id', 'appointment_id', 'provider_message_id', 'sent_at', 'created_at', 'provider_payload']);
+            ->get(['id', 'appointment_id', 'provider_message_id', 'sent_at', 'created_at', 'provider_payload', 'metadata']);
 
         return $this->syncAppointmentsFromMessages($this->refreshMessages($messages, $force));
     }
@@ -435,9 +435,17 @@ class AppointmentDeliveryStatusSyncer
                 continue;
             }
 
-            $sentAt = $this->latestTimestamp($appointmentMessages->map(fn (WhatsAppMessage $message): ?Carbon => $message->sent_at));
-            $deliveredAt = $this->latestTimestamp($appointmentMessages->map(fn (WhatsAppMessage $message): ?Carbon => $message->deliveredAt()));
-            $readAt = $this->latestTimestamp($appointmentMessages->map(fn (WhatsAppMessage $message): ?Carbon => $message->readAt()));
+            $statusMessages = $appointmentMessages
+                ->reject(fn (WhatsAppMessage $message): bool => data_get($message->metadata, 'twilio_template_scope') === WhatsAppSender::TEMPLATE_SCOPE_APPOINTMENT_CREATED)
+                ->values();
+
+            if ($statusMessages->isEmpty()) {
+                continue;
+            }
+
+            $sentAt = $this->latestTimestamp($statusMessages->map(fn (WhatsAppMessage $message): ?Carbon => $message->sent_at));
+            $deliveredAt = $this->latestTimestamp($statusMessages->map(fn (WhatsAppMessage $message): ?Carbon => $message->deliveredAt()));
+            $readAt = $this->latestTimestamp($statusMessages->map(fn (WhatsAppMessage $message): ?Carbon => $message->readAt()));
 
             $newEnviado = $appointment->enviado || $sentAt !== null;
             $newActivo = $newEnviado ? false : $appointment->activo;

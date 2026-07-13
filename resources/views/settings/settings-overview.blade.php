@@ -31,7 +31,12 @@
     <p class="mt-1 text-sm text-slate-300">
       {{ $selectedNumber ? 'Canal configurado' : 'Falta el canal de envío' }}
       @if ($twilioUsesTemplate)
-        · {{ $twilioContentSid ? 'plantilla configurada' : 'falta Content SID' }}
+        ·
+        @if ($hasSpecificTwilioTemplateAssignments)
+          {{ $twilioReminderContentSid && $twilioCreatedContentSid ? 'plantillas configuradas por uso' : 'revisa plantillas por uso' }}
+        @else
+          {{ $twilioReminderContentSid ? 'plantilla configurada' : 'falta Content SID' }}
+        @endif
       @endif
     </p>
   </div>

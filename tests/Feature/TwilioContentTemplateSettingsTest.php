@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Livewire\Settings\TwilioContentTemplateSettings;
+use App\Models\AppSetting;
 use App\Models\TwilioContentTemplate;
 use App\Models\User;
 use App\Services\WhatsApp\WhatsAppSender;
@@ -15,7 +16,7 @@ class TwilioContentTemplateSettingsTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_admin_can_save_and_select_a_twilio_content_template(): void
+    public function test_admin_can_save_and_assign_twilio_content_templates_by_use_case(): void
     {
         Carbon::setTestNow(Carbon::parse('2026-07-08 09:15:00', 'Europe/Madrid'));
 
@@ -39,16 +40,20 @@ class TwilioContentTemplateSettingsTest extends TestCase
 
             Livewire::actingAs($admin)
                 ->test(TwilioContentTemplateSettings::class)
-                ->assertSee('Usar plantilla')
-                ->call('selectTemplate', $second->id)
-                ->assertSet('status', 'Plantilla seleccionada.');
+                ->set('appointmentReminderTemplateId', (string) $second->id)
+                ->call('saveAssignments')
+                ->assertSet('status', 'Asignaciones de plantillas actualizadas.');
 
-            $this->assertSame($secondSid, app(WhatsAppSender::class)->twilioContentSid());
+            $this->assertSame($second->id, AppSetting::get()->twilio_template_appointment_reminder_id);
+            $this->assertSame(
+                $secondSid,
+                app(WhatsAppSender::class)->twilioContentSid(WhatsAppSender::TEMPLATE_SCOPE_APPOINTMENT_REMINDER),
+            );
             $this->assertSame(
                 ['1' => '[DIA]', '2' => '[HORA]'],
                 $second->content_variables,
             );
-            $preview = app(WhatsAppSender::class)->buildTwilioPreviewRequest('600123123', 'Prueba', forceTemplate: true);
+            $preview = app(WhatsAppSender::class)->buildTwilioPreviewRequest('600123123', 'Prueba', forceTemplate: true, templateId: $second->id);
 
             $this->assertSame(
                 $secondSid,
@@ -61,16 +66,13 @@ class TwilioContentTemplateSettingsTest extends TestCase
                 ], JSON_UNESCAPED_UNICODE),
                 $preview['ContentVariables'],
             );
-            $this->assertTrue($second->fresh()->seleccionada);
         } finally {
             Carbon::setTestNow();
         }
     }
 
-    public function test_env_content_sid_is_used_when_no_database_template_is_selected(): void
+    public function test_no_database_template_means_no_twilio_template_is_resolved(): void
     {
-        config()->set('whatsapp.twilio.content_sid', 'HX'.str_repeat('a', 32));
-
-        $this->assertSame('HX'.str_repeat('a', 32), app(WhatsAppSender::class)->twilioContentSid());
+        $this->assertNull(app(WhatsAppSender::class)->twilioContentSid());
     }
 }

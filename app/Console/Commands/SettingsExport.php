@@ -71,7 +71,14 @@ class SettingsExport extends Command
     {
         $model = AppSetting::query()->first();
 
-        return $model?->only(['id', 'retention_period', 'dispatch_enabled', 'dispatch_hours']);
+        return $model?->only([
+            'id',
+            'retention_period',
+            'dispatch_enabled',
+            'dispatch_hours',
+            'twilio_template_appointment_reminder_id',
+            'twilio_template_appointment_created_id',
+        ]);
     }
 
     private function exportReminderPreferences(): array
@@ -133,7 +140,7 @@ class SettingsExport extends Command
     private function exportTemplates(): array
     {
         return TwilioContentTemplate::query()
-            ->select(['id', 'nombre', 'content_sid', 'seleccionada', 'content_variables'])
+            ->select(['id', 'nombre', 'content_sid', 'content_variables'])
             ->get()
             ->toArray();
     }

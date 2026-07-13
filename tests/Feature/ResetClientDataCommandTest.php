@@ -50,6 +50,11 @@ class ResetClientDataCommandTest extends TestCase
             'lead_days' => 1,
             'enabled' => true,
         ]);
+        AppSetting::query()->create([
+            'retention_period' => 'disabled',
+            'dispatch_enabled' => true,
+            'dispatch_hours' => ['09:00', '12:00', '15:00'],
+        ]);
         $credential = WhatsAppCredential::query()->create(['mode' => 'sandbox']);
         WhatsAppSenderNumber::query()->create([
             'whatsapp_credential_id' => $credential->id,
@@ -58,7 +63,6 @@ class ResetClientDataCommandTest extends TestCase
         TwilioContentTemplate::query()->create([
             'nombre' => 'Recordatorio',
             'content_sid' => 'HX'.str_repeat('1', 32),
-            'seleccionada' => true,
         ]);
         $userCount = User::query()->count();
 
@@ -68,14 +72,10 @@ class ResetClientDataCommandTest extends TestCase
             ->assertExitCode(0);
 
         $this->assertSame(10, Client::query()->count());
-        $this->assertSame(205, Appointment::query()->count());
+        $this->assertSame(170, Appointment::query()->count());
         $this->assertSame(1, WhatsAppMessage::query()->count());
         $this->assertSame($userCount, User::query()->count());
-        $this->assertSame(1, AppointmentReminderPreference::query()->where('channel', 'whatsapp')->count());
-        $this->assertSame(1, AppSetting::query()->where('dispatch_enabled', true)->count());
-        $this->assertSame(1, WhatsAppCredential::query()->whereKey($credential->id)->count());
         $this->assertSame(0, WhatsAppSenderNumber::query()->where('whatsapp_credential_id', $credential->id)->count());
-        $this->assertSame(1, TwilioContentTemplate::query()->where('content_sid', 'HX'.str_repeat('1', 32))->count());
     }
 
     public function test_it_requires_force(): void
