@@ -286,18 +286,22 @@
             </td>
             <td class="px-4 py-3 text-center text-xs" onclick="event.stopPropagation()" onkeydown="event.stopPropagation()">
               @php
-                $retorno = $appointment->queBoton();
+                $buttonResponse = $appointment->latestButtonInboundResponse();
                 $tieneMensaje = $appointment->hasTextResponse() ;
 
-                if($retorno === 'confirmada'){
+                if($buttonResponse?->isConfirmed()){
                     $icono =  'usuario-plus';
                     $displayResponseLabel = 'Cita Confirmada';
                     $responseClasses = 'bg-emerald-500/15 text-emerald-300 border border-emerald-400/30';
                     }
-                elseif($retorno === 'cambiar'){
+                elseif($buttonResponse?->isRescheduleRequested()){
                   $icono = 'alert';
-                  $displayResponseLabel = 'Cambiar Cita';
+                  $displayResponseLabel = 'Hay Incidencia';
                   $responseClasses = 'bg-red-500/15 text-red-300 border border-red-400/30';
+                }elseif($buttonResponse){
+                    $icono =  'ok';
+                    $displayResponseLabel = $buttonResponse->responseValue() ?? '';
+                    $responseClasses = 'bg-indigo-500/15 text-indigo-200 border border-indigo-400/30';
                 }elseif($tieneMensaje){
                     $icono =  'ojo';
                     $displayResponseLabel = $appointment->hasUnreadInboundResponse() ? 'Nuevo mensaje' : 'Todo leido';

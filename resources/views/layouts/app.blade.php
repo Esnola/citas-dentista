@@ -156,7 +156,7 @@
               'block': mobileOpen
           }"
   >
-    <nav x-cloak class="flex h-full flex-col justify-between text-sm">
+    <nav x-cloak class="flex h-full flex-col justify-between overflow-y-auto overscroll-contain pr-1 text-sm">
 
 
       <div class="grid gap-12 items-center jusitfy-center">

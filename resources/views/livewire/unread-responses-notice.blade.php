@@ -56,7 +56,7 @@
                 class="flex cursor-grab items-center justify-between gap-3 border-b border-orange-200/15 bg-linear-to-r from-orange-400/18 via-amber-300/10 to-transparent px-4 py-3 active:cursor-grabbing"
         >
           <div class="flex min-w-0 items-center gap-3">
-            <span class="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-orange-300/18 text-orange-100 shadow-lg shadow-orange-950/30 ring-1 ring-inset ring-orange-200/35">
+            <span class="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-orange-300/18 text-orange-100 shadow-lg shadow-orange-950/30 ring-1 ring-inset ring-blue-200/35">
               <x-iconos.alert clase="size-6 animate-pulse"/>
             </span>
             <div class="min-w-0">

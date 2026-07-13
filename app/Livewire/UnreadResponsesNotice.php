@@ -99,7 +99,7 @@ class UnreadResponsesNotice extends Component
 
         if ($message->isRescheduleRequested()) {
             return [
-                'label' => 'Cambiar Cita',
+                'label' => 'Hay Incidencia',
                 'classes' => 'bg-red-500/15 text-red-300 border border-red-400/30',
                 'icono' => 'alert',
             ];

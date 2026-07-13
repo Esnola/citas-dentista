@@ -488,7 +488,12 @@ class ClientAppointments extends Component
         return Appointment::query()
             ->select('appointments.*')
             ->withCount('changes')
-            ->with(['client', 'latestWhatsAppMessage', 'latestRespondedWhatsAppMessage'])
+            ->with([
+                'client',
+                'latestWhatsAppMessage',
+                'latestRespondedWhatsAppMessage',
+                'whatsAppMessages',
+            ])
             ->leftJoin('clients', 'clients.id', '=', 'appointments.client_id')
             ->where('appointments.client_id', $selectedClient->id)
             ->when($this->filter === 'upcoming', fn ($q) => $q

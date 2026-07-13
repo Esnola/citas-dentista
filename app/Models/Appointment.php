@@ -198,6 +198,24 @@ class Appointment extends Model
             ->first();
     }
 
+    public function latestButtonInboundResponse(): ?WhatsAppMessage
+    {
+        $messages = $this->relationLoaded('whatsAppMessages')
+            ? $this->getRelation('whatsAppMessages')
+            : $this->whatsAppMessages()
+                ->where('direction', WhatsAppMessage::DIRECTION_INBOUND)
+                ->get();
+
+        return $messages
+            ->filter(fn (WhatsAppMessage $message): bool => $message->direction === WhatsAppMessage::DIRECTION_INBOUND)
+            ->filter(fn (WhatsAppMessage $message): bool => filled(data_get($message->provider_payload, 'inbound.button_text'))
+                || filled(data_get($message->provider_payload, 'inbound.button_payload'))
+                || $message->isConfirmed()
+                || $message->isRescheduleRequested())
+            ->sortByDesc(fn (WhatsAppMessage $message): int => ($message->responded_at ?? $message->created_at)?->timestamp ?? 0)
+            ->first();
+    }
+
     public function whatsAppMessages(): HasMany
     {
         return $this->hasMany(WhatsAppMessage::class);

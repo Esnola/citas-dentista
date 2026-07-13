@@ -47,7 +47,7 @@
             $displayMessage = $isInbound ? $msg->responseValue() : $msg->message;
             $buttonBadge = match (true) {
                     $isInbound && $msg->isConfirmed() => ['clase' => 'cita-confirmada', 'texto' => 'Cita Confirmada', 'icono' => 'usuario-plus'],
-                    $isInbound && $msg->isRescheduleRequested() => ['clase' => 'cambiar-cita', 'texto' => 'Cambiar cita', 'icono' => 'alert'],
+                    $isInbound && $msg->isRescheduleRequested() => ['clase' => 'cambiar-cita', 'texto' => 'Hay Incidencia', 'icono' => 'alert'],
                     default => null,
             };
             $displayTimestamp = $msg->sent_at ?? $msg->responded_at ?? $msg->created_at;

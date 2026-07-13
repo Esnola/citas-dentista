@@ -114,7 +114,7 @@ class AgendaDay extends Component
 
         if ($message->isRescheduleRequested()) {
             return [
-                'label' => 'Cambiar cita',
+                'label' => 'Hay Incidencia',
                 'classes' => 'border-red-400/30 bg-red-500/15 text-red-300 shadow-red-300/50 ',
                 'icono' => 'alert',
             ];
