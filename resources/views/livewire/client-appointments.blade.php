@@ -305,7 +305,6 @@
                   $responseClasses = '';
                 }
 
-                $respondedAt = $appointment->latestInboundAfterLastSent()?->responded_at;
               @endphp
 
               @if ($displayResponseLabel || $appointment->wasRescheduled())
@@ -335,9 +334,6 @@
                       Reprogramada · {{ $appointment->changes_count }}
                     </span>
                   @endif
-                  @if ($respondedAt)
-                    <span class="text-[10px] text-slate-400">{{ $respondedAt->format('H:i d/m/Y') }}</span>
-                  @endif
                 </div>
               @else
                 <span class="text-slate-500">—</span>
@@ -346,14 +342,14 @@
             <td class="px-4 py-3 text-center" onclick="event.stopPropagation()">
               @if ($appointment->enviado && $appointment->scheduledFor()->isFuture())
                 <x-botones.icono-buton
-                        color="emerald"
-                        icon="whatsapp"
-                        label="Reenviar"
-                        texto="Reenviar"
+                        color="sky"
+                        icon="historial"
+                        label="Historial"
+                        texto="Historial"
                         especialtexto="text-xs!"
-                        wire:click="confirmResend({{ $appointment->id }})"
+                        wire:click="openHistory({{ $appointment->id }})"
                         wire:loading.attr="disabled"
-                        wire:target="confirmResend({{ $appointment->id }})"
+                        wire:target="openHistory({{ $appointment->id }})"
                 />
               @else
                 @if($appointment->scheduledFor()->isFuture())
@@ -399,9 +395,6 @@
 
   {{-- MODAL DE BORRADO --}}
   <x-modales.borrar wire:target="confirmDelete" :appointmentPendingDeletion="$appointmentPendingDeletion"/>
-
-  {{-- MODAL DE REENVIO --}}
-  <x-modales.reenvio wire:target="confirmResend" :appointmentPendingResend="$appointmentPendingResend"/>
 
   {{-- MODAL DE BULK BORRADO --}}
   <x-modales.bulk-borrar wire:target="confirmBulkDelete"

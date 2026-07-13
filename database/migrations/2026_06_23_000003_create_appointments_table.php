@@ -28,6 +28,7 @@ return new class extends Migration
             $table->dateTime('whatsapp_sent_at')->nullable();
             $table->dateTime('whatsapp_delivered_at')->nullable();
             $table->dateTime('whatsapp_read_at')->nullable();
+            $table->dateTime('last_inbound_seen_at')->nullable();
             $table->index(
                 ['client_id', 'enviado', 'activo', 'fecha', 'hora'],
                 'appointments_client_status_schedule_index'

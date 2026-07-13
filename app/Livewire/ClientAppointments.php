@@ -31,8 +31,6 @@ class ClientAppointments extends Component
 
     public ?int $appointmentPendingDeletionId = null;
 
-    public ?int $appointmentPendingResendId = null;
-
     /** @var array<int, int|string> */
     public array $selectedAppointmentIds = [];
 
@@ -322,49 +320,6 @@ class ClientAppointments extends Component
         $this->dispatch('toast', message: $result['message'], type: str_contains($result['message'], 'correctamente') ? 'success' : 'error');
     }
 
-    public function confirmResend(int $appointmentId): void
-    {
-        $this->appointmentPendingResendId = $appointmentId;
-    }
-
-    public function cancelResend(): void
-    {
-        $this->appointmentPendingResendId = null;
-    }
-
-    public function resendConfirmed(WhatsAppSender $sender): void
-    {
-        if (! $this->appointmentPendingResendId) {
-            return;
-        }
-
-        $appointment = Appointment::query()->with('client')->findOrFail($this->appointmentPendingResendId);
-
-        if (! $appointment->enviado || ! $appointment->scheduledFor()->isFuture()) {
-            $this->dispatch('toast', message: 'Esta cita no se puede reenviar.', type: 'error');
-
-            return;
-        }
-
-        if (! $appointment->client) {
-            $this->dispatch('toast', message: 'No se pudo reenviar el WhatsApp porque la cita no tiene cliente asociado.', type: 'error');
-
-            return;
-        }
-
-        $result = $this->immediateSender->send(
-            $appointment,
-            $appointment->client,
-            $sender,
-            'WhatsApp reenviado correctamente.',
-            'No se pudo reenviar el WhatsApp.'
-        );
-
-        $this->appointmentPendingResendId = null;
-
-        $this->dispatch('toast', message: $result['message'], type: str_contains($result['message'], 'correctamente') ? 'success' : 'error');
-    }
-
     public function openHistory(int $appointmentId): void
     {
         $appointment = Appointment::query()->findOrFail($appointmentId);
@@ -513,15 +468,10 @@ class ClientAppointments extends Component
           ? Appointment::query()->with('client')->find($this->appointmentPendingDeletionId)
           : null;
 
-        $appointmentPendingResend = $this->appointmentPendingResendId
-          ? Appointment::query()->with('client')->find($this->appointmentPendingResendId)
-          : null;
-
         return view('livewire.client-appointments', [
             'appointments' => $appointments,
             'appointmentsCount' => $appointments->total(),
             'appointmentPendingDeletion' => $appointmentPendingDeletion,
-            'appointmentPendingResend' => $appointmentPendingResend,
             'selectedClient' => $selectedClient,
             'showBulkActions' => true,
             'visibleAppointmentIds' => $visibleAppointmentIds,

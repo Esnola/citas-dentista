@@ -11,28 +11,32 @@ class AgendaIndex extends Component
 {
     public int $selectedDateOffset = 0;
 
+    public ?int $expandedDateOffset = null;
+
     public function selectDate(string $offset): void
     {
-        $this->selectedDateOffset = (int) $offset;
+        $selectedOffset = (int) $offset;
+
+        $this->selectedDateOffset = $selectedOffset;
+        $this->expandedDateOffset = $this->expandedDateOffset === $selectedOffset ? null : $selectedOffset;
     }
 
     public function render(): View
     {
         Carbon::setLocale('es');
         $targetDate = $this->targetDate();
+        $resolvedDates = $this->resolvedDates();
+        $calendarDays = $this->calendarDays($resolvedDates);
 
         return view('livewire.agenda-index', [
-            'nextAppointments' => Appointment::query()
-                ->with('client')
-                ->whereDate('fecha', $targetDate->toDateString())
-                ->orderBy('hora')
-                ->get()
-                ->groupBy(fn (Appointment $appointment) => $appointment->hora),
+            'calendarDays' => $calendarDays,
+            'nextAppointments' => $calendarDays[$this->selectedDateOffset]['appointments'],
             'targetDates' => $this->targetDates(),
             'selectedDate' => $targetDate,
             'sundayWarning' => $this->sundayWarning(),
-            'resolvedDates' => $this->resolvedDates(),
+            'resolvedDates' => $resolvedDates,
             'futureDayOptions' => range(2, 10),
+            'expandedDateOffset' => $this->expandedDateOffset,
         ]);
     }
 
@@ -109,6 +113,30 @@ class AgendaIndex extends Component
                     'offset' => $offset,
                     'label' => $offset === 0 ? 'Hoy' : 'Mañana',
                     'date' => $resolved[$offset],
+                ],
+            ])
+            ->all();
+    }
+
+    private function calendarDays(array $resolvedDates): array
+    {
+        $appointmentsByDate = Appointment::query()
+            ->with('client')
+            ->whereBetween('fecha', [
+                $resolvedDates[0]->toDateString(),
+                $resolvedDates[array_key_last($resolvedDates)]->toDateString(),
+            ])
+            ->orderBy('fecha')
+            ->orderBy('hora')
+            ->get()
+            ->groupBy(fn (Appointment $appointment): string => $appointment->fecha->toDateString());
+
+        return collect($resolvedDates)
+            ->mapWithKeys(fn (Carbon $date, int $offset): array => [
+                $offset => [
+                    'offset' => $offset,
+                    'date' => $date,
+                    'appointments' => $appointmentsByDate->get($date->toDateString(), collect()),
                 ],
             ])
             ->all();

@@ -5,10 +5,28 @@ namespace App\Livewire;
 use App\Models\Appointment;
 use App\Models\WhatsAppCredential;
 use App\Models\WhatsAppMessage;
+use App\Services\WhatsApp\AppointmentDeliveryStatusSyncer;
+use Illuminate\Support\Facades\Cache;
 use Livewire\Component;
 
 class UnreadResponsesNotice extends Component
 {
+    private AppointmentDeliveryStatusSyncer $deliveryStatusSyncer;
+
+    public function boot(AppointmentDeliveryStatusSyncer $deliveryStatusSyncer): void
+    {
+        $this->deliveryStatusSyncer = $deliveryStatusSyncer;
+    }
+
+    public function pollUpdates(): void
+    {
+        if (! $this->shouldSyncFromTwilio()) {
+            return;
+        }
+
+        $this->deliveryStatusSyncer->syncAll(force: true);
+    }
+
     public function render()
     {
         $appointments = Appointment::query()
@@ -61,5 +79,28 @@ class UnreadResponsesNotice extends Component
             'items' => $appointments,
             'pollInterval' => WhatsAppCredential::webhookEnabled() ? 2 : WhatsAppCredential::pollInterval(),
         ]);
+    }
+
+    private function shouldSyncFromTwilio(): bool
+    {
+        $cacheKey = 'unread_responses_notice_twilio_synced_at';
+        $lastSyncedAt = (int) Cache::get($cacheKey, 0);
+        $now = now()->timestamp;
+
+        if ($lastSyncedAt > 0 && $lastSyncedAt <= $now && ($now - $lastSyncedAt) < $this->twilioSyncInterval()) {
+            return false;
+        }
+
+        Cache::put($cacheKey, $now, now()->addMinutes(5));
+
+        return true;
+    }
+
+    private function twilioSyncInterval(): int
+    {
+        $credential = WhatsAppCredential::get();
+        $interval = (int) ($credential->poll_interval ?? 10);
+
+        return max(5, min(60, $interval));
     }
 }

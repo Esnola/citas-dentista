@@ -30,6 +30,8 @@ return new class extends Migration
             $table->string('default_template')->nullable();
             $table->text('default_message')->nullable();
             $table->string('status_callback_url')->nullable();
+            $table->boolean('webhook_enabled')->default(true);
+            $table->unsignedSmallInteger('poll_interval')->default(10);
             $table->boolean('selected')->default(false);
             $table->timestamps();
         });

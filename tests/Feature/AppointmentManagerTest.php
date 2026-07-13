@@ -537,7 +537,7 @@ class AppointmentManagerTest extends TestCase
         Carbon::setTestNow();
     }
 
-    public function test_sent_appointment_replaces_active_toggle_with_resend_button(): void
+    public function test_sent_appointment_replaces_active_toggle_with_history_button(): void
     {
         Carbon::setTestNow('2026-06-23 09:00:00');
 
@@ -569,52 +569,27 @@ class AppointmentManagerTest extends TestCase
             'provider_message_id' => 'SMRESENDORIG123',
         ]);
 
-        Config::set('whatsapp.driver', 'twilio');
-        Config::set('whatsapp.message_mode', 'text');
-        Config::set('whatsapp.twilio.account_sid', 'AC123');
-        Config::set('whatsapp.twilio.auth_token', 'test-token');
-        Config::set('whatsapp.twilio.mode', 'sandbox');
-        Config::set('whatsapp.twilio.from', 'whatsapp:+14155238886');
-
-        Http::fake([
-            'api.twilio.com/*/Messages.json' => Http::response([
-                'sid' => 'SMRESENT123',
-                'status' => 'delivered',
-            ], 201),
-            'api.twilio.com/*/Messages/SMRESENT123.json' => Http::response([
-                'sid' => 'SMRESENT123',
-                'status' => 'delivered',
-            ]),
-        ]);
-
         $this->actingAs($admin);
 
-        $component = Livewire::test(ClientAppointments::class, ['clientId' => $client->id])
-            ->set('dateFilter', 'all')
-            ->assertSee('Reenviar')
-            ->assertSeeHtml('wire:click="confirmResend('.$appointment->id.')"')
+        Livewire::test(ClientAppointments::class, ['clientId' => $client->id])
+            ->set('filter', 'all')
+            ->assertDontSee('Reenviar')
+            ->assertSee('Historial')
+            ->assertSeeHtml('wire:click="openHistory('.$appointment->id.')"')
             ->assertDontSeeHtml('wire:change="updateActiveStatus('.$appointment->id.', $event.target.checked)"')
-            ->call('confirmResend', $appointment->id)
-            ->assertSee('Ya se ha enviado un WhatsApp de esta cita.')
-            ->assertSet('appointmentPendingResendId', $appointment->id);
-
-        Http::assertNothingSent();
-
-        $component
-            ->call('resendConfirmed')
-            ->assertSet('appointmentPendingResendId', null);
+            ->call('openHistory', $appointment->id)
+            ->assertSet('historyAppointment.id', $appointment->id);
 
         $appointment->refresh();
 
         $this->assertFalse($appointment->activo);
         $this->assertTrue($appointment->cita_activa);
-        $this->assertSame(2, $appointment->whatsAppMessages()->count());
-        Http::assertSent(fn ($request): bool => $request->method() === 'POST');
+        $this->assertSame(1, $appointment->whatsAppMessages()->count());
 
         Carbon::setTestNow();
     }
 
-    public function test_past_sent_appointment_cannot_be_reenviada(): void
+    public function test_past_sent_appointment_does_not_show_resend_action(): void
     {
         Carbon::setTestNow('2026-06-23 09:00:00');
 
@@ -646,30 +621,14 @@ class AppointmentManagerTest extends TestCase
             'provider_message_id' => 'SMRESENDPAST123',
         ]);
 
-        Config::set('whatsapp.driver', 'twilio');
-        Config::set('whatsapp.message_mode', 'text');
-        Config::set('whatsapp.twilio.account_sid', 'AC123');
-        Config::set('whatsapp.twilio.auth_token', 'test-token');
-        Config::set('whatsapp.twilio.mode', 'sandbox');
-        Config::set('whatsapp.twilio.from', 'whatsapp:+14155238886');
-
-        Http::fake();
-
         $this->actingAs($admin);
 
-        $component = Livewire::test(ClientAppointments::class, ['clientId' => $client->id])
-            ->set('dateFilter', 'all')
+        Livewire::test(ClientAppointments::class, ['clientId' => $client->id])
+            ->set('filter', 'all')
             ->assertDontSee('Reenviar')
-            ->call('confirmResend', $appointment->id)
-            ->assertSet('appointmentPendingResendId', $appointment->id);
-
-        $component
-            ->call('resendConfirmed')
-            ->assertDispatched('toast', fn ($n, $p) => $p['message'] === 'Esta cita no se puede reenviar.' && $p['type'] === 'error')
-            ->assertSet('appointmentPendingResendId', $appointment->id);
+            ->assertDontSeeHtml('wire:click="confirmResend('.$appointment->id.')"');
 
         $this->assertSame(1, $appointment->whatsAppMessages()->count());
-        Http::assertNothingSent();
 
         Carbon::setTestNow();
     }

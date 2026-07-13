@@ -1,4 +1,4 @@
-<div wire:poll.{{ $pollInterval }}s>
+<div wire:poll.{{ $pollInterval }}s="pollUpdates">
   @if ($items->isNotEmpty())
     <div
         x-data="{
@@ -71,6 +71,7 @@
           <div class="space-y-2">
             @foreach ($items as $item)
               <a
+                  wire:key="unread-response-{{ $item['appointment_id'] }}"
                   href="{{ $item['url'] }}"
                   class="block rounded-2xl border border-white/10 bg-white/5 px-3 py-3 transition hover:border-orange-300/45 hover:bg-orange-400/10"
               >

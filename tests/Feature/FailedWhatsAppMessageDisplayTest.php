@@ -7,9 +7,11 @@ use App\Livewire\UnreadResponsesNotice;
 use App\Models\Appointment;
 use App\Models\Client;
 use App\Models\User;
+use App\Models\WhatsAppCredential;
 use App\Models\WhatsAppMessage;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Http;
 use Livewire\Livewire;
@@ -807,5 +809,84 @@ class FailedWhatsAppMessageDisplayTest extends TestCase
                 'client' => $client->id,
                 'history' => $appointment->id,
             ]));
+    }
+
+    public function test_global_unread_responses_notice_syncs_twilio_before_rendering(): void
+    {
+        Carbon::setTestNow('2026-06-30 10:00:00');
+        Cache::forget('unread_responses_notice_twilio_synced_at');
+
+        WhatsAppCredential::query()->create([
+            'mode' => 'sandbox',
+            'account_sid' => 'AC123',
+            'auth_token' => 'test-token',
+            'webhook_enabled' => true,
+            'poll_interval' => 10,
+            'selected' => true,
+        ]);
+
+        $client = Client::query()->create([
+            'nombre' => 'Ana',
+            'apellidos' => 'Perez',
+            'telefono' => '+34600123123',
+        ]);
+        $appointment = Appointment::query()->create([
+            'client_id' => $client->id,
+            'fecha' => '2026-07-05',
+            'hora' => '11:00:00',
+            'enviado' => true,
+            'activo' => true,
+        ]);
+
+        WhatsAppMessage::query()->create([
+            'client_id' => $client->id,
+            'appointment_id' => $appointment->id,
+            'nombre' => 'Ana',
+            'apellidos' => 'Perez',
+            'telefono' => '+34600123123',
+            'scheduled_for' => now()->subMinutes(5),
+            'message' => 'Recordatorio',
+            'source' => WhatsAppMessage::SOURCE_APPOINTMENT,
+            'direction' => WhatsAppMessage::DIRECTION_OUTBOUND,
+            'status' => WhatsAppMessage::STATUS_SENT,
+            'sent_at' => now()->subMinutes(5),
+            'provider_message_id' => 'SMOUTBOUND123',
+            'provider_payload' => [
+                'provider' => 'twilio',
+                'raw' => ['status' => 'sent'],
+            ],
+        ]);
+
+        Http::fake([
+            'api.twilio.com/*/Messages.json*' => Http::response([
+                'messages' => [[
+                    'sid' => 'SMINBOUND123',
+                    'body' => 'Necesito cambiar la cita',
+                    'from' => 'whatsapp:+34600123123',
+                    'to' => 'whatsapp:+15559355880',
+                    'date_sent' => now()->toRfc7231String(),
+                    'direction' => 'inbound',
+                    'in_reply_to' => 'SMOUTBOUND123',
+                ]],
+            ]),
+            'api.twilio.com/*/Messages/SMOUTBOUND123.json' => Http::response([
+                'sid' => 'SMOUTBOUND123',
+                'status' => 'sent',
+            ]),
+        ]);
+
+        Livewire::test(UnreadResponsesNotice::class)
+            ->call('pollUpdates');
+
+        $this->assertDatabaseHas('whatsapp_messages', [
+            'appointment_id' => $appointment->id,
+            'direction' => WhatsAppMessage::DIRECTION_INBOUND,
+            'respuesta' => 'Necesito cambiar la cita',
+        ]);
+
+        Livewire::test(UnreadResponsesNotice::class)
+            ->assertSee('Nuevas respuestas de clientes')
+            ->assertSee('Ana Perez')
+            ->assertSee('Necesito cambiar la cita');
     }
 }

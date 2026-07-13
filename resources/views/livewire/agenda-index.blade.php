@@ -1,4 +1,3 @@
-
 <div class="rounded-3xl border border-white/10 bg-slate-900/30 backdrop-blur-xl">
   <div class="flex flex-col gap-6 border-b border-white/5 p-8 md:flex-row md:items-center md:justify-between">
     <div class="space-y-1">
@@ -46,83 +45,126 @@
       </div>
     @endif
 
-    <div x-data="{
-        abierto: null,
-        fijados: [],
-        estaAbierto(hora) { return this.abierto === hora || this.fijados.includes(hora) },
-        alternar(hora) {
-            if (this.estaAbierto(hora)) {
-                this.fijados = this.fijados.filter((fijado) => fijado !== hora)
-                if (this.abierto === hora) this.abierto = null
-            } else {
-                this.abierto = hora
-            }
-        },
-        mantener(hora, activo) {
-            if (activo && ! this.fijados.includes(hora)) this.fijados.push(hora)
-            if (! activo) this.fijados = this.fijados.filter((fijado) => fijado !== hora)
-            if (this.abierto === hora) this.abierto = null
-        },
-    }" class="space-y-6">
-      @forelse ($nextAppointments as $hora => $citasHora)
-        <div wire:key="appointment-group-{{ $selectedDate->toDateString() }}-{{ $hora }}" class="space-y-3">
-          <div class="flex items-center gap-3">
+    <div class="overflow-hidden rounded-2xl border border-white/10 bg-slate-950/30">
+      <div class="hidden grid-cols-7 divide-x divide-white/10 border-b border-white/10 bg-slate-950/70 text-center text-[11px] font-bold uppercase tracking-wide text-slate-500 lg:grid">
+        @foreach (['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'] as $weekday)
+          <div class="px-3 py-2">{{ $weekday }}</div>
+        @endforeach
+      </div>
+
+      <div class="grid grid-cols-1 divide-y divide-white/10 sm:grid-cols-2 sm:divide-x lg:grid-cols-7">
+        @foreach ($calendarDays as $day)
+          @php
+            $date = $day['date'];
+            $appointments = $day['appointments'];
+            $isSelected = $selectedDate->toDateString() === $date->toDateString();
+            $isExpanded = $expandedDateOffset === $day['offset'];
+            $isToday = $date->isToday();
+          @endphp
+
+          <section wire:key="agenda-day-{{ $date->toDateString() }}"
+                   class="min-h-44 p-3 transition-colors {{ $isSelected ? 'bg-emerald-500/10 ring-1 ring-inset ring-emerald-400/40' : 'bg-slate-950/10 hover:bg-white/5' }}">
             <button type="button"
-                    x-on:click="alternar(@js($hora))"
-                    x-bind:aria-expanded="estaAbierto(@js($hora)).toString()"
-                    aria-controls="appointments-{{ str_replace(':', '-', $hora) }}"
-                    class="flex cursor-pointer items-center gap-2 rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-3 py-1.5">
-              <x-iconos.reloj-agujas clase="size-4 text-emerald-400"/>
-              <span class="text-sm font-bold text-emerald-300">
-                {{ \Carbon\Carbon::parse($hora)->format('H:i') }} · {{ $citasHora->count() }} {{ Str::plural('cita', $citasHora->count()) }}
+                    wire:click="selectDate({{ $day['offset'] }})"
+                    aria-expanded="{{ $isExpanded ? 'true' : 'false' }}"
+                    class="flex w-full cursor-pointer items-start justify-between gap-3 rounded-xl p-2 text-left transition-colors hover:bg-white/5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-400">
+              <span>
+                <span class="block text-[11px] font-semibold uppercase tracking-wide {{ $isSelected ? 'text-emerald-200' : 'text-slate-500' }}">
+                  {{ $date->translatedFormat('D') }}
+                </span>
+                <span class="mt-1 flex items-baseline gap-2">
+                  <span class="text-2xl font-bold {{ $isSelected ? 'text-white' : 'text-slate-200' }}">{{ $date->format('d') }}</span>
+                  <span class="text-xs font-medium {{ $isSelected ? 'text-emerald-200' : 'text-slate-500' }}">{{ $date->translatedFormat('M') }}</span>
+                </span>
+              </span>
+
+              <span class="flex flex-col items-end gap-1">
+                @if ($isToday)
+                  <span class="rounded-full border border-indigo-400/25 bg-indigo-400/10 px-2 py-0.5 text-[10px] font-bold text-indigo-200">Hoy</span>
+                @endif
+                <span class="rounded-full border px-2 py-0.5 text-[10px] font-bold {{ $appointments->isNotEmpty() ? 'border-emerald-400/30 bg-emerald-400/10 text-emerald-200' : 'border-white/10 bg-white/5 text-slate-500' }}">
+                  {{ $appointments->count() }} {{ Str::plural('cita', $appointments->count()) }}
+                </span>
               </span>
             </button>
-            <div class="h-px flex-1 bg-white/5"></div>
-            <label class="flex cursor-pointer items-center gap-2 text-[11px] font-medium text-slate-500">
-              <span>Mantener abierto</span>
-              <input type="checkbox" x-bind:checked="fijados.includes(@js($hora))"
-                     x-on:change="mantener(@js($hora), $event.target.checked)"
-                     class="size-4 cursor-pointer rounded border-white/20 bg-slate-950/50 text-emerald-500 accent-emerald-500 focus:ring-2 focus:ring-emerald-400/40 focus:ring-offset-0">
-            </label>
-          </div>
 
-          <div id="appointments-{{ str_replace(':', '-', $hora) }}" x-show="estaAbierto(@js($hora))" x-cloak
-               class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-            @foreach ($citasHora as $appointment)
-              @php($incidences = $this->appointmentIncidences($appointment))
-              <div class="group flex flex-col gap-3 rounded-2xl border border-white/5 bg-slate-950/40 p-4 transition-all duration-300 hover:border-white/10 hover:bg-slate-950/80">
-                <div class="space-y-2">
-                  <div class="flex flex-col items-center justify-between gap-3">
-                    <a href="{{ route('clients.edit', $appointment->client_id) }}"
-                       class="block truncate text-sm font-bold text-slate-200 transition-colors hover:text-emerald-300 hover:underline"
-                       aria-label="Editar datos del cliente" title="Editar datos del cliente">
-                      {{ $appointment->client?->full_name }}
-                    </a>
-                    <div class="flex gap-2">
-                      <x-botones.icono-buton
-                              color="indigo" icon="ojo"
-                              especialtexto="text-xs! gap-2! w-full! flex "
-                              especial="size-6 fill-indigo-500/80"
-                              label="Ver citas de {{ $appointment->client?->full_name }}"
-                              texto="Ver todas las citas"
-                              onclick="window.location.href='{{ route('clients.appointments', $appointment->client_id) }}'"
-                      />
+            @if ($isExpanded)
+              <div class="mt-3 space-y-2">
+                @forelse ($appointments as $appointment)
+                  @php($incidences = $this->appointmentIncidences($appointment))
+                  <article class="rounded-xl border border-white/10 bg-slate-950/60 p-3 shadow-sm shadow-slate-950/20">
+                    <div class="flex items-start justify-between gap-3">
+                      <div class="min-w-0">
+                        <p class="flex items-center gap-2 text-sm font-bold text-slate-100">
+                          <x-iconos.reloj-agujas clase="size-4 shrink-0 text-emerald-300"/>
+                          {{ \Carbon\Carbon::parse($appointment->hora)->format('H:i') }}
+                        </p>
+                        <a href="{{ route('clients.edit', $appointment->client_id) }}"
+                           class="mt-1 block truncate text-sm font-semibold text-emerald-200 transition-colors hover:text-emerald-100 hover:underline"
+                           aria-label="Editar datos del cliente">
+                          {{ $appointment->client?->full_name }}
+                        </a>
+                      </div>
+                      <div class="flex shrink-0 items-center gap-1">
+                        <a href="{{ route('clients.appointments', $appointment->client_id) }}"
+                           class="inline-flex size-8 items-center justify-center rounded-full border border-indigo-400/25 bg-indigo-400/10 text-indigo-200 transition hover:bg-indigo-400/15"
+                           title="Ver citas de {{ $appointment->client?->full_name }}"
+                           aria-label="Ver citas de {{ $appointment->client?->full_name }}">
+                          <x-iconos.ojo clase="size-4"/>
+                        </a>
+                        <a href="{{ route('clients.edit', $appointment->client_id) }}"
+                           class="inline-flex size-8 items-center justify-center rounded-full border border-blue-400/25 bg-blue-400/10 text-blue-200 transition hover:bg-blue-400/15"
+                           title="Editar datos del cliente"
+                           aria-label="Editar datos del cliente">
+                          <x-iconos.lapiz clase="size-4"/>
+                        </a>
+                      </div>
                     </div>
+
+                    @if ($incidences)
+                      <div class="mt-3 flex flex-wrap gap-1.5">
+                        @foreach ($incidences as $incidence)
+                          <span class="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-bold {{ $incidence['classes'] }}">
+                            @if ($incidence['icono'] ?? false)
+                              <x-iconos.doble-check clase="size-3"/>
+                            @endif
+                            {{ $incidence['label'] }}
+                          </span>
+                        @endforeach
+                      </div>
+                    @endif
+                  </article>
+                @empty
+                  <div class="rounded-xl border border-dashed border-white/10 bg-slate-950/30 p-4 text-center text-sm text-slate-500">
+                    Sin citas para este día.
                   </div>
-                </div>
+                @endforelse
               </div>
-            @endforeach
-          </div>
-        </div>
-      @empty
-        <div class="flex flex-col items-center justify-center rounded-3xl border border-dashed border-white/5 bg-slate-950/20 py-16 text-center">
-          <div class="rounded-2xl border border-white/5 bg-slate-900/60 p-5 text-slate-500">
-            <x-iconos.calendar clase="size-10"/>
-          </div>
-          <h3 class="mt-4 text-base font-bold text-slate-300">No hay citas en esta fecha</h3>
-          <p class="mt-1 max-w-xs text-sm text-slate-500">No se han encontrado citas para este día.</p>
-        </div>
-      @endforelse
+            @elseif ($appointments->isNotEmpty())
+              <div class="mt-3 space-y-1.5">
+                @foreach ($appointments->take(3) as $appointment)
+                  <button type="button"
+                          wire:click="selectDate({{ $day['offset'] }})"
+                          class="flex w-full items-center gap-2 rounded-lg border border-white/5 bg-white/5 px-2 py-1.5 text-left text-xs text-slate-300 transition hover:border-emerald-400/20 hover:bg-emerald-400/10 hover:text-emerald-100">
+                    <span class="font-bold text-emerald-300">{{ \Carbon\Carbon::parse($appointment->hora)->format('H:i') }}</span>
+                    <span class="truncate">Cita programada</span>
+                  </button>
+                @endforeach
+
+                @if ($appointments->count() > 3)
+                  <button type="button"
+                          wire:click="selectDate({{ $day['offset'] }})"
+                          class="text-xs font-semibold text-slate-500 transition hover:text-emerald-300">
+                    +{{ $appointments->count() - 3 }} más
+                  </button>
+                @endif
+              </div>
+            @else
+              <div class="mt-3 h-20 rounded-xl border border-dashed border-white/5 bg-slate-950/20"></div>
+            @endif
+          </section>
+        @endforeach
+      </div>
     </div>
   </div>
 </div>
