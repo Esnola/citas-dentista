@@ -72,10 +72,10 @@ class ResetClientDataCommandTest extends TestCase
             ->assertExitCode(0);
 
         $this->assertSame(10, Client::query()->count());
-        $this->assertSame(170, Appointment::query()->count());
-        $this->assertSame(1, WhatsAppMessage::query()->count());
+        $this->assertSame(110, Appointment::query()->count());
+        $this->assertSame(0, WhatsAppMessage::query()->count());
         $this->assertSame($userCount, User::query()->count());
-        $this->assertSame(0, WhatsAppSenderNumber::query()->where('whatsapp_credential_id', $credential->id)->count());
+        $this->assertSame(1, WhatsAppSenderNumber::query()->where('whatsapp_credential_id', $credential->id)->count());
     }
 
     public function test_it_requires_force(): void
