@@ -2,11 +2,14 @@
 
 namespace Tests\Feature;
 
+use App\Models\Appointment;
+use App\Models\AppSetting;
 use App\Models\Client;
 use App\Models\TwilioContentTemplate;
 use App\Models\User;
 use App\Models\WhatsAppMessage;
 use App\Services\WhatsApp\WhatsAppSender;
+use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Http;
@@ -321,6 +324,103 @@ class WhatsAppTwilioDispatchTest extends TestCase
         $this->assertSame('SMTEMPLATE123', $message->provider_message_id);
         $this->assertSame('HXCONTENT123', $message->provider_payload['payload']['content_sid']);
         $this->assertSame('Clara', $message->provider_payload['payload']['content_variables']['1']);
+    }
+
+    public function test_appointment_changed_template_sends_previous_and_new_schedule_variables(): void
+    {
+        $admin = User::factory()->create();
+        $client = Client::query()->create([
+            'nombre' => 'Lucía',
+            'apellidos' => 'Martín',
+            'telefono' => '600123123',
+        ]);
+        $appointment = Appointment::query()->create([
+            'client_id' => $client->id,
+            'fecha' => '2026-07-20',
+            'hora' => '09:15',
+        ]);
+
+        $appointment->update([
+            'fecha' => '2026-07-22',
+            'hora' => '12:45',
+        ]);
+
+        $template = TwilioContentTemplate::query()->create([
+            'nombre' => 'Cambio de cita',
+            'content_sid' => 'HX'.str_repeat('7', 32),
+            'content_variables' => [
+                '1' => '[NOMBRE]',
+                '2' => '[DIA-ANTERIOR]',
+                '3' => '[HORA-ANTERIOR]',
+                '4' => '[DIA-NUEVO]',
+                '5' => '[HORA-NUEVA]',
+            ],
+        ]);
+
+        AppSetting::get()->update([
+            'twilio_template_appointment_changed_id' => $template->id,
+        ]);
+
+        WhatsAppMessage::query()->create([
+            'user_id' => $admin->id,
+            'client_id' => $client->id,
+            'appointment_id' => $appointment->id,
+            'nombre' => $client->nombre,
+            'apellidos' => $client->apellidos,
+            'telefono' => $client->telefono,
+            'scheduled_for' => now()->subMinute(),
+            'message' => 'Tu cita ha cambiado.',
+            'source' => WhatsAppMessage::SOURCE_APPOINTMENT,
+            'status' => WhatsAppMessage::STATUS_PENDING,
+            'direction' => WhatsAppMessage::DIRECTION_OUTBOUND,
+            'metadata' => [
+                'twilio_template_scope' => WhatsAppSender::TEMPLATE_SCOPE_APPOINTMENT_CHANGED,
+            ],
+        ]);
+
+        Config::set('whatsapp.driver', 'twilio');
+        Config::set('whatsapp.twilio.account_sid', 'AC123');
+        Config::set('whatsapp.twilio.auth_token', 'test-token');
+        Config::set('whatsapp.twilio.mode', 'sandbox');
+        Config::set('whatsapp.twilio.from', 'whatsapp:+14155238886');
+        Config::set('whatsapp.default_country_code', '+34');
+
+        Http::fake([
+            'api.twilio.com/*/Messages.json' => Http::response([
+                'sid' => 'SMCHANGE123',
+                'status' => 'queued',
+            ], 201),
+        ]);
+
+        $this->artisan('whatsapp:dispatch-due')->assertExitCode(0);
+
+        Http::assertSent(function ($request): bool {
+            return str_contains($request->url(), '/Messages.json')
+                && isset($request['From'])
+                && $request['From'] === 'whatsapp:+14155238886'
+                && $request['To'] === 'whatsapp:+34600123123'
+                && $request['ContentSid'] === 'HX'.str_repeat('7', 32)
+                && $request['ContentVariables'] === json_encode([
+                    '1' => 'Lucía',
+                    '2' => Carbon::parse('2026-07-20')->translatedFormat('l j \d\e F'),
+                    '3' => '09:15',
+                    '4' => Carbon::parse('2026-07-22')->translatedFormat('l j \d\e F'),
+                    '5' => '12:45',
+                ], JSON_UNESCAPED_UNICODE)
+                && ! isset($request['Body']);
+        });
+
+        $message = WhatsAppMessage::query()->firstOrFail();
+
+        $this->assertSame(WhatsAppMessage::STATUS_SENT, $message->status);
+        $this->assertSame('SMCHANGE123', $message->provider_message_id);
+        $this->assertSame([
+            '1' => 'Lucía',
+            '2' => Carbon::parse('2026-07-20')->translatedFormat('l j \d\e F'),
+            '3' => '09:15',
+            '4' => Carbon::parse('2026-07-22')->translatedFormat('l j \d\e F'),
+            '5' => '12:45',
+        ], $message->provider_payload['payload']['content_variables']);
     }
 
     public function test_twilio_recipient_keeps_existing_whatsapp_prefix_without_duplicating_country_code(): void

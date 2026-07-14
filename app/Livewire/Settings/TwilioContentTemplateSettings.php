@@ -12,7 +12,7 @@ class TwilioContentTemplateSettings extends Component
 
     public string $contentSid = '';
 
-    public string $variablePreset = 'with_name';
+    public string $variablePreset = 'nombre_dia_hora';
 
     public string $status = '';
 
@@ -22,6 +22,8 @@ class TwilioContentTemplateSettings extends Component
 
     public string $appointmentCreatedTemplateId = '';
 
+    public string $appointmentChangedTemplateId = '';
+
     public function mount(): void
     {
         $settings = AppSetting::get();
@@ -29,6 +31,7 @@ class TwilioContentTemplateSettings extends Component
 
         $this->appointmentReminderTemplateId = (string) ($settings->twilio_template_appointment_reminder_id ?? $defaultTemplateId);
         $this->appointmentCreatedTemplateId = (string) ($settings->twilio_template_appointment_created_id ?? $defaultTemplateId);
+        $this->appointmentChangedTemplateId = (string) ($settings->twilio_template_appointment_changed_id ?? $defaultTemplateId);
     }
 
     public function addTemplate(): void
@@ -38,7 +41,7 @@ class TwilioContentTemplateSettings extends Component
         $data = $this->validate([
             'nombre' => ['required', 'string', 'max:255'],
             'contentSid' => ['required', 'string', 'regex:/^HX[a-fA-F0-9]{32}$/', 'unique:twilio_content_templates,content_sid'],
-            'variablePreset' => ['required', 'in:with_name,appointment'],
+            'variablePreset' => ['required', 'in:nombre_dia_hora,cambio_cita,message'],
         ]);
 
         TwilioContentTemplate::query()->create([
@@ -52,6 +55,17 @@ class TwilioContentTemplateSettings extends Component
         $this->dispatch('templateChanged');
     }
 
+    /**
+     * @return array<string, array<string, string>>
+     */
+    private function variablePresets(): array
+    {
+        return [
+            'nombre_dia_hora' => ['1' => '[NOMBRE]', '2' => '[DIA]', '3' => '[HORA]'],
+            'cambio_cita' => ['1' => '[NOMBRE]', '2' => '[HORA-ANTERIOR]', '3' => '[DIA-ANTERIOR]', '4' => '[HORA-NUEVA]', '5' => '[DIA-NUEVO]'],
+        ];
+    }
+
     public function saveAssignments(): void
     {
         abort_unless(auth()->user()?->is_admin, 403);
@@ -59,11 +73,13 @@ class TwilioContentTemplateSettings extends Component
         $data = $this->validate([
             'appointmentReminderTemplateId' => ['nullable', 'integer', 'exists:twilio_content_templates,id'],
             'appointmentCreatedTemplateId' => ['nullable', 'integer', 'exists:twilio_content_templates,id'],
+            'appointmentChangedTemplateId' => ['nullable', 'integer', 'exists:twilio_content_templates,id'],
         ]);
 
         AppSetting::get()->update([
             'twilio_template_appointment_reminder_id' => $data['appointmentReminderTemplateId'] !== '' ? $data['appointmentReminderTemplateId'] : null,
             'twilio_template_appointment_created_id' => $data['appointmentCreatedTemplateId'] !== '' ? $data['appointmentCreatedTemplateId'] : null,
+            'twilio_template_appointment_changed_id' => $data['appointmentChangedTemplateId'] !== '' ? $data['appointmentChangedTemplateId'] : null,
         ]);
 
         $this->status = 'Asignaciones de plantillas actualizadas.';
@@ -83,6 +99,10 @@ class TwilioContentTemplateSettings extends Component
 
         if ((int) $this->appointmentCreatedTemplateId === $templateId) {
             $this->appointmentCreatedTemplateId = '';
+        }
+
+        if ((int) $this->appointmentChangedTemplateId === $templateId) {
+            $this->appointmentChangedTemplateId = '';
         }
 
         $this->status = 'Plantilla eliminada.';
@@ -111,17 +131,7 @@ class TwilioContentTemplateSettings extends Component
             'pendingTemplate' => $templates->firstWhere('id', $this->templatePendingDeletion),
             'assignedAppointmentReminderTemplate' => $templates->firstWhere('id', (int) $this->appointmentReminderTemplateId),
             'assignedAppointmentCreatedTemplate' => $templates->firstWhere('id', (int) $this->appointmentCreatedTemplateId),
+            'assignedAppointmentChangedTemplate' => $templates->firstWhere('id', (int) $this->appointmentChangedTemplateId),
         ]);
-    }
-
-    /**
-     * @return array<string, array<string, string>>
-     */
-    private function variablePresets(): array
-    {
-        return [
-            'with_name' => ['1' => '[NOMBRE]', '2' => '[DIA]', '3' => '[HORA]'],
-            'appointment' => ['1' => '[DIA]', '2' => '[HORA]'],
-        ];
     }
 }

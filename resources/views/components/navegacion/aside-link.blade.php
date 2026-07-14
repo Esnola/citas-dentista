@@ -47,14 +47,15 @@
   };
 
   $active = request()->routeIs($routeIs);
+  $label = $text ?? trim((string) $slot);
 @endphp
 
 <a
         {{ $attributes->class([
-            'group flex items-center gap-3 rounded-full border px-3 py-2 font-medium transition-colors',
+            'group flex min-w-0 items-center gap-3 rounded-full border px-3 py-2 font-medium transition-colors',
             $palette['active'] => $active,
             $palette['inactive'] => ! $active,
-        ])->merge(['href' => route($route) ]) }}
+        ])->merge(['href' => route($route), 'title' => $label]) }}
 >
   @if($icono)
     @include('components.iconos.'.$icono, $iconoClase ? ['clase' => $iconoClase] : [])
@@ -62,5 +63,5 @@
     <span class=" size-2 rounded-full {{ $palette['dot'] }}"></span>
   @endif
 
-  <span class="sidebar-text">{{ $text ?? $slot }}</span>
+  <span class="sidebar-text min-w-0 truncate">{{ $label }}</span>
 </a>

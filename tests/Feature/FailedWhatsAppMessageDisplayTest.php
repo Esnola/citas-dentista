@@ -603,7 +603,7 @@ class FailedWhatsAppMessageDisplayTest extends TestCase
 
         Livewire::test(ClientAppointments::class, ['clientId' => $client->id])
             ->assertSee('Nuevo mensaje')
-            ->assertSee('No leido');
+            ->assertDontSee('No leido');
     }
 
     public function test_opening_history_marks_latest_inbound_message_as_seen(): void
@@ -669,7 +669,8 @@ class FailedWhatsAppMessageDisplayTest extends TestCase
         $this->actingAs($user);
 
         Livewire::test(ClientAppointments::class, ['clientId' => $client->id])
-            ->assertSee('No leido')
+            ->assertSee('Nuevo mensaje')
+            ->assertDontSee('No leido')
             ->call('openHistory', $appointment->id)
             ->assertDontSee('No leido')
             ->assertSee('Todo leido');
@@ -809,6 +810,60 @@ class FailedWhatsAppMessageDisplayTest extends TestCase
                 'client' => $client->id,
                 'history' => $appointment->id,
             ]));
+    }
+
+    public function test_global_unread_responses_notice_marks_related_message_as_read(): void
+    {
+        Carbon::setTestNow('2026-07-13 10:00:00');
+
+        $user = User::factory()->create();
+        $client = Client::query()->create([
+            'nombre' => 'Ana',
+            'apellidos' => 'Perez',
+            'telefono' => '+34600123123',
+        ]);
+
+        $appointment = Appointment::query()->create([
+            'client_id' => $client->id,
+            'fecha' => '2026-07-20',
+            'hora' => '11:00:00',
+            'enviado' => true,
+            'activo' => true,
+        ]);
+
+        WhatsAppMessage::query()->create([
+            'client_id' => $client->id,
+            'appointment_id' => $appointment->id,
+            'nombre' => 'Ana',
+            'apellidos' => 'Perez',
+            'telefono' => '+34600123123',
+            'scheduled_for' => now(),
+            'message' => 'Nuevo mensaje entrante',
+            'source' => WhatsAppMessage::SOURCE_APPOINTMENT,
+            'direction' => WhatsAppMessage::DIRECTION_INBOUND,
+            'status' => WhatsAppMessage::STATUS_SENT,
+            'sent_at' => now(),
+            'respuesta' => 'Nuevo mensaje entrante',
+            'responded_at' => now(),
+            'provider_payload' => [
+                'inbound' => [
+                    'body' => 'Nuevo mensaje entrante',
+                    'response_text' => 'Nuevo mensaje entrante',
+                ],
+            ],
+        ]);
+
+        $this->actingAs($user);
+
+        Livewire::test(UnreadResponsesNotice::class)
+            ->assertSee('Nuevo mensaje entrante')
+            ->call('markAsRead', $appointment->id)
+            ->assertDontSee('Nuevo mensaje entrante');
+
+        $this->assertSame(
+            '2026-07-13 10:00:00',
+            $appointment->refresh()->last_inbound_seen_at?->toDateTimeString()
+        );
     }
 
     public function test_global_unread_responses_notice_syncs_twilio_before_rendering(): void

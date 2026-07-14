@@ -23,8 +23,9 @@ class SettingsOverview extends Component
             'resolvedMode' => $sender->resolveTwilioMode(),
             'twilioReminderContentSid' => $sender->twilioContentSid(WhatsAppSender::TEMPLATE_SCOPE_APPOINTMENT_REMINDER),
             'twilioCreatedContentSid' => $sender->twilioContentSid(WhatsAppSender::TEMPLATE_SCOPE_APPOINTMENT_CREATED),
+            'twilioChangedContentSid' => $sender->twilioContentSid(WhatsAppSender::TEMPLATE_SCOPE_APPOINTMENT_CHANGED),
             'twilioUsesTemplate' => $credential->resolveDriver() === 'twilio',
-            'hasSpecificTwilioTemplateAssignments' => (bool) ($settings->twilio_template_appointment_reminder_id || $settings->twilio_template_appointment_created_id),
+            'hasSpecificTwilioTemplateAssignments' => (bool) ($settings->twilio_template_appointment_reminder_id || $settings->twilio_template_appointment_created_id || $settings->twilio_template_appointment_changed_id),
         ]);
     }
 }

@@ -329,6 +329,23 @@ class Appointment extends Model
           || $this->hora_original !== $this->hora;
     }
 
+    public function hasBeenRescheduled(): bool
+    {
+        if ($this->wasRescheduled()) {
+            return true;
+        }
+
+        if (array_key_exists('changes_count', $this->attributes)) {
+            return (int) $this->attributes['changes_count'] > 0;
+        }
+
+        if ($this->relationLoaded('changes')) {
+            return $this->changes->isNotEmpty();
+        }
+
+        return $this->exists && $this->changes()->exists();
+    }
+
     protected function casts(): array
     {
         return [

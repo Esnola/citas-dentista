@@ -23,6 +23,8 @@ class WhatsAppSender
 
     public const TEMPLATE_SCOPE_APPOINTMENT_CREATED = 'appointment_created';
 
+    public const TEMPLATE_SCOPE_APPOINTMENT_CHANGED = 'appointment_changed';
+
     private const TWILIO_AUTO_MODE = 'auto';
 
     private const TWILIO_SANDBOX_MODE = 'sandbox';
@@ -321,6 +323,9 @@ class WhatsAppSender
         $scheduledFor = $message?->appointment?->scheduledFor() ?? $message?->scheduled_for;
         $fakeScheduledFor = now()->addDay()->setTime(10, 30);
         $scheduledValue = $scheduledFor ?? $fakeScheduledFor;
+        $appointmentChange = $message?->appointment?->changes()->latest('created_at')->first();
+        $previousDate = $appointmentChange?->fecha_anterior;
+        $newDate = $appointmentChange?->fecha_nueva ?? $scheduledValue;
         $replacements = [
             '[NOMBRE]' => (string) ($message?->nombre ?? 'Ana'),
             '[APELLIDOS]' => (string) ($message?->apellidos ?? 'López'),
@@ -328,6 +333,10 @@ class WhatsAppSender
             '[DIA]' => $scheduledValue?->translatedFormat('l j \d\e F') ?? '',
             '[FECHA]' => $scheduledValue?->translatedFormat('l j \d\e F') ?? '',
             '[HORA]' => $scheduledValue?->format('H:i') ?? '',
+            '[DIA-ANTERIOR]' => $previousDate?->translatedFormat('l j \d\e F') ?? '',
+            '[HORA-ANTERIOR]' => $appointmentChange?->hora_anterior ? mb_substr($appointmentChange->hora_anterior, 0, 5) : '',
+            '[DIA-NUEVO]' => $newDate?->translatedFormat('l j \d\e F') ?? '',
+            '[HORA-NUEVA]' => $appointmentChange?->hora_nueva ? mb_substr($appointmentChange->hora_nueva, 0, 5) : ($scheduledValue?->format('H:i') ?? ''),
             '[MENSAJE]' => $message?->message ?? 'Mensaje de prueba',
         ];
 
@@ -481,6 +490,14 @@ class WhatsAppSender
             }
         }
 
+        if ($scope === self::TEMPLATE_SCOPE_APPOINTMENT_CHANGED) {
+            $configuredTemplateId = AppSetting::get()->twilio_template_appointment_changed_id;
+
+            if ($configuredTemplateId) {
+                return TwilioContentTemplate::query()->find($configuredTemplateId);
+            }
+        }
+
         return TwilioContentTemplate::query()->orderBy('id')->first();
     }
 
@@ -511,6 +528,7 @@ class WhatsAppSender
         return in_array($scope, [
             self::TEMPLATE_SCOPE_APPOINTMENT_REMINDER,
             self::TEMPLATE_SCOPE_APPOINTMENT_CREATED,
+            self::TEMPLATE_SCOPE_APPOINTMENT_CHANGED,
         ], true) ? $scope : null;
     }
 }

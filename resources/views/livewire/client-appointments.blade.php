@@ -1,3 +1,4 @@
+@php use App\Services\WhatsApp\WhatsAppSender; @endphp
 <div class="grid gap-6"
      wire:poll.{{ $pollInterval }}s="autoSync"
      x-on:reload-appointment-list.window="
@@ -172,17 +173,17 @@
         @forelse ($appointments as $appointment)
           @php
             $editUrl = route('appointments.edit', $appointment);
-            $canModify = ! $appointment->enviado && $appointment->canBeChanged();
+            $canModify = $appointment->canBeChanged();
             $esPasado = ! $canModify;
             $esActiva = $appointment->cita_activa;
             $statusAffectingLatestMessage = $appointment->latestWhatsAppMessage
-              && data_get($appointment->latestWhatsAppMessage->metadata, 'twilio_template_scope') !== \App\Services\WhatsApp\WhatsAppSender::TEMPLATE_SCOPE_APPOINTMENT_CREATED
+              && data_get($appointment->latestWhatsAppMessage->metadata, 'twilio_template_scope') !== WhatsAppSender::TEMPLATE_SCOPE_APPOINTMENT_CREATED
                 ? $appointment->latestWhatsAppMessage
                 : null;
           @endphp
           <tr wire:key="appointment-{{ $appointment->id }}"
               @if ($canModify)
-              role="link" tabindex="0"
+                role="link" tabindex="0"
               onclick="window.location='{{ $editUrl }}'"
               onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();window.location='{{ $editUrl }}';}else if(event.key==='ArrowDown'){event.preventDefault();this.nextElementSibling?.focus();}else if(event.key==='ArrowUp'){event.preventDefault();this.previousElementSibling?.focus();}"
               @endif
@@ -288,7 +289,8 @@
                 </div>
               @endif
             </td>
-            <td class="px-4 py-3 text-center text-xs" onclick="event.stopPropagation()" onkeydown="event.stopPropagation()">
+            <td class="px-4 py-3 text-center text-xs" onclick="event.stopPropagation()"
+                onkeydown="event.stopPropagation()">
               @php
                 $latestInboundResponse = $appointment->latestInboundAfterLastSent();
                 $buttonResponse = $appointment->latestButtonInboundResponse();
@@ -339,7 +341,7 @@
                     </button>
                   @endif
 
-                  @if (! $latestResponseIsButton && $appointment->hasUnreadInboundResponse())
+                  @if (! $latestResponseIsButton && $appointment->hasUnreadInboundResponse() && $displayResponseLabel !== 'Nuevo mensaje')
                     <span class="rounded-full bg-sky-500/15 px-2 py-0.5 text-[10px] font-semibold text-sky-200 ring-1 ring-inset ring-sky-400/30">
                       No leido
                     </span>
@@ -357,7 +359,7 @@
               @endif
             </td>
             <td class="px-4 py-3 text-center" onclick="event.stopPropagation()">
-              @if ($appointment->enviado && $appointment->isFuture())
+              @if ($appointment->enviado && ! $appointment->hasBeenRescheduled() && $appointment->isFuture())
                 <x-botones.icono-buton
                         color="sky"
                         icon="historial"
@@ -412,12 +414,13 @@
   </div>
 
   {{-- MODAL DE BORRADO --}}
-  <x-modales.borrar wire:target="confirmDelete" :appointmentPendingDeletion="$appointmentPendingDeletion"/>
+  {{--  <x-modales.borrar wire:target="confirmDelete" :appointmentPendingDeletion="$appointmentPendingDeletion"/>--}}
 
   {{-- MODAL DE BULK BORRADO --}}
-  <x-modales.bulk-borrar wire:target="confirmBulkDelete"
-                         :bulkDeleteConfirmationOpen="$bulkDeleteConfirmationOpen"
-                         :selectedAppointmentIds="$selectedAppointmentIds"/>
+  {{-- <x-modales.bulk-borrar wire:target="confirmBulkDelete"
+                          :bulkDeleteConfirmationOpen="$bulkDeleteConfirmationOpen"
+              :selectedAppointmentIds="$selectedAppointmentIds"/>
+              --}}
 
   {{-- MODAL HISTORIAL DE COMUNICACIONES --}}
   <x-modales.historia-whatsapp :historyAppointment="$historyAppointment"

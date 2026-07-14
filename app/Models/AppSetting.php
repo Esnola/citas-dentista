@@ -15,6 +15,7 @@ class AppSetting extends Model
         'dispatch_hours',
         'twilio_template_appointment_reminder_id',
         'twilio_template_appointment_created_id',
+        'twilio_template_appointment_changed_id',
     ];
 
     protected $attributes = [
@@ -23,6 +24,7 @@ class AppSetting extends Model
         'dispatch_hours' => '["09:00","12:00","15:00"]',
         'twilio_template_appointment_reminder_id' => null,
         'twilio_template_appointment_created_id' => null,
+        'twilio_template_appointment_changed_id' => null,
     ];
 
     protected function casts(): array
@@ -32,6 +34,7 @@ class AppSetting extends Model
             'dispatch_hours' => 'array',
             'twilio_template_appointment_reminder_id' => 'integer',
             'twilio_template_appointment_created_id' => 'integer',
+            'twilio_template_appointment_changed_id' => 'integer',
         ];
     }
 
@@ -44,6 +47,7 @@ class AppSetting extends Model
                 'dispatch_hours' => ['09:00', '12:00', '15:00'],
                 'twilio_template_appointment_reminder_id' => null,
                 'twilio_template_appointment_created_id' => null,
+                'twilio_template_appointment_changed_id' => null,
             ]);
         }
 
@@ -56,6 +60,7 @@ class AppSetting extends Model
                 'dispatch_hours' => ['09:00', '12:00', '15:00'],
                 'twilio_template_appointment_reminder_id' => null,
                 'twilio_template_appointment_created_id' => null,
+                'twilio_template_appointment_changed_id' => null,
             ]);
         }
 

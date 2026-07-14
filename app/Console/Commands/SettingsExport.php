@@ -78,6 +78,7 @@ class SettingsExport extends Command
             'dispatch_hours',
             'twilio_template_appointment_reminder_id',
             'twilio_template_appointment_created_id',
+            'twilio_template_appointment_changed_id',
         ]);
     }
 

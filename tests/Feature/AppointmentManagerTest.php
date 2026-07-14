@@ -6,9 +6,12 @@ use App\Livewire\AppointmentForm;
 use App\Livewire\AppointmentIndex;
 use App\Livewire\ClientAppointments;
 use App\Models\Appointment;
+use App\Models\AppSetting;
 use App\Models\Client;
+use App\Models\TwilioContentTemplate;
 use App\Models\User;
 use App\Models\WhatsAppMessage;
+use App\Services\WhatsApp\WhatsAppSender;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Config;
@@ -22,6 +25,8 @@ class AppointmentManagerTest extends TestCase
 
     public function test_appointment_edit_back_button_returns_to_the_clients_appointments(): void
     {
+        Carbon::setTestNow('2026-07-01 09:00:00');
+
         $user = User::factory()->create();
         $client = Client::query()->create([
             'nombre' => 'Ana',
@@ -30,10 +35,20 @@ class AppointmentManagerTest extends TestCase
         ]);
         $appointment = Appointment::query()->create([
             'client_id' => $client->id,
-            'fecha' => now()->addWeek(),
+            'fecha' => '2026-07-03',
             'hora' => '11:30',
             'enviado' => false,
             'activo' => true,
+        ]);
+        Appointment::query()->create([
+            'client_id' => $client->id,
+            'fecha' => '2026-07-02',
+            'hora' => '09:15',
+        ]);
+        Appointment::query()->create([
+            'client_id' => $client->id,
+            'fecha' => '2026-06-30',
+            'hora' => '10:00',
         ]);
 
         $this->actingAs($user)
@@ -41,7 +56,93 @@ class AppointmentManagerTest extends TestCase
             ->get(route('appointments.edit', $appointment))
             ->assertOk()
             ->assertSee('Gestión cita de:')
+            ->assertSee('Agenda de citas')
+            ->assertSee('Jueves, 02/07/2026')
+            ->assertSee('Viernes, 03/07/2026')
+            ->assertDontSee('Martes, 30/06/2026')
             ->assertSeeHtml("onclick=\"window.location.href='".route('clients.appointments', $client)."'\"");
+
+        Carbon::setTestNow();
+    }
+
+    public function test_appointment_edit_loads_time_without_seconds(): void
+    {
+        Carbon::setTestNow('2026-07-01 09:00:00');
+
+        $user = User::factory()->create();
+        $client = Client::query()->create([
+            'nombre' => 'Ana',
+            'apellidos' => 'Pérez',
+            'telefono' => '+34600111222',
+        ]);
+        $appointment = Appointment::query()->create([
+            'client_id' => $client->id,
+            'fecha' => '2026-07-03',
+            'hora' => '11:30:00',
+            'enviado' => false,
+            'activo' => true,
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('appointments.edit', $appointment))
+            ->assertOk()
+            ->assertSee('11:30')
+            ->assertDontSee('11:30:00');
+
+        Carbon::setTestNow();
+    }
+
+    public function test_appointment_edit_save_button_requires_date_or_time_changes(): void
+    {
+        Carbon::setTestNow('2026-07-01 09:00:00');
+
+        $client = Client::query()->create([
+            'nombre' => 'Ana',
+            'apellidos' => 'Pérez',
+            'telefono' => '+34600111222',
+        ]);
+        $appointment = Appointment::query()->create([
+            'client_id' => $client->id,
+            'fecha' => '2026-07-03',
+            'hora' => '11:30:00',
+            'enviado' => false,
+            'activo' => true,
+        ]);
+        Appointment::query()->create([
+            'client_id' => $client->id,
+            'fecha' => '2026-07-04',
+            'hora' => '12:30:00',
+            'enviado' => false,
+            'activo' => true,
+        ]);
+
+        Livewire::test(AppointmentForm::class)
+            ->set('selectedAppointmentId', $appointment->id)
+            ->set('selectedClientId', $client->id)
+            ->assertSeeHtml('wire:model.live="fecha"')
+            ->assertSeeHtml('wire:model.live="hora"')
+            ->set('fecha', '2026-07-03')
+            ->set('hora', '11:30')
+            ->set('enviado', false)
+            ->set('activo', true)
+            ->assertSet('hasScheduleChanges', false)
+            ->assertSet('canSaveAppointment', false)
+            ->set('hora', '12:00')
+            ->assertSet('hasScheduleChanges', true)
+            ->assertSet('canSaveAppointment', true)
+            ->set('hora', '11:30')
+            ->set('fecha', '2026-07-04')
+            ->assertSet('hasScheduleChanges', true)
+            ->assertSet('hasAppointmentDateConflict', true)
+            ->assertSet('canSaveAppointment', false)
+            ->assertSee('Este cliente ya tiene una cita ese día.')
+            ->call('save')
+            ->assertHasErrors('fecha')
+            ->set('fecha', '2026-07-05')
+            ->assertSet('hasAppointmentDateConflict', false)
+            ->assertSet('canSaveAppointment', true);
+
+        Carbon::setTestNow();
     }
 
     public function test_appointment_navigation_buttons_only_appear_on_the_exact_appointments_url(): void
@@ -191,7 +292,55 @@ class AppointmentManagerTest extends TestCase
             ->assertSet('returnUrl', route('clients.appointments', $client))
             ->assertSee('Citas de Ana')
             ->assertDontSee('Citas de Ana Pérez')
-            ->assertSee('Todas las Citas');
+            ->assertSee('Todas las Citas')
+            ->assertSeeHtml('onclick="history.back()"');
+    }
+
+    public function test_appointment_create_shows_selected_client_appointment_history(): void
+    {
+        Carbon::setTestNow('2026-07-01 09:00:00');
+
+        $client = Client::query()->create([
+            'nombre' => 'Ana',
+            'apellidos' => 'Pérez',
+            'telefono' => '+34600111222',
+        ]);
+
+        Appointment::query()->create([
+            'client_id' => $client->id,
+            'fecha' => '2026-06-30',
+            'hora' => '11:30',
+        ]);
+
+        Appointment::query()->create([
+            'client_id' => $client->id,
+            'fecha' => '2026-07-02',
+            'hora' => '09:15',
+        ]);
+
+        Appointment::query()->create([
+            'client_id' => $client->id,
+            'fecha' => '2026-07-03',
+            'hora' => '10:00',
+        ]);
+
+        $html = Livewire::test(AppointmentForm::class)
+            ->call('selectClient', $client->id)
+            ->assertSee('Agenda de citas')
+            ->html();
+
+        $this->assertStringNotContainsString('Martes, 30/06/2026', $html);
+        $this->assertStringNotContainsString('11:30', $html);
+        $this->assertStringContainsString('Jueves, 02/07/2026', $html);
+        $this->assertStringContainsString('09:15', $html);
+        $this->assertStringContainsString('Viernes, 03/07/2026', $html);
+        $this->assertStringContainsString('10:00', $html);
+        $this->assertLessThan(
+            mb_strpos($html, 'Viernes, 03/07/2026'),
+            mb_strpos($html, 'Jueves, 02/07/2026'),
+        );
+
+        Carbon::setTestNow();
     }
 
     public function test_appointment_create_can_send_whatsapp_immediately(): void
@@ -596,9 +745,10 @@ class AppointmentManagerTest extends TestCase
         $this->actingAs($admin);
 
         Livewire::test(ClientAppointments::class, ['clientId' => $client->id])
-            ->assertDontSeeHtml('wire:click="sendNow('.$appointment->id.')"')
+            ->assertSeeHtml('wire:click="sendNow('.$appointment->id.')"')
+            ->assertSeeHtml('disabled')
             ->call('sendNow', $appointment->id)
-            ->assertDispatched('toast', fn ($n, $p) => $p['message'] === 'Las citas inactivas no pueden enviarse.' && $p['type'] === 'error');
+            ->assertDispatched('toast', fn ($n, $p) => $p['message'] === 'Las citas con comunicaciones o actividad desactivadas no pueden enviarse.' && $p['type'] === 'error');
 
         Http::assertNothingSent();
         $this->assertFalse($appointment->refresh()->enviado);
@@ -1058,11 +1208,11 @@ class AppointmentManagerTest extends TestCase
             'activo' => false,
         ]);
 
-        Livewire::withQueryParams(['client' => $client->id])
-            ->test(ClientAppointments::class)
-            ->assertDontSee('Enviar ya')
+        Livewire::test(ClientAppointments::class, ['clientId' => $client->id])
+            ->assertSeeHtml('wire:click="sendNow('.$appointment->id.')"')
+            ->assertSeeHtml('disabled')
             ->call('sendNow', $appointment->id)
-            ->assertSee('Las citas no pendientes no pueden enviarse.');
+            ->assertDispatched('toast', fn ($n, $p) => $p['message'] === 'Las citas con comunicaciones o actividad desactivadas no pueden enviarse.' && $p['type'] === 'error');
 
         $this->assertFalse($appointment->refresh()->enviado);
         $this->assertSame(0, WhatsAppMessage::query()->where('appointment_id', $appointment->id)->count());
@@ -1593,7 +1743,7 @@ class AppointmentManagerTest extends TestCase
         Carbon::setTestNow();
     }
 
-    public function test_locked_appointments_are_muted_and_only_show_delete_action(): void
+    public function test_today_appointments_show_disabled_whatsapp_and_edit_actions(): void
     {
         Carbon::setTestNow('2026-06-23 09:00:00');
 
@@ -1612,9 +1762,145 @@ class AppointmentManagerTest extends TestCase
         ]);
 
         Livewire::test(ClientAppointments::class, ['clientId' => $client->id])
-            ->assertSeeHtml('aria-label="Eliminar cita"')
-            ->assertDontSeeHtml('wire:click="sendNow('.$appointment->id.')"')
-            ->assertDontSeeHtml('aria-label="Editar cita"');
+            ->assertDontSeeHtml('aria-label="Eliminar cita"')
+            ->assertSeeHtml('wire:click="sendNow('.$appointment->id.')"')
+            ->assertSeeHtml('aria-label="Editar cita"')
+            ->assertSeeHtml('disabled');
+
+        Carbon::setTestNow();
+    }
+
+    public function test_rescheduled_sent_appointments_keep_actions_enabled(): void
+    {
+        Carbon::setTestNow('2026-06-23 09:00:00');
+
+        $client = Client::query()->create([
+            'nombre' => 'Ana',
+            'apellidos' => 'Pérez',
+            'telefono' => '+34600111222',
+        ]);
+
+        $appointment = Appointment::query()->create([
+            'client_id' => $client->id,
+            'fecha' => '2026-06-30',
+            'hora' => '11:30',
+            'fecha_original' => '2026-06-29',
+            'hora_original' => '10:00',
+            'enviado' => true,
+            'activo' => true,
+            'cita_activa' => true,
+        ]);
+        $appointment->changes()->create([
+            'fecha_anterior' => '2026-06-29',
+            'hora_anterior' => '10:00',
+            'fecha_nueva' => '2026-06-30',
+            'hora_nueva' => '11:30',
+        ]);
+        $template = TwilioContentTemplate::query()->create([
+            'nombre' => 'Cambio de cita',
+            'content_sid' => 'HX'.str_repeat('8', 32),
+            'content_variables' => [
+                '1' => '[NOMBRE]',
+                '2' => '[DIA-ANTERIOR]',
+                '3' => '[HORA-ANTERIOR]',
+                '4' => '[DIA-NUEVO]',
+                '5' => '[HORA-NUEVA]',
+            ],
+        ]);
+
+        AppSetting::get()->update([
+            'twilio_template_appointment_changed_id' => $template->id,
+        ]);
+
+        Config::set('whatsapp.driver', 'twilio');
+        Config::set('whatsapp.twilio.account_sid', 'AC123');
+        Config::set('whatsapp.twilio.auth_token', 'test-token');
+        Config::set('whatsapp.twilio.mode', 'sandbox');
+        Config::set('whatsapp.twilio.from', 'whatsapp:+14155238886');
+        Config::set('whatsapp.default_country_code', '+34');
+
+        Http::fake([
+            'api.twilio.com/*/Messages.json' => Http::response([
+                'sid' => 'SMRESCHEDULED123',
+                'status' => 'queued',
+            ], 201),
+        ]);
+
+        Livewire::test(ClientAppointments::class, ['clientId' => $client->id])
+            ->assertSeeHtml('aria-label="Editar cita"')
+            ->assertSeeHtml('wire:click="sendNow('.$appointment->id.')"')
+            ->assertSeeHtml('wire:change="updateActiveStatus('.$appointment->id.', $event.target.checked)"')
+            ->assertSeeHtml('wire:change="updateAppointmentActiveStatus('.$appointment->id.', $event.target.checked)"')
+            ->call('sendNow', $appointment->id)
+            ->assertDispatched('toast', fn ($n, $p) => $p['message'] === 'WhatsApp de cambio enviado ahora correctamente.' && $p['type'] === 'success')
+            ->call('updateActiveStatus', $appointment->id, false)
+            ->assertDispatched('toast', fn ($n, $p) => $p['message'] === 'Estado de comunicaciones actualizado.' && $p['type'] === 'success')
+            ->call('updateAppointmentActiveStatus', $appointment->id, false)
+            ->assertDispatched('toast', fn ($n, $p) => $p['message'] === 'Estado de la cita actualizado.' && $p['type'] === 'success');
+
+        Http::assertSent(fn ($request): bool => $request['ContentSid'] === 'HX'.str_repeat('8', 32)
+            && $request['ContentVariables'] === json_encode([
+                '1' => 'Ana',
+                '2' => Carbon::parse('2026-06-29')->translatedFormat('l j \d\e F'),
+                '3' => '10:00',
+                '4' => Carbon::parse('2026-06-30')->translatedFormat('l j \d\e F'),
+                '5' => '11:30',
+            ], JSON_UNESCAPED_UNICODE));
+
+        $appointment->refresh();
+
+        $this->assertFalse($appointment->activo);
+        $this->assertFalse($appointment->cita_activa);
+
+        Livewire::test(AppointmentForm::class)
+            ->set('selectedAppointmentId', $appointment->id)
+            ->set('selectedClientId', $client->id)
+            ->set('fecha', '2026-07-01')
+            ->set('hora', '10:00')
+            ->set('enviado', true)
+            ->set('activo', false)
+            ->set('sendImmediately', false)
+            ->set('returnUrl', route('clients.appointments', $client))
+            ->assertSet('canChangeAppointment', true)
+            ->assertSet('canSaveAppointment', true)
+            ->call('save')
+            ->assertRedirect(route('clients.appointments', $client));
+
+        $appointment->refresh();
+
+        $this->assertSame('2026-07-01', $appointment->fecha->toDateString());
+        $this->assertSame('10:00', $appointment->hora);
+        $this->assertTrue($appointment->enviado);
+        $this->assertTrue($appointment->wasRescheduled());
+
+        Carbon::setTestNow();
+    }
+
+    public function test_future_sent_active_appointments_show_enabled_whatsapp_and_edit_actions(): void
+    {
+        Carbon::setTestNow('2026-06-23 09:00:00');
+
+        $client = Client::query()->create([
+            'nombre' => 'Ana',
+            'apellidos' => 'Pérez',
+            'telefono' => '+34600111222',
+        ]);
+        $appointment = Appointment::query()->create([
+            'client_id' => $client->id,
+            'fecha' => '2026-06-30',
+            'hora' => '11:30',
+            'enviado' => true,
+            'activo' => true,
+            'cita_activa' => true,
+        ]);
+
+        $html = Livewire::test(ClientAppointments::class, ['clientId' => $client->id])
+            ->assertSeeHtml('wire:click="sendNow('.$appointment->id.')"')
+            ->assertSeeHtml('aria-label="Editar cita"')
+            ->html();
+
+        $this->assertStringNotContainsString('wire:click="sendNow('.$appointment->id.')" disabled', $html);
+        $this->assertStringNotContainsString('aria-label="Editar cita" disabled', $html);
 
         Carbon::setTestNow();
     }
@@ -2003,7 +2289,7 @@ class AppointmentManagerTest extends TestCase
         Carbon::setTestNow();
     }
 
-    public function test_sent_appointments_cannot_be_updated_from_form(): void
+    public function test_sent_future_appointments_can_be_updated_from_form(): void
     {
         Carbon::setTestNow('2026-06-23 09:00:00');
 
@@ -2025,16 +2311,19 @@ class AppointmentManagerTest extends TestCase
             ->set('selectedClientId', $client->id)
             ->set('fecha', '2026-07-01')
             ->set('hora', '10:00')
-            ->set('enviado', false)
+            ->set('enviado', true)
             ->set('activo', false)
-            ->call('save');
+            ->set('sendImmediately', false)
+            ->set('returnUrl', route('clients.appointments', $client))
+            ->call('save')
+            ->assertRedirect(route('clients.appointments', $client));
 
         $appointment->refresh();
 
-        $this->assertSame('2026-06-30', $appointment->fecha->toDateString());
-        $this->assertSame('11:30', $appointment->hora);
+        $this->assertSame('2026-07-01', $appointment->fecha->toDateString());
+        $this->assertSame('10:00', $appointment->hora);
         $this->assertTrue($appointment->enviado);
-        $this->assertTrue($appointment->activo);
+        $this->assertFalse($appointment->activo);
 
         Carbon::setTestNow();
     }
@@ -2104,6 +2393,7 @@ class AppointmentManagerTest extends TestCase
             ->set('hora', '10:00')
             ->set('enviado', false)
             ->set('activo', true)
+            ->set('sendImmediately', false)
             ->call('save')
             ->assertRedirect(route('clients.appointments', $client));
 
@@ -2123,6 +2413,99 @@ class AppointmentManagerTest extends TestCase
 
         Livewire::test(ClientAppointments::class, ['clientId' => $client->id])
             ->assertSee('1 reprogramación');
+
+        Carbon::setTestNow();
+    }
+
+    public function test_appointment_edit_can_send_changed_appointment_template_when_saving(): void
+    {
+        Carbon::setTestNow('2026-06-23 09:00:00');
+
+        $admin = User::factory()->create();
+        $client = Client::query()->create([
+            'nombre' => 'Ana',
+            'apellidos' => 'Pérez',
+            'telefono' => '+34600111222',
+        ]);
+        $appointment = Appointment::query()->create([
+            'client_id' => $client->id,
+            'fecha' => '2026-06-30',
+            'hora' => '11:30',
+            'enviado' => false,
+            'activo' => true,
+        ]);
+        $template = TwilioContentTemplate::query()->create([
+            'nombre' => 'Cambio de cita',
+            'content_sid' => 'HX'.str_repeat('7', 32),
+            'content_variables' => [
+                '1' => '[NOMBRE]',
+                '2' => '[DIA-ANTERIOR]',
+                '3' => '[HORA-ANTERIOR]',
+                '4' => '[DIA-NUEVO]',
+                '5' => '[HORA-NUEVA]',
+            ],
+        ]);
+
+        AppSetting::get()->update([
+            'twilio_template_appointment_changed_id' => $template->id,
+        ]);
+
+        Config::set('whatsapp.driver', 'twilio');
+        Config::set('whatsapp.twilio.account_sid', 'AC123');
+        Config::set('whatsapp.twilio.auth_token', 'test-token');
+        Config::set('whatsapp.twilio.mode', 'sandbox');
+        Config::set('whatsapp.twilio.from', 'whatsapp:+14155238886');
+        Config::set('whatsapp.default_country_code', '+34');
+
+        Http::fake([
+            'api.twilio.com/*/Messages.json' => Http::response([
+                'sid' => 'SMCHANGEFORM123',
+                'status' => 'queued',
+            ], 201),
+        ]);
+
+        $this->actingAs($admin);
+
+        Livewire::test(AppointmentForm::class)
+            ->set('selectedAppointmentId', $appointment->id)
+            ->set('selectedClientId', $client->id)
+            ->set('returnUrl', route('clients.appointments', $client))
+            ->set('fecha', '2026-07-01')
+            ->set('hora', '10:00')
+            ->set('enviado', false)
+            ->set('activo', true)
+            ->assertSet('sendImmediately', true)
+            ->assertSee('Enviar ya')
+            ->call('save');
+
+        Http::assertSent(function ($request): bool {
+            return str_contains($request->url(), '/Messages.json')
+                && isset($request['From'])
+                && $request['From'] === 'whatsapp:+14155238886'
+                && $request['To'] === 'whatsapp:+34600111222'
+                && $request['ContentSid'] === 'HX'.str_repeat('7', 32)
+                && $request['ContentVariables'] === json_encode([
+                    '1' => 'Ana',
+                    '2' => Carbon::parse('2026-06-30')->translatedFormat('l j \d\e F'),
+                    '3' => '11:30',
+                    '4' => Carbon::parse('2026-07-01')->translatedFormat('l j \d\e F'),
+                    '5' => '10:00',
+                ], JSON_UNESCAPED_UNICODE)
+                && ! isset($request['Body']);
+        });
+
+        $appointment->refresh();
+        $message = WhatsAppMessage::query()->firstOrFail();
+
+        $this->assertTrue($appointment->enviado);
+        $this->assertSame('2026-06-23 09:00:00', $appointment->whatsapp_sent_at?->toDateTimeString());
+        $this->assertTrue($appointment->canBeChanged());
+        $this->assertSame('2026-07-01', $appointment->fecha->toDateString());
+        $this->assertSame('10:00', $appointment->hora);
+        $this->assertSame(WhatsAppMessage::STATUS_SENT, $message->status);
+        $this->assertSame('SMCHANGEFORM123', $message->provider_message_id);
+        $this->assertSame(WhatsAppSender::TEMPLATE_SCOPE_APPOINTMENT_CHANGED, $message->metadata['twilio_template_scope']);
+        $this->assertSame('11:30', $appointment->changes()->firstOrFail()->hora_anterior);
 
         Carbon::setTestNow();
     }
@@ -2157,6 +2540,7 @@ class AppointmentManagerTest extends TestCase
             ->set('hora', '10:00')
             ->set('enviado', false)
             ->set('activo', true)
+            ->set('sendImmediately', false)
             ->call('save')
             ->assertRedirect(route('clients.appointments', $client));
 

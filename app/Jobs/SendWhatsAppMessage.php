@@ -86,6 +86,8 @@ class SendWhatsAppMessage implements ShouldQueue
 
     private function shouldSkipAppointmentStatusUpdate(WhatsAppMessage $message): bool
     {
-        return data_get($message->metadata, 'twilio_template_scope') === WhatsAppSender::TEMPLATE_SCOPE_APPOINTMENT_CREATED;
+        return in_array(data_get($message->metadata, 'twilio_template_scope'), [
+            WhatsAppSender::TEMPLATE_SCOPE_APPOINTMENT_CREATED,
+        ], true);
     }
 }

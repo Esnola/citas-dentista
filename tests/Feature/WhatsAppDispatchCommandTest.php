@@ -9,6 +9,7 @@ use App\Models\Client;
 use App\Models\TwilioContentTemplate;
 use App\Models\User;
 use App\Models\WhatsAppMessage;
+use App\Services\WhatsApp\WhatsAppSender;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Config;
@@ -300,6 +301,68 @@ class WhatsAppDispatchCommandTest extends TestCase
                     'received_at' => '2026-06-23 08:12:00',
                     'payload' => [],
                 ],
+            ],
+        ]);
+
+        $this->artisan('whatsapp:backfill-appointment-delivery-state')
+            ->expectsOutput('Backfilled 1 appointment(s).')
+            ->assertExitCode(0);
+
+        $appointment->refresh();
+
+        $this->assertTrue($appointment->enviado);
+        $this->assertTrue($appointment->entregado);
+        $this->assertSame('2026-06-23 08:05:00', $appointment->whatsapp_sent_at?->toDateTimeString());
+        $this->assertSame('2026-06-23 08:12:00', $appointment->whatsapp_delivered_at?->toDateTimeString());
+        $this->assertSame('2026-06-23 08:12:00', $appointment->whatsapp_read_at?->toDateTimeString());
+
+        Carbon::setTestNow();
+    }
+
+    public function test_backfill_command_updates_delivery_state_from_appointment_changed_messages(): void
+    {
+        Carbon::setTestNow('2026-06-23 12:00:00');
+
+        $client = Client::query()->create([
+            'nombre' => 'Ana',
+            'apellidos' => 'Pérez',
+            'telefono' => '600123123',
+        ]);
+        $appointment = Appointment::query()->create([
+            'client_id' => $client->id,
+            'fecha' => '2026-06-30',
+            'hora' => '11:45',
+            'enviado' => false,
+            'entregado' => false,
+            'activo' => true,
+        ]);
+
+        WhatsAppMessage::query()->create([
+            'client_id' => $client->id,
+            'appointment_id' => $appointment->id,
+            'nombre' => 'Ana',
+            'apellidos' => 'Pérez',
+            'telefono' => '600123123',
+            'scheduled_for' => now()->subMinute(),
+            'message' => 'Cambio de cita',
+            'source' => WhatsAppMessage::SOURCE_APPOINTMENT,
+            'status' => WhatsAppMessage::STATUS_SENT,
+            'sent_at' => '2026-06-23 08:05:00',
+            'provider_message_id' => 'SMCHANGEDELIVERY123',
+            'provider_payload' => [
+                'provider' => 'twilio',
+                'raw' => [
+                    'status' => 'delivered',
+                ],
+                'callback' => [
+                    'message_status' => 'read',
+                    'event_type' => 'READ',
+                    'received_at' => '2026-06-23 08:12:00',
+                    'payload' => [],
+                ],
+            ],
+            'metadata' => [
+                'twilio_template_scope' => WhatsAppSender::TEMPLATE_SCOPE_APPOINTMENT_CHANGED,
             ],
         ]);
 

@@ -113,7 +113,36 @@
 <div
         class="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(16,185,129,0.18),transparent_35%),linear-gradient(180deg,#020617,#0f172a)]"></div>
 <livewire:unread-responses-notice/>
-<div x-data="{ mobileOpen: false }" class="relative mx-auto flex min-h-screen min-w-6/8">
+<div
+        x-data="{
+            mobileOpen: false,
+            sidebarTooltipVisible: false,
+            sidebarTooltipText: '',
+            sidebarTooltipLeft: 0,
+            sidebarTooltipTop: 0,
+            showSidebarTooltip(target) {
+                if (! target) {
+                    this.sidebarTooltipVisible = false;
+                    return;
+                }
+
+                this.sidebarTooltipText = target.getAttribute('title') || '';
+
+                if (! this.sidebarTooltipText) {
+                    this.sidebarTooltipVisible = false;
+                    return;
+                }
+
+                const rect = target.getBoundingClientRect();
+                this.sidebarTooltipLeft = Math.round(rect.left + rect.width / 2);
+                this.sidebarTooltipTop = Math.max(8, Math.round(rect.top - 8));
+                this.sidebarTooltipVisible = true;
+            },
+            hideSidebarTooltip() {
+                this.sidebarTooltipVisible = false;
+            },
+        }"
+        class="relative mx-auto flex min-h-screen min-w-6/8">
 
   <button
           x-on:click="mobileOpen = !mobileOpen"
@@ -156,7 +185,12 @@
               'block': mobileOpen
           }"
   >
-    <nav x-cloak class="flex h-full flex-col justify-between overflow-y-auto overscroll-contain pr-1 text-sm">
+    <nav x-cloak
+         x-on:mouseover="showSidebarTooltip($event.target.closest('[title]'))"
+         x-on:mouseleave="hideSidebarTooltip()"
+         x-on:focusin="showSidebarTooltip($event.target.closest('[title]'))"
+         x-on:focusout="hideSidebarTooltip()"
+         class="flex h-full flex-col justify-between overflow-x-hidden overflow-y-auto overscroll-contain pr-1 text-sm">
 
 
       <div class="grid gap-12 items-center jusitfy-center">
@@ -185,11 +219,14 @@
                                    text="Dashboard" class="sidebar-link"/>
           <x-navegacion.aside-link route="agenda.index" route-is="agenda.*" color="indigo" icono="agenda"
                                    text="Agenda" class="sidebar-link"/>
-          <x-navegacion.aside-link route="calendar.index" route-is="calendar.*" color="sky" icono="calendario-pared"
+          <x-navegacion.aside-link route="calendar.index" route-is="calendar.*" color="sky"
+                                   icono="calendario-pared"
                                    icono-clase="size-5" text="Calendario" class="sidebar-link"/>
-          <x-navegacion.aside-link route="clients.list" route-is="clients.*" color="emerald" icono="clientes"
+          <x-navegacion.aside-link route="clients.list" route-is="clients.*" color="emerald"
+                                   icono="clientes"
                                    text="Clientes" class="sidebar-link"/>
-          <x-navegacion.aside-link route="appointments.index" route-is="appointments.*" color="yellow" icono="calendar"
+          <x-navegacion.aside-link route="appointments.index" route-is="appointments.*" color="yellow"
+                                   icono="calendar"
                                    icono-clase="size-5" text="Citas" class="sidebar-link"/>
         </div>
 
@@ -207,6 +244,7 @@
                   x-on:keydown.space.prevent="$el.click()"
                   x-bind:aria-expanded="adminExpanded"
                   aria-controls="admin-accordion-panel"
+                  title="Administración"
                   class="sidebar-admin-header flex items-center gap-3 rounded-t-md border-b border-white/10 bg-white/10 px-4 py-2 text-xs font-bold uppercase tracking-[0.25em] text-slate-500 transition-colors duration-200 hover:bg-white/15 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/40"
           >
             <x-iconos.admin-user/>
@@ -230,10 +268,11 @@
             <x-navegacion.aside-link route="settings.index" route-is="settings.*" color="cyan"
                                      text="Ajustes" icono="ajustes" class="sidebar-link"/>
           </div>
-          
+
           <form class="border-t border-white/10 pt-4" method="POST" action="{{ route('logout') }}">
             @csrf
             <button type="submit"
+                    title="Salir"
                     class="sidebar-logout group flex w-full items-center gap-3 rounded-full border border-rose-400/25 bg-rose-400/10 px-3 py-2 font-medium text-rose-200 transition-colors hover:bg-rose-400/15">
               <x-iconos.salir clase="size-8"/>
               <span class="sidebar-text flex items-center gap-3">
@@ -245,6 +284,14 @@
       @endif
     </nav>
   </aside>
+  <div
+          x-cloak
+          x-show="sidebarTooltipVisible"
+          x-transition.opacity.duration.120ms
+          class="pointer-events-none fixed z-60 max-w-72 -translate-x-1/2 -translate-y-full rounded-full border border-white/12 bg-slate-950/95 px-3 py-1.5 text-[0.6875rem] leading-none font-semibold whitespace-nowrap text-slate-50 shadow-[0_18px_50px_rgba(2,6,23,0.45)]"
+          x-bind:style="`left: ${sidebarTooltipLeft}px; top: ${sidebarTooltipTop}px;`"
+          x-text="sidebarTooltipText"
+  ></div>
   <main class="px-4 py-5 lg:px-6 lg:py-6 w-full">
     @yield('content')
   </main>

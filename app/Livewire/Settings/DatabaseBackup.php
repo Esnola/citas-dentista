@@ -325,6 +325,7 @@ class DatabaseBackup extends Component
                     : ($record['dispatch_hours'] ?? ['09:00', '12:00', '15:00']),
                 'twilio_template_appointment_reminder_id' => $record['twilio_template_appointment_reminder_id'] ?? null,
                 'twilio_template_appointment_created_id' => $record['twilio_template_appointment_created_id'] ?? null,
+                'twilio_template_appointment_changed_id' => $record['twilio_template_appointment_changed_id'] ?? null,
             ]);
         }
     }

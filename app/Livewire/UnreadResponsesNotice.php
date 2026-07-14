@@ -27,6 +27,13 @@ class UnreadResponsesNotice extends Component
         $this->deliveryStatusSyncer->syncAll(force: true);
     }
 
+    public function markAsRead(int $appointmentId): void
+    {
+        Appointment::query()
+            ->findOrFail($appointmentId)
+            ->markLatestInboundAsSeen();
+    }
+
     public function render()
     {
         $appointments = Appointment::query()

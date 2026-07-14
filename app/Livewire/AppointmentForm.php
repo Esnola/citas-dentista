@@ -107,17 +107,47 @@ class AppointmentForm extends Component
         if ($this->selectedAppointmentId) {
             $appointment = Appointment::query()->findOrFail($this->selectedAppointmentId);
 
-            if ($appointment->enviado || ! $appointment->canBeChanged()) {
+            if (! $appointment->canBeChanged()) {
                 session()->flash('status', 'Esta cita no se puede modificar. Solo se puede eliminar.');
                 $this->redirect($this->returnUrl ?: url()->previous());
 
                 return;
             }
 
+            if ($this->hasAppointmentDateConflict) {
+                $this->addError('fecha', 'Este cliente ya tiene una cita ese día.');
+
+                return;
+            }
+
+            $scheduleChanged = $appointment->fecha?->toDateString() !== $payload['fecha']
+                || mb_substr((string) $appointment->hora, 0, 5) !== mb_substr((string) $payload['hora'], 0, 5);
+
             $appointment->update($payload);
+
+            if ($scheduleChanged && (bool) $data['sendImmediately'] && $appointment->isFuture()) {
+                $this->sendAppointmentNow(
+                    $appointment,
+                    $client,
+                    $sender,
+                    'Cita actualizada correctamente y WhatsApp de cambio enviado ahora.',
+                    'Cita actualizada, pero no se pudo enviar el WhatsApp de cambio.',
+                    false,
+                    WhatsAppSender::TEMPLATE_SCOPE_APPOINTMENT_CHANGED,
+                );
+
+                return;
+            }
+
             session()->flash('status', 'Cita actualizada correctamente.');
             $this->redirect($this->returnUrl ?: url()->previous());
         } else {
+            if ($this->hasAppointmentDateConflict) {
+                $this->addError('fecha', 'Este cliente ya tiene una cita ese día.');
+
+                return;
+            }
+
             $appointment = Appointment::query()->create($payload);
             $this->selectedAppointmentId = $appointment->id;
 
@@ -216,7 +246,7 @@ class AppointmentForm extends Component
             ->whereKey($this->selectedAppointmentId)
             ->first();
 
-        return (bool) $appointment && ! $appointment->enviado && $appointment->canBeChanged();
+        return (bool) $appointment && $appointment->canBeChanged();
     }
 
     public function getCanSendAppointmentNowProperty(): bool
@@ -230,6 +260,42 @@ class AppointmentForm extends Component
             ->first();
 
         return (bool) $appointment && ! $appointment->enviado && $appointment->activo && $appointment->isFuture();
+    }
+
+    public function getHasScheduleChangesProperty(): bool
+    {
+        if (! $this->selectedAppointmentId) {
+            return true;
+        }
+
+        $appointment = Appointment::query()
+            ->whereKey($this->selectedAppointmentId)
+            ->first();
+
+        if (! $appointment) {
+            return false;
+        }
+
+        return $appointment->fecha?->toDateString() !== $this->fecha
+            || mb_substr((string) $appointment->hora, 0, 5) !== mb_substr($this->hora, 0, 5);
+    }
+
+    public function getCanSaveAppointmentProperty(): bool
+    {
+        if (! $this->canChangeAppointment) {
+            return false;
+        }
+
+        if ($this->hasAppointmentDateConflict) {
+            return false;
+        }
+
+        return ! $this->selectedAppointmentId || $this->hasScheduleChanges;
+    }
+
+    public function getHasAppointmentDateConflictProperty(): bool
+    {
+        return $this->appointmentDateConflictExists();
     }
 
     public function getHasClientSearchProperty(): bool
@@ -259,14 +325,27 @@ class AppointmentForm extends Component
                 ->get()
             : collect();
 
+        $appointmentHistory = $this->selectedClientId
+            ? Appointment::query()
+                ->where('client_id', $this->selectedClientId)
+                ->whereDate('fecha', '>', now(config('app.timezone'))->toDateString())
+                ->select(['id', 'fecha', 'hora'])
+                ->orderBy('fecha')
+                ->orderBy('hora')
+                ->get()
+            : collect();
+
         return view('livewire.appointment-form', [
             'clients' => $clients,
             'selectedClient' => $this->selectedClient,
             'selectedAppointment' => $this->selectedAppointment,
+            'appointmentHistory' => $appointmentHistory,
             'isEditing' => $this->isEditing,
             'hideClientSearch' => $this->hideClientSearch,
             'canChangeAppointment' => $this->canChangeAppointment,
+            'canSaveAppointment' => $this->canSaveAppointment,
             'canSendAppointmentNow' => $this->canSendAppointmentNow,
+            'hasAppointmentDateConflict' => $this->hasAppointmentDateConflict,
             'showReturnAfterImmediateSend' => $this->showReturnAfterImmediateSend,
             'returnUrl' => $this->returnUrl,
             'hasClientSearch' => $this->hasClientSearch,
@@ -312,7 +391,9 @@ class AppointmentForm extends Component
         if ($result['sent']) {
             $appointment->refresh();
 
-            $this->enviado = true;
+            $this->enviado = $templateScope === WhatsAppSender::TEMPLATE_SCOPE_APPOINTMENT_CHANGED
+                ? (bool) $appointment->enviado
+                : true;
             $this->showReturnAfterImmediateSend = $showReturnAfterSuccess;
         }
 
@@ -336,6 +417,19 @@ class AppointmentForm extends Component
             : route('appointments.index');
     }
 
+    private function appointmentDateConflictExists(): bool
+    {
+        if (! $this->selectedClientId || ! $this->fecha) {
+            return false;
+        }
+
+        return Appointment::query()
+            ->where('client_id', $this->selectedClientId)
+            ->whereDate('fecha', $this->fecha)
+            ->when($this->selectedAppointmentId, fn ($query) => $query->whereKeyNot($this->selectedAppointmentId))
+            ->exists();
+    }
+
     private function loadAppointment(int $appointmentId): void
     {
         $appointment = Appointment::query()->with('client')->findOrFail($appointmentId);
@@ -346,8 +440,9 @@ class AppointmentForm extends Component
         $this->selectedClientId = $appointment->client_id;
         $this->returnUrl = route('clients.appointments', $appointment->client_id);
         $this->fecha = $appointment->fecha?->toDateString() ?? '';
-        $this->hora = $appointment->hora;
+        $this->hora = mb_substr((string) $appointment->hora, 0, 5);
         $this->enviado = (bool) $appointment->enviado;
         $this->activo = (bool) $appointment->activo;
+        $this->sendImmediately = true;
     }
 }

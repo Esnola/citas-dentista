@@ -130,6 +130,7 @@ class SettingsBackup extends Component
             'dispatch_hours' => $dispatchHours,
             'twilio_template_appointment_reminder_id' => null,
             'twilio_template_appointment_created_id' => null,
+            'twilio_template_appointment_changed_id' => null,
         ]);
 
         $this->importReminderPreferences($settings['appointment_reminder_preferences'] ?? []);
@@ -148,6 +149,7 @@ class SettingsBackup extends Component
                 'dispatch_hours' => $data['dispatch_hours'] ?? ['09:00', '12:00', '15:00'],
                 'twilio_template_appointment_reminder_id' => $data['twilio_template_appointment_reminder_id'] ?? null,
                 'twilio_template_appointment_created_id' => $data['twilio_template_appointment_created_id'] ?? null,
+                'twilio_template_appointment_changed_id' => $data['twilio_template_appointment_changed_id'] ?? null,
             ]);
         }
 
@@ -202,6 +204,7 @@ class SettingsBackup extends Component
                     'dispatch_hours' => $row['dispatch_hours'] ?? ['09:00', '12:00', '15:00'],
                     'twilio_template_appointment_reminder_id' => $row['twilio_template_appointment_reminder_id'] ?? null,
                     'twilio_template_appointment_created_id' => $row['twilio_template_appointment_created_id'] ?? null,
+                    'twilio_template_appointment_changed_id' => $row['twilio_template_appointment_changed_id'] ?? null,
                 ]);
             }
 

@@ -58,7 +58,7 @@ class DispatchDueWhatsAppMessages extends Command
                                 ],
                             ]);
 
-                            if (! $isFailed && $message->appointment) {
+                            if (! $isFailed && $message->appointment && ! $this->shouldSkipAppointmentStatusUpdate($message)) {
                                 $message->appointment->update([
                                     'enviado' => true,
                                     'whatsapp_sent_at' => now(),
@@ -172,5 +172,12 @@ class DispatchDueWhatsAppMessages extends Command
                 return ($metadata['channel'] ?? null) === AppointmentReminderPreference::CHANNEL_WHATSAPP
                   && (int) ($metadata['lead_days'] ?? 0) === $leadDays;
             });
+    }
+
+    private function shouldSkipAppointmentStatusUpdate(WhatsAppMessage $message): bool
+    {
+        return in_array(data_get($message->metadata, 'twilio_template_scope'), [
+            WhatsAppSender::TEMPLATE_SCOPE_APPOINTMENT_CREATED,
+        ], true);
     }
 }

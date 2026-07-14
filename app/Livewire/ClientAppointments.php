@@ -282,12 +282,6 @@ class ClientAppointments extends Component
             ->with('client')
             ->findOrFail($appointmentId);
 
-        if ($appointment->enviado) {
-            $this->dispatch('toast', message: 'Esta cita ya tiene el WhatsApp enviado.', type: 'error');
-
-            return;
-        }
-
         if (! $appointment->isFuture()) {
             $this->dispatch('toast', message: 'Las citas pasadas no pueden enviarse.', type: 'error');
 
@@ -308,12 +302,21 @@ class ClientAppointments extends Component
             return;
         }
 
+        $templateScope = $appointment->hasBeenRescheduled()
+            ? WhatsAppSender::TEMPLATE_SCOPE_APPOINTMENT_CHANGED
+            : WhatsAppSender::TEMPLATE_SCOPE_APPOINTMENT_REMINDER;
+
         $result = $this->immediateSender->send(
             $appointment,
             $client,
             $sender,
-            'WhatsApp enviado ahora correctamente.',
-            'No se pudo enviar el WhatsApp.'
+            $templateScope === WhatsAppSender::TEMPLATE_SCOPE_APPOINTMENT_CHANGED
+                ? 'WhatsApp de cambio enviado ahora correctamente.'
+                : 'WhatsApp enviado ahora correctamente.',
+            $templateScope === WhatsAppSender::TEMPLATE_SCOPE_APPOINTMENT_CHANGED
+                ? 'No se pudo enviar el WhatsApp de cambio.'
+                : 'No se pudo enviar el WhatsApp.',
+            $templateScope,
         );
 
         if ($result['sent']) {

@@ -98,6 +98,10 @@ body.bg-slate-950 :where(button, [role='button'], a[href], select, summary, inpu
         opacity: 1;
         transform: translateX(-50%) translateY(0);
     }
+
+    body.bg-slate-950 .sidebar-shell :where(button[title], a[title], [role='button'][title])::after {
+        content: none;
+    }
 }
 
 body.bg-slate-950 :where(input[type='date'], input[data-time-picker]) {

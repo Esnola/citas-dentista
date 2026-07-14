@@ -50,14 +50,14 @@
             class="fixed z-100 w-88 max-w-[calc(100vw-2rem)]"
     >
       <section
-              class="overflow-hidden rounded-3xl border-2 border-orange-300/70 bg-slate-950/95 shadow-[0_0_0_1px_rgba(253,186,116,0.22),0_18px_60px_rgba(249,115,22,0.18)] backdrop-blur-xl">
+              class="overflow-hidden min-w-[28rem] rounded-3xl border-2 border-orange-300/70 bg-slate-950/95 shadow-[0_0_0_1px_rgba(253,186,116,0.22),0_18px_60px_rgba(249,115,22,0.18)] backdrop-blur-xl">
         <div
                 x-on:pointerdown.prevent="startDrag($event)"
                 class="flex cursor-grab items-center justify-between gap-3 border-b border-orange-200/15 bg-linear-to-r from-orange-400/18 via-amber-300/10 to-transparent px-4 py-3 active:cursor-grabbing"
         >
           <div class="flex min-w-0 items-center gap-3">
-            <span class="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-orange-300/18 text-orange-100 shadow-lg shadow-orange-950/30 ring-1 ring-inset ring-blue-200/35">
-              <x-iconos.alert clase="size-6 animate-pulse"/>
+            <span class="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-amber-300/18 text-amber-100 shadow-lg shadow-amber-950/30 ring-1 ring-inset ring-amber-200/35">
+              <x-iconos.bombilla clase="size-6 animate-pulse text-yellow-200"/>
             </span>
             <div class="min-w-0">
               <p class="text-sm font-semibold tracking-wide text-orange-50">Nuevas respuestas de clientes</p>
@@ -84,12 +84,18 @@
                   <a wire:key="unread-response-history-{{ $item['appointment_id'] }}"
                      href="{{ $item['url'] }}"
                      class="rounded-full bg-sky-300/12 px-3 py-1 text-[10px] font-semibold text-sky-100 ring-1 ring-inset ring-sky-300/30 hover:bg-sky-200/20 hover:scale-105 transition">
-                    Chat
+                    Leer
                   </a>
+                  <button type="button"
+                          wire:key="unread-response-mark-read-{{ $item['appointment_id'] }}"
+                          wire:click="markAsRead({{ $item['appointment_id'] }})"
+                          class="rounded-full bg-green-300/12 px-3 py-1 text-[10px] font-semibold text-green-100 ring-1 ring-inset ring-green-300/30 hover:bg-green-200/20 hover:scale-105 transition">
+                    Marcar leído
+                  </button>
                   <a wire:key="unread-response-appointments-{{ $item['appointment_id'] }}"
                      href="{{ $item['client_url'] }}"
                      class="rounded-full bg-orange-300/12 px-3 py-1 text-[10px] font-semibold text-orange-100 ring-1 ring-inset ring-orange-300/30 hover:bg-orange-200/20 hover:scale-105 transition">
-                    Citas
+                    Ver Citas
                   </a>
                 </div>
               </div>

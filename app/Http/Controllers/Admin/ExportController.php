@@ -89,7 +89,7 @@ class ExportController extends Controller
         $model = AppSetting::query()->first();
 
         return [
-            'app_settings' => $model?->only(['id', 'retention_period', 'dispatch_enabled', 'dispatch_hours', 'twilio_template_appointment_reminder_id', 'twilio_template_appointment_created_id']),
+            'app_settings' => $model?->only(['id', 'retention_period', 'dispatch_enabled', 'dispatch_hours', 'twilio_template_appointment_reminder_id', 'twilio_template_appointment_created_id', 'twilio_template_appointment_changed_id']),
             'appointment_reminder_preferences' => AppointmentReminderPreference::query()
                 ->select(['id', 'channel', 'lead_days', 'enabled'])
                 ->get()
@@ -246,7 +246,7 @@ class ExportController extends Controller
                 ])
                 ->toArray(),
             'app_settings' => AppSetting::query()
-                ->select(['id', 'retention_period', 'dispatch_enabled', 'dispatch_hours', 'twilio_template_appointment_reminder_id', 'twilio_template_appointment_created_id', 'created_at', 'updated_at'])
+                ->select(['id', 'retention_period', 'dispatch_enabled', 'dispatch_hours', 'twilio_template_appointment_reminder_id', 'twilio_template_appointment_created_id', 'twilio_template_appointment_changed_id', 'created_at', 'updated_at'])
                 ->get()
                 ->toArray(),
             'appointment_reminder_preferences' => AppointmentReminderPreference::query()

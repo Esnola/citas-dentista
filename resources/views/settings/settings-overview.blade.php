@@ -33,7 +33,7 @@
       @if ($twilioUsesTemplate)
         ·
         @if ($hasSpecificTwilioTemplateAssignments)
-          {{ $twilioReminderContentSid && $twilioCreatedContentSid ? 'plantillas configuradas por uso' : 'revisa plantillas por uso' }}
+          {{ $twilioReminderContentSid && $twilioCreatedContentSid && $twilioChangedContentSid ? 'plantillas configuradas por uso' : 'revisa plantillas por uso' }}
         @else
           {{ $twilioReminderContentSid ? 'plantilla configurada' : 'falta Content SID' }}
         @endif

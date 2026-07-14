@@ -7,12 +7,14 @@
 
   @if ($templates->isEmpty())
     <div class="rounded-2xl border border-amber-400/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
-      No hay ninguna plantilla de Twilio guardada. Crea al menos una para poder usar recordatorios y envíos de nueva cita.
+      No hay ninguna plantilla de Twilio guardada. Crea al menos una para poder usar recordatorios y envíos de nueva
+      cita.
     </div>
   @endif
 
   <div class="grid gap-6 lg:grid-cols-3">
-    <form class="grid content-start gap-5 rounded-2xl border border-white/10 bg-slate-900/50 p-5" wire:submit="addTemplate">
+    <form class="grid content-start gap-5 rounded-2xl border border-white/10 bg-slate-900/50 p-5"
+          wire:submit="addTemplate">
       <div>
         <h4 class="text-lg font-semibold text-white">Nueva plantilla</h4>
         <p class="mt-1 text-sm text-slate-400">Añade una plantilla al catálogo de Twilio.</p>
@@ -33,8 +35,8 @@
       <div class="rounded-2xl border border-white/8 bg-slate-950/35 p-4">
         <flux:radio.group wire:model="variablePreset" label="Variables de la plantilla">
           <div class="grid gap-3 pt-2">
-            <flux:radio value="with_name" label='Nombre, día y hora · {"1":"[NOMBRE]","2":"[DIA]","3":"[HORA]"}'/>
-            <flux:radio value="appointment" label='Día y hora · {"1":"[DIA]","2":"[HORA]"}'/>
+            <flux:radio value="nombre_dia_hora" label='Recordatorio - Nombre, dia y hora'/>
+            <flux:radio value="cambio_cita" label='Cambio de cita - Nombre, día y dia anterior y hora anterior y hora'/>
           </div>
         </flux:radio.group>
         <flux:error name="variablePreset"/>
@@ -45,11 +47,12 @@
                 icon="disquete"
                 type="submit"
                 label="Guardar plantilla"
-                texto="Guardar plantilla" />
+                texto="Guardar plantilla"/>
       </div>
     </form>
 
-    <form class="grid content-start gap-5 rounded-2xl border border-white/10 bg-slate-900/50 p-5" wire:submit="saveAssignments">
+    <form class="grid content-start gap-5 rounded-2xl border border-white/10 bg-slate-900/50 p-5"
+          wire:submit="saveAssignments">
       <div>
         <h4 class="text-lg font-semibold text-white">Asignaciones</h4>
         <p class="mt-1 text-sm text-slate-400">Elige la plantilla que usará cada flujo.</p>
@@ -85,12 +88,27 @@
         <p class="mt-2 font-mono text-sm text-slate-200">{{ $assignedAppointmentCreatedTemplate?->content_sid ?? 'Sin plantilla disponible' }}</p>
       </div>
 
+      <div class="rounded-2xl border border-amber-400/15 bg-amber-500/[0.05] p-4">
+        <flux:field>
+          <flux:label>Plantilla para cambio de cita</flux:label>
+          <x-formularios.select wire:model="appointmentChangedTemplateId">
+            @foreach ($templates as $template)
+              <option value="{{ $template->id }}">{{ $template->nombre }}</option>
+            @endforeach
+          </x-formularios.select>
+          <flux:error name="appointmentChangedTemplateId"/>
+        </flux:field>
+
+        <p class="mt-3 text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">Content SID</p>
+        <p class="mt-2 font-mono text-sm text-slate-200">{{ $assignedAppointmentChangedTemplate?->content_sid ?? 'Sin plantilla disponible' }}</p>
+      </div>
+
       <div class="flex justify-center">
         <x-botones.icono-buton
                 icon="disquete"
                 type="submit"
                 label="Guardar asignaciones"
-                texto="Guardar asignaciones" />
+                texto="Guardar asignaciones"/>
       </div>
     </form>
 
@@ -119,7 +137,7 @@
                     icon="papelera"
                     label="Eliminar plantilla"
                     texto="Eliminar"
-                    wire:click="confirmDeleteTemplate({{ $template->id }})" />
+                    wire:click="confirmDeleteTemplate({{ $template->id }})"/>
           </div>
 
           <div class="mt-4 flex flex-wrap gap-2">
@@ -133,7 +151,12 @@
                 Nueva cita
               </span>
             @endif
-            @if ((int) $appointmentReminderTemplateId !== $template->id && (int) $appointmentCreatedTemplateId !== $template->id)
+            @if ((int) $appointmentChangedTemplateId === $template->id)
+              <span class="inline-flex items-center rounded-full border border-amber-400/30 bg-amber-500/15 px-3 py-1 text-xs font-semibold text-amber-300">
+                Cambio de cita
+              </span>
+            @endif
+            @if ((int) $appointmentReminderTemplateId !== $template->id && (int) $appointmentCreatedTemplateId !== $template->id && (int) $appointmentChangedTemplateId !== $template->id)
               <span class="inline-flex items-center rounded-full border border-white/10 bg-slate-950/50 px-3 py-1 text-xs font-semibold text-slate-400">
                 Disponible
               </span>
@@ -155,17 +178,17 @@
 
   @if ($pendingTemplate)
     <x-modales.confirmacion x-data="{ modalOpen: true }" x-trap.noscroll="modalOpen"
-                             x-on:keydown.escape.window="$wire.cancelDeleteTemplate()"
-                             titulo="Eliminar plantilla">
+                            x-on:keydown.escape.window="$wire.cancelDeleteTemplate()"
+                            titulo="Eliminar plantilla">
       <p class="mt-4 text-sm text-slate-300">
         ¿Seguro que quieres eliminar la plantilla
         <span class="font-medium text-white">{{ $pendingTemplate->nombre }}</span>?
       </p>
 
       <x-slot:actions>
-        <x-botones.icono-buton texto="Cancelar" x-on:click="$wire.cancelDeleteTemplate()" />
+        <x-botones.icono-buton texto="Cancelar" x-on:click="$wire.cancelDeleteTemplate()"/>
         <x-botones.icono-buton color="red" icon="papelera" texto="Eliminar"
-                               wire:click="deleteTemplate({{ $pendingTemplate->id }})" />
+                               wire:click="deleteTemplate({{ $pendingTemplate->id }})"/>
       </x-slot:actions>
     </x-modales.confirmacion>
   @endif

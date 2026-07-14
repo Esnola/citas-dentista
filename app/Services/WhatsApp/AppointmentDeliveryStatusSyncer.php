@@ -436,7 +436,9 @@ class AppointmentDeliveryStatusSyncer
             }
 
             $statusMessages = $appointmentMessages
-                ->reject(fn (WhatsAppMessage $message): bool => data_get($message->metadata, 'twilio_template_scope') === WhatsAppSender::TEMPLATE_SCOPE_APPOINTMENT_CREATED)
+                ->reject(fn (WhatsAppMessage $message): bool => in_array(data_get($message->metadata, 'twilio_template_scope'), [
+                    WhatsAppSender::TEMPLATE_SCOPE_APPOINTMENT_CREATED,
+                ], true))
                 ->values();
 
             if ($statusMessages->isEmpty()) {
