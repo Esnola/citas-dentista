@@ -6,6 +6,7 @@ use App\Livewire\Settings\TwilioCredentialSettings;
 use App\Models\User;
 use App\Models\WhatsAppCredential;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Http;
 use Livewire\Livewire;
 use Tests\TestCase;
@@ -86,7 +87,7 @@ No existe un endpoint en esa URL. URL esperada por esta app: '.route('webhooks.t
             ->test(TwilioCredentialSettings::class)
             ->set('status_callback_url', $callbackUrl)
             ->call('testWebhook')
-            ->assertSet('status', "HTTP 403 error\nEl servidor bloqueó la petición antes de llegar al webhook Laravel. Revisa reglas de hosting, Cloudflare, mod_security, WAF o protección de POST para {$callbackUrl}.\nPrueba interna Laravel: OK. La ruta y la firma funcionan dentro de la app.");
+            ->assertSet('status', "HTTP 403 error\nEl servidor bloqueó la petición antes de llegar al webhook Laravel. Revisa reglas de hosting, Cloudflare, mod_security, WAF o protección de POST para {$callbackUrl}.\nHTTP 204\nWebhook OK. Ruta y firma validadas dentro de Laravel.");
     }
 
     public function test_test_webhook_explains_invalid_twilio_signature(): void
@@ -105,6 +106,25 @@ No existe un endpoint en esa URL. URL esperada por esta app: '.route('webhooks.t
             ->set('status_callback_url', $callbackUrl)
             ->call('testWebhook')
             ->assertSet('status', "HTTP 403 error\nLa petición llegó al webhook, pero la firma de Twilio no es válida. Guarda la Callback URL y revisa que el Auth Token coincida con el de Twilio.");
+    }
+
+    public function test_test_webhook_uses_internal_check_for_same_app_host(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+
+        Config::set('app.url', 'https://example.com');
+
+        $callbackUrl = 'https://example.com/webhooks/twilio/whatsapp-status';
+
+        Http::fake();
+
+        Livewire::actingAs($admin)
+            ->test(TwilioCredentialSettings::class)
+            ->set('status_callback_url', $callbackUrl)
+            ->call('testWebhook')
+            ->assertSet('status', "HTTP 204\nWebhook OK. Ruta y firma validadas dentro de Laravel.");
+
+        Http::assertNothingSent();
     }
 
     public function test_test_webhook_signs_the_request_when_auth_token_exists(): void

@@ -239,6 +239,13 @@ class TwilioCredentialSettings extends Component
                 'WaId' => '34600000000',
             ];
 
+            if ($this->isSameAppHost($callbackUrl)) {
+                $this->status = $this->internalWebhookCheck($callbackUrl, $payload, $credential);
+                $this->dispatch('toast', message: 'Webhook OK (prueba interna Laravel)', type: 'success');
+
+                return;
+            }
+
             $response = Http::timeout(10)
                 ->acceptJson()
                 ->asForm()
@@ -270,6 +277,16 @@ class TwilioCredentialSettings extends Component
             $this->status = "Error: {$e->getMessage()}";
             $this->dispatch('toast', message: 'Error al conectar con el webhook.', type: 'error');
         }
+    }
+
+    private function isSameAppHost(string $callbackUrl): bool
+    {
+        $callbackHost = parse_url($callbackUrl, PHP_URL_HOST);
+        $appHost = parse_url(config('app.url'), PHP_URL_HOST) ?: request()->getHost();
+
+        return is_string($callbackHost)
+            && is_string($appHost)
+            && Str::lower($callbackHost) === Str::lower($appHost);
     }
 
     /**
@@ -307,14 +324,14 @@ class TwilioCredentialSettings extends Component
         $marker = $response->headers->get('X-CitasDentista-Webhook');
 
         if ($marker === 'twilio-whatsapp-status' && $response->getStatusCode() === 204) {
-            return 'Prueba interna Laravel: OK. La ruta y la firma funcionan dentro de la app.';
+            return "HTTP 204\nWebhook OK. Ruta y firma validadas dentro de Laravel.";
         }
 
         if ($marker === 'twilio-whatsapp-status' && $response->getStatusCode() === 403) {
-            return 'Prueba interna Laravel: falla la firma Twilio. Revisa el Auth Token guardado.';
+            return "HTTP 403 error\nLa petición llegó al webhook, pero la firma de Twilio no es válida. Guarda la Callback URL y revisa que el Auth Token coincida con el de Twilio.";
         }
 
-        return "Prueba interna Laravel: HTTP {$response->getStatusCode()}. La ruta no respondió como webhook.";
+        return "HTTP {$response->getStatusCode()} error\nLa ruta interna no respondió como webhook.";
     }
 
     private function formatWebhookTestResponse(int $statusCode, string $body, ?string $contentType, string $callbackUrl, ?string $webhookMarker, ?string $internalCheck): string
