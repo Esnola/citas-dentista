@@ -2,8 +2,10 @@
 
 namespace App\Livewire\Settings;
 
+use App\Http\Controllers\Webhooks\TwilioWhatsAppStatusController;
 use App\Models\WhatsAppCredential;
 use App\Models\WhatsAppSenderNumber;
+use App\Services\WhatsApp\AppointmentDeliveryStatusSyncer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
@@ -320,7 +322,10 @@ class TwilioCredentialSettings extends Component
             ],
         );
 
-        $response = app()->handle($request);
+        $response = app(TwilioWhatsAppStatusController::class)(
+            $request,
+            app(AppointmentDeliveryStatusSyncer::class),
+        );
         $marker = $response->headers->get('X-CitasDentista-Webhook');
 
         if ($marker === 'twilio-whatsapp-status' && $response->getStatusCode() === 204) {

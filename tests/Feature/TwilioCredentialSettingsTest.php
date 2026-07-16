@@ -125,6 +125,7 @@ No existe un endpoint en esa URL. URL esperada por esta app: '.route('webhooks.t
             ->assertSet('status', "HTTP 204\nWebhook OK. Ruta y firma validadas dentro de Laravel.");
 
         Http::assertNothingSent();
+        $this->assertAuthenticatedAs($admin);
     }
 
     public function test_test_webhook_signs_the_request_when_auth_token_exists(): void
