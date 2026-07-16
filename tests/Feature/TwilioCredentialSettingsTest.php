@@ -86,7 +86,7 @@ No existe un endpoint en esa URL. URL esperada por esta app: '.route('webhooks.t
             ->test(TwilioCredentialSettings::class)
             ->set('status_callback_url', $callbackUrl)
             ->call('testWebhook')
-            ->assertSet('status', "HTTP 403 error\nEl servidor bloqueó la petición antes de llegar al webhook Laravel. Revisa reglas de hosting, Cloudflare, mod_security, WAF o protección de POST para {$callbackUrl}.");
+            ->assertSet('status', "HTTP 403 error\nEl servidor bloqueó la petición antes de llegar al webhook Laravel. Revisa reglas de hosting, Cloudflare, mod_security, WAF o protección de POST para {$callbackUrl}.\nPrueba interna Laravel: OK. La ruta y la firma funcionan dentro de la app.");
     }
 
     public function test_test_webhook_explains_invalid_twilio_signature(): void

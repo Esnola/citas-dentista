@@ -4,6 +4,7 @@ namespace App\Livewire\Settings;
 
 use App\Models\WhatsAppCredential;
 use App\Models\WhatsAppSenderNumber;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use Livewire\Component;
@@ -245,12 +246,17 @@ class TwilioCredentialSettings extends Component
                 ->post($callbackUrl, $payload);
 
             $statusCode = $response->status();
+            $webhookMarker = $response->header('X-CitasDentista-Webhook');
+            $internalCheck = $statusCode === 403 && $webhookMarker !== 'twilio-whatsapp-status'
+                ? $this->internalWebhookCheck($callbackUrl, $payload, $credential)
+                : null;
             $message = $this->formatWebhookTestResponse(
                 $statusCode,
                 $response->body(),
                 $response->header('Content-Type'),
                 $callbackUrl,
-                $response->header('X-CitasDentista-Webhook'),
+                $webhookMarker,
+                $internalCheck,
             );
 
             if ($response->successful()) {
@@ -283,7 +289,35 @@ class TwilioCredentialSettings extends Component
         ];
     }
 
-    private function formatWebhookTestResponse(int $statusCode, string $body, ?string $contentType, string $callbackUrl, ?string $webhookMarker): string
+    /**
+     * @param  array<string, string>  $payload
+     */
+    private function internalWebhookCheck(string $callbackUrl, array $payload, WhatsAppCredential $credential): string
+    {
+        $request = Request::create(
+            route('webhooks.twilio.whatsapp-status', absolute: false),
+            'POST',
+            $payload,
+            server: [
+                'HTTP_X_TWILIO_SIGNATURE' => $this->twilioTestHeaders($credential, $callbackUrl, $payload)['X-Twilio-Signature'] ?? '',
+            ],
+        );
+
+        $response = app()->handle($request);
+        $marker = $response->headers->get('X-CitasDentista-Webhook');
+
+        if ($marker === 'twilio-whatsapp-status' && $response->getStatusCode() === 204) {
+            return 'Prueba interna Laravel: OK. La ruta y la firma funcionan dentro de la app.';
+        }
+
+        if ($marker === 'twilio-whatsapp-status' && $response->getStatusCode() === 403) {
+            return 'Prueba interna Laravel: falla la firma Twilio. Revisa el Auth Token guardado.';
+        }
+
+        return "Prueba interna Laravel: HTTP {$response->getStatusCode()}. La ruta no respondió como webhook.";
+    }
+
+    private function formatWebhookTestResponse(int $statusCode, string $body, ?string $contentType, string $callbackUrl, ?string $webhookMarker, ?string $internalCheck): string
     {
         $body = trim($body);
         $expectedUrl = route('webhooks.twilio.whatsapp-status', absolute: true);
@@ -293,7 +327,7 @@ class TwilioCredentialSettings extends Component
         }
 
         if ($statusCode === 403 && $webhookMarker !== 'twilio-whatsapp-status') {
-            return "HTTP 403 error\nEl servidor bloqueó la petición antes de llegar al webhook Laravel. Revisa reglas de hosting, Cloudflare, mod_security, WAF o protección de POST para {$callbackUrl}.";
+            return "HTTP 403 error\nEl servidor bloqueó la petición antes de llegar al webhook Laravel. Revisa reglas de hosting, Cloudflare, mod_security, WAF o protección de POST para {$callbackUrl}.".($internalCheck ? "\n{$internalCheck}" : '');
         }
 
         if ($statusCode === 403) {
