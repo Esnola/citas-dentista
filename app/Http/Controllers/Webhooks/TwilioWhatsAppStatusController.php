@@ -22,7 +22,7 @@ class TwilioWhatsAppStatusController extends Controller
                 'message_status' => $request->string('MessageStatus')->toString(),
             ]);
 
-            return response()->noContent(403);
+            return $this->webhookResponse(403);
         }
 
         $payload = $request->all();
@@ -33,7 +33,14 @@ class TwilioWhatsAppStatusController extends Controller
             $deliveryStatusSyncer->syncFromTwilioWebhook($payload);
         }
 
-        return response()->noContent();
+        return $this->webhookResponse();
+    }
+
+    private function webhookResponse(int $status = 204): Response
+    {
+        return response()
+            ->noContent($status)
+            ->header('X-CitasDentista-Webhook', 'twilio-whatsapp-status');
     }
 
     /**

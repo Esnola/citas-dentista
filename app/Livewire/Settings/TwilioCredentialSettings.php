@@ -245,7 +245,13 @@ class TwilioCredentialSettings extends Component
                 ->post($callbackUrl, $payload);
 
             $statusCode = $response->status();
-            $message = $this->formatWebhookTestResponse($statusCode, $response->body(), $response->header('Content-Type'), $callbackUrl);
+            $message = $this->formatWebhookTestResponse(
+                $statusCode,
+                $response->body(),
+                $response->header('Content-Type'),
+                $callbackUrl,
+                $response->header('X-CitasDentista-Webhook'),
+            );
 
             if ($response->successful()) {
                 $this->status = $message;
@@ -277,13 +283,21 @@ class TwilioCredentialSettings extends Component
         ];
     }
 
-    private function formatWebhookTestResponse(int $statusCode, string $body, ?string $contentType, string $callbackUrl): string
+    private function formatWebhookTestResponse(int $statusCode, string $body, ?string $contentType, string $callbackUrl, ?string $webhookMarker): string
     {
         $body = trim($body);
         $expectedUrl = route('webhooks.twilio.whatsapp-status', absolute: true);
 
         if ($statusCode === 404) {
             return "HTTP 404 error\nNo existe un endpoint en esa URL. URL esperada por esta app: {$expectedUrl}";
+        }
+
+        if ($statusCode === 403 && $webhookMarker !== 'twilio-whatsapp-status') {
+            return "HTTP 403 error\nEl servidor bloqueó la petición antes de llegar al webhook Laravel. Revisa reglas de hosting, Cloudflare, mod_security, WAF o protección de POST para {$callbackUrl}.";
+        }
+
+        if ($statusCode === 403) {
+            return "HTTP 403 error\nLa petición llegó al webhook, pero la firma de Twilio no es válida. Guarda la Callback URL y revisa que el Auth Token coincida con el de Twilio.";
         }
 
         if ($body === '') {

@@ -71,6 +71,42 @@ class TwilioCredentialSettingsTest extends TestCase
 No existe un endpoint en esa URL. URL esperada por esta app: '.route('webhooks.twilio.whatsapp-status', absolute: true));
     }
 
+    public function test_test_webhook_explains_403_responses_before_laravel(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+        $callbackUrl = 'https://example.com/webhooks/twilio/whatsapp-status';
+
+        Http::fake([
+            $callbackUrl => Http::response('<!DOCTYPE html><html><body>Forbidden</body></html>', 403, [
+                'Content-Type' => 'text/html; charset=UTF-8',
+            ]),
+        ]);
+
+        Livewire::actingAs($admin)
+            ->test(TwilioCredentialSettings::class)
+            ->set('status_callback_url', $callbackUrl)
+            ->call('testWebhook')
+            ->assertSet('status', "HTTP 403 error\nEl servidor bloqueó la petición antes de llegar al webhook Laravel. Revisa reglas de hosting, Cloudflare, mod_security, WAF o protección de POST para {$callbackUrl}.");
+    }
+
+    public function test_test_webhook_explains_invalid_twilio_signature(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+        $callbackUrl = 'https://example.com/webhooks/twilio/whatsapp-status';
+
+        Http::fake([
+            $callbackUrl => Http::response('', 403, [
+                'X-CitasDentista-Webhook' => 'twilio-whatsapp-status',
+            ]),
+        ]);
+
+        Livewire::actingAs($admin)
+            ->test(TwilioCredentialSettings::class)
+            ->set('status_callback_url', $callbackUrl)
+            ->call('testWebhook')
+            ->assertSet('status', "HTTP 403 error\nLa petición llegó al webhook, pero la firma de Twilio no es válida. Guarda la Callback URL y revisa que el Auth Token coincida con el de Twilio.");
+    }
+
     public function test_test_webhook_signs_the_request_when_auth_token_exists(): void
     {
         $admin = User::factory()->create(['is_admin' => true]);

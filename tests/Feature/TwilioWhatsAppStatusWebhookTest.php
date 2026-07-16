@@ -76,7 +76,9 @@ class TwilioWhatsAppStatusWebhookTest extends TestCase
 
         $this->post(route('webhooks.twilio.whatsapp-status'), $payload, [
             'X-Twilio-Signature' => $signature,
-        ])->assertNoContent();
+        ])
+            ->assertNoContent()
+            ->assertHeader('X-CitasDentista-Webhook', 'twilio-whatsapp-status');
 
         $appointment->refresh();
         $message = WhatsAppMessage::query()->firstOrFail()->refresh();
