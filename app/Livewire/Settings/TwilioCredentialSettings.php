@@ -7,6 +7,7 @@ use App\Models\WhatsAppSenderNumber;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use Livewire\Component;
+use Twilio\Security\RequestValidator;
 
 class TwilioCredentialSettings extends Component
 {
@@ -225,23 +226,26 @@ class TwilioCredentialSettings extends Component
         }
 
         try {
+            $payload = [
+                'MessageSid' => 'SM'.strtoupper(bin2hex(random_bytes(16))),
+                'AccountSid' => $credential->resolveAccountSid() ?? '',
+                'From' => 'whatsapp:+34600000000',
+                'To' => 'whatsapp:+15559355880',
+                'Body' => 'Test webhook message',
+                'NumMedia' => '0',
+                'ButtonText' => 'Confirmar',
+                'ButtonPayload' => 'confirmarcita',
+                'WaId' => '34600000000',
+            ];
+
             $response = Http::timeout(10)
                 ->acceptJson()
                 ->asForm()
-                ->post($callbackUrl, [
-                    'MessageSid' => 'SM'.strtoupper(bin2hex(random_bytes(16))),
-                    'AccountSid' => $credential->resolveAccountSid() ?? '',
-                    'From' => 'whatsapp:+34600000000',
-                    'To' => 'whatsapp:+15559355880',
-                    'Body' => 'Test webhook message',
-                    'NumMedia' => '0',
-                    'ButtonText' => 'Confirmar',
-                    'ButtonPayload' => 'confirmarcita',
-                    'WaId' => '34600000000',
-                ]);
+                ->withHeaders($this->twilioTestHeaders($credential, $callbackUrl, $payload))
+                ->post($callbackUrl, $payload);
 
             $statusCode = $response->status();
-            $message = $this->formatWebhookTestResponse($statusCode, $response->body(), $response->header('Content-Type'));
+            $message = $this->formatWebhookTestResponse($statusCode, $response->body(), $response->header('Content-Type'), $callbackUrl);
 
             if ($response->successful()) {
                 $this->status = $message;
@@ -256,16 +260,38 @@ class TwilioCredentialSettings extends Component
         }
     }
 
-    private function formatWebhookTestResponse(int $statusCode, string $body, ?string $contentType): string
+    /**
+     * @param  array<string, string>  $payload
+     * @return array<string, string>
+     */
+    private function twilioTestHeaders(WhatsAppCredential $credential, string $callbackUrl, array $payload): array
+    {
+        $authToken = (string) ($credential->resolveAuthToken() ?? '');
+
+        if ($authToken === '') {
+            return [];
+        }
+
+        return [
+            'X-Twilio-Signature' => (new RequestValidator($authToken))->computeSignature($callbackUrl, $payload),
+        ];
+    }
+
+    private function formatWebhookTestResponse(int $statusCode, string $body, ?string $contentType, string $callbackUrl): string
     {
         $body = trim($body);
+        $expectedUrl = route('webhooks.twilio.whatsapp-status', absolute: true);
+
+        if ($statusCode === 404) {
+            return "HTTP 404 error\nNo existe un endpoint en esa URL. URL esperada por esta app: {$expectedUrl}";
+        }
 
         if ($body === '') {
             return "HTTP {$statusCode}\nSin contenido.";
         }
 
         if (str_contains((string) $contentType, 'text/html') || Str::startsWith(Str::lower($body), ['<!doctype html', '<html'])) {
-            return "HTTP {$statusCode} error\nEl endpoint devolvió HTML. Revisa que la URL apunte al webhook de Twilio y no a una página de la aplicación.";
+            return "HTTP {$statusCode} error\nEl endpoint devolvió HTML. Revisa que {$callbackUrl} apunte al webhook de Twilio. URL esperada por esta app: {$expectedUrl}";
         }
 
         return "HTTP {$statusCode}\n".Str::limit($body, 500);
