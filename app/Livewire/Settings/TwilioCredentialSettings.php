@@ -5,6 +5,7 @@ namespace App\Livewire\Settings;
 use App\Models\WhatsAppCredential;
 use App\Models\WhatsAppSenderNumber;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Str;
 use Livewire\Component;
 
 class TwilioCredentialSettings extends Component
@@ -206,7 +207,7 @@ class TwilioCredentialSettings extends Component
         abort_unless(auth()->user()?->is_admin, 403);
 
         $credential = WhatsAppCredential::get();
-        $callbackUrl = $credential->resolveStatusCallbackUrl();
+        $callbackUrl = trim($this->status_callback_url) ?: $credential->resolveStatusCallbackUrl();
 
         if ($callbackUrl === '' || $callbackUrl === null) {
             $this->status = 'No hay Callback URL configurada.';
@@ -215,8 +216,18 @@ class TwilioCredentialSettings extends Component
             return;
         }
 
+        $urlError = $this->validateCallbackUrl($callbackUrl);
+        if ($urlError !== null) {
+            $this->status = $urlError;
+            $this->dispatch('toast', message: $urlError, type: 'error');
+
+            return;
+        }
+
         try {
             $response = Http::timeout(10)
+                ->acceptJson()
+                ->asForm()
                 ->post($callbackUrl, [
                     'MessageSid' => 'SM'.strtoupper(bin2hex(random_bytes(16))),
                     'AccountSid' => $credential->resolveAccountSid() ?? '',
@@ -229,20 +240,35 @@ class TwilioCredentialSettings extends Component
                     'WaId' => '34600000000',
                 ]);
 
-            $body = $response->body();
             $statusCode = $response->status();
+            $message = $this->formatWebhookTestResponse($statusCode, $response->body(), $response->header('Content-Type'));
 
             if ($response->successful()) {
-                $this->status = "HTTP {$statusCode}\n".$body;
+                $this->status = $message;
                 $this->dispatch('toast', message: "Webhook OK (HTTP {$statusCode})", type: 'success');
             } else {
-                $this->status = "HTTP {$statusCode} error\n".$body;
+                $this->status = $message;
                 $this->dispatch('toast', message: "Webhook respondió HTTP {$statusCode}", type: 'error');
             }
         } catch (\Throwable $e) {
             $this->status = "Error: {$e->getMessage()}";
             $this->dispatch('toast', message: 'Error al conectar con el webhook.', type: 'error');
         }
+    }
+
+    private function formatWebhookTestResponse(int $statusCode, string $body, ?string $contentType): string
+    {
+        $body = trim($body);
+
+        if ($body === '') {
+            return "HTTP {$statusCode}\nSin contenido.";
+        }
+
+        if (str_contains((string) $contentType, 'text/html') || Str::startsWith(Str::lower($body), ['<!doctype html', '<html'])) {
+            return "HTTP {$statusCode} error\nEl endpoint devolvió HTML. Revisa que la URL apunte al webhook de Twilio y no a una página de la aplicación.";
+        }
+
+        return "HTTP {$statusCode}\n".Str::limit($body, 500);
     }
 
     private function validateCallbackUrl(string $url): ?string
