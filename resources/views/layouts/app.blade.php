@@ -93,8 +93,23 @@
 @endif
 
 <div
-        x-data="{ show: false, message: '', type: 'success' }"
-        x-on:toast.window="message = $event.detail.message; type = $event.detail.type || 'success'; show = true; setTimeout(() => show = false, 3500)"
+        x-data="{
+            show: false,
+            message: '',
+            type: 'success',
+            timeout: null,
+            open(event) {
+                clearTimeout(this.timeout);
+                this.message = event.detail.message;
+                this.type = event.detail.type || 'success';
+                this.show = true;
+
+                if (this.type !== 'error') {
+                    this.timeout = setTimeout(() => this.show = false, 3500);
+                }
+            },
+        }"
+        x-on:toast.window="open($event)"
         x-show="show"
         x-transition:enter="transition transform ease-linear duration-500"
         x-transition:enter-start="translate-x-full"
@@ -108,6 +123,13 @@
 >
   <x-iconos.ojo clase="size-8"/>
   <span x-text="message"></span>
+  <button
+          type="button"
+          class="-mr-4 rounded-full px-2 text-lg leading-none transition hover:bg-white/15"
+          aria-label="Cerrar aviso"
+          x-on:click="show = false; clearTimeout(timeout)">
+    &times;
+  </button>
 </div>
 
 <div
