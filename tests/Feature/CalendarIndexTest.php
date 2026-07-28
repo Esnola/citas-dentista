@@ -96,4 +96,18 @@ class CalendarIndexTest extends TestCase
                     && (int) data_get($day, 'inactive_appointments_count') === 0;
             });
     }
+
+    public function test_calendar_day_number_links_to_its_agenda_day(): void
+    {
+        Carbon::setTestNow(Carbon::parse('2026-07-13 10:00:00', config('app.timezone')));
+
+        $html = Livewire::test(CalendarIndex::class)
+            ->assertDontSeeHtml('href="'.route('agenda.day', '2026-07-19').'"')
+            ->html();
+
+        $this->assertMatchesRegularExpression(
+            '/<a href="'.preg_quote(route('agenda.day', '2026-07-15'), '/').'"\s+class="relative flex min-h-28/',
+            $html,
+        );
+    }
 }

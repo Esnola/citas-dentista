@@ -61,10 +61,16 @@
               $isPast = $isCurrentMonth && ! $isSunday && $date->lt(now(config('app.timezone'))->startOfDay());
             @endphp
 
-            <div class="relative flex min-h-28 flex-col border-r border-white/10 p-3 transition-colors last:border-r-0 sm:min-h-32 md:min-h-36 lg:min-h-40 {{ $isPast ? 'bg-zinc-950/35 text-slate-600 hover:bg-zinc-950/45' : ($isCurrentMonth && ! $isSunday ? 'bg-slate-900/45 hover:bg-slate-900/70' : 'bg-slate-950/55 text-slate-600') }}">
+            @if ($isCurrentMonth && ! $isSunday)
+              <a href="{{ route('agenda.day', $date->toDateString()) }}"
+                 class="relative flex min-h-28 flex-col border-r border-white/10 p-3 transition-colors last:border-r-0 focus-visible:outline-2 focus-visible:outline-inset focus-visible:outline-sky-300 sm:min-h-32 md:min-h-36 lg:min-h-40 {{ $isPast ? 'bg-zinc-950/35 text-slate-600 hover:bg-zinc-950/45' : 'bg-slate-900/45 hover:bg-slate-900/70' }}"
+                 aria-label="Ver agenda del {{ $date->translatedFormat('j \\d\\e F') }}">
+            @else
+              <div class="relative flex min-h-28 flex-col border-r border-white/10 p-3 transition-colors last:border-r-0 sm:min-h-32 md:min-h-36 lg:min-h-40 bg-slate-950/55 text-slate-600">
+            @endif
               <div class="flex items-start justify-between gap-2">
                 <span class="grid size-14 place-items-center text-xl font-bold leading-none {{ $isToday && ! $isSunday ? 'rounded-full bg-sky-600/50 text-white shadow-sm shadow-sky-500/20' : ($isPast ? 'text-slate-700/70' : ($isCurrentMonth && ! $isSunday ? 'text-slate-100/70' : 'text-slate-600/50')) }}">
-                  {{ $date->format('j') }}
+                    {{ $date->format('j') }}
                 </span>
               </div>
 
@@ -88,7 +94,11 @@
                   </div>
                 </div>
               @endif
-            </div>
+            @if ($isCurrentMonth && ! $isSunday)
+              </a>
+            @else
+              </div>
+            @endif
           @endforeach
         </div>
       @endforeach

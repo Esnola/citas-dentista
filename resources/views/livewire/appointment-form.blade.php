@@ -112,7 +112,7 @@
                   />
                   <flux:error name="fecha"/>
                   @if ($hasAppointmentDateConflict)
-                    <p class="mt-2 text-xs font-medium text-amber-200">Este cliente ya tiene una cita ese día.</p>
+                    <p class="mt-2 text-xs font-medium text-amber-200">Ya existe una cita para esa fecha y hora.</p>
                   @endif
                 </flux:field>
                 <flux:field>

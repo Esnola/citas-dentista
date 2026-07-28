@@ -133,14 +133,51 @@ class AppointmentManagerTest extends TestCase
             ->set('hora', '11:30')
             ->set('fecha', '2026-07-04')
             ->assertSet('hasScheduleChanges', true)
+            ->assertSet('hasAppointmentDateConflict', false)
+            ->assertSet('canSaveAppointment', true)
+            ->set('hora', '12:30')
             ->assertSet('hasAppointmentDateConflict', true)
             ->assertSet('canSaveAppointment', false)
-            ->assertSee('Este cliente ya tiene una cita ese día.')
+            ->assertSee('Ya existe una cita para esa fecha y hora.')
             ->call('save')
             ->assertHasErrors('fecha')
             ->set('fecha', '2026-07-05')
             ->assertSet('hasAppointmentDateConflict', false)
             ->assertSet('canSaveAppointment', true);
+
+        Carbon::setTestNow();
+    }
+
+    public function test_appointment_create_warns_before_saving_when_another_client_has_same_date_and_time(): void
+    {
+        Carbon::setTestNow('2026-06-23 09:00:00');
+
+        $client = Client::query()->create([
+            'nombre' => 'Ana',
+            'apellidos' => 'Pérez',
+            'telefono' => '+34600111222',
+        ]);
+        $otherClient = Client::query()->create([
+            'nombre' => 'Luis',
+            'apellidos' => 'García',
+            'telefono' => '+34600333444',
+        ]);
+        Appointment::query()->create([
+            'client_id' => $otherClient->id,
+            'fecha' => '2026-06-30',
+            'hora' => '11:30:00',
+        ]);
+
+        Livewire::test(AppointmentForm::class)
+            ->set('selectedClientId', $client->id)
+            ->set('fecha', '2026-06-30')
+            ->set('hora', '11:30')
+            ->assertSet('hasAppointmentDateConflict', true)
+            ->assertSee('Ya existe una cita para esa fecha y hora.')
+            ->call('save')
+            ->assertHasErrors('fecha');
+
+        $this->assertSame(1, Appointment::query()->count());
 
         Carbon::setTestNow();
     }
@@ -1969,6 +2006,30 @@ class AppointmentManagerTest extends TestCase
             ->assertSee('Ana Pérez');
     }
 
+    public function test_appointment_edit_defaults_communications_to_enabled(): void
+    {
+        $user = User::factory()->create();
+        $client = Client::query()->create([
+            'nombre' => 'Ana',
+            'apellidos' => 'Pérez',
+            'telefono' => '+34600111222',
+        ]);
+        $appointment = Appointment::query()->create([
+            'client_id' => $client->id,
+            'fecha' => '2026-06-30',
+            'hora' => '11:30',
+            'enviado' => true,
+            'activo' => false,
+        ]);
+
+        $html = $this->actingAs($user)
+            ->get(route('appointments.edit', $appointment))
+            ->assertOk()
+            ->getContent();
+
+        $this->assertStringContainsString('&quot;activo&quot;:true', $html);
+    }
+
     public function test_appointment_edit_can_update_active_status(): void
     {
         Carbon::setTestNow('2026-06-23 09:00:00');
@@ -1999,6 +2060,51 @@ class AppointmentManagerTest extends TestCase
             ->assertRedirect(route('appointments.index'));
 
         $this->assertFalse($appointment->refresh()->activo);
+
+        Carbon::setTestNow();
+    }
+
+    public function test_appointment_edit_warns_before_saving_when_another_client_has_same_date_and_time(): void
+    {
+        Carbon::setTestNow('2026-06-23 09:00:00');
+
+        $client = Client::query()->create([
+            'nombre' => 'Ana',
+            'apellidos' => 'Pérez',
+            'telefono' => '+34600111222',
+        ]);
+        $otherClient = Client::query()->create([
+            'nombre' => 'Luis',
+            'apellidos' => 'García',
+            'telefono' => '+34600333444',
+        ]);
+        $appointment = Appointment::query()->create([
+            'client_id' => $client->id,
+            'fecha' => '2026-06-30',
+            'hora' => '11:30',
+        ]);
+        Appointment::query()->create([
+            'client_id' => $otherClient->id,
+            'fecha' => '2026-07-01',
+            'hora' => '12:30',
+        ]);
+
+        Livewire::test(AppointmentForm::class)
+            ->set('selectedAppointmentId', $appointment->id)
+            ->set('selectedClientId', $client->id)
+            ->set('fecha', '2026-07-01')
+            ->set('hora', '12:30')
+            ->set('enviado', false)
+            ->set('activo', true)
+            ->assertSet('hasAppointmentDateConflict', true)
+            ->assertSet('canSaveAppointment', false)
+            ->call('save')
+            ->assertHasErrors('fecha');
+
+        $appointment->refresh();
+
+        $this->assertSame('2026-06-30', $appointment->fecha->toDateString());
+        $this->assertSame('11:30', $appointment->hora);
 
         Carbon::setTestNow();
     }

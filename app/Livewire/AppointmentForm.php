@@ -115,7 +115,7 @@ class AppointmentForm extends Component
             }
 
             if ($this->hasAppointmentDateConflict) {
-                $this->addError('fecha', 'Este cliente ya tiene una cita ese día.');
+                $this->addError('fecha', 'Ya existe una cita para esa fecha y hora.');
 
                 return;
             }
@@ -143,7 +143,7 @@ class AppointmentForm extends Component
             $this->redirect($this->returnUrl ?: url()->previous());
         } else {
             if ($this->hasAppointmentDateConflict) {
-                $this->addError('fecha', 'Este cliente ya tiene una cita ese día.');
+                $this->addError('fecha', 'Ya existe una cita para esa fecha y hora.');
 
                 return;
             }
@@ -419,13 +419,17 @@ class AppointmentForm extends Component
 
     private function appointmentDateConflictExists(): bool
     {
-        if (! $this->selectedClientId || ! $this->fecha) {
+        if (! $this->fecha || ! $this->hora) {
             return false;
         }
 
+        $hora = mb_substr($this->hora, 0, 5);
+
         return Appointment::query()
-            ->where('client_id', $this->selectedClientId)
             ->whereDate('fecha', $this->fecha)
+            ->where(fn ($query) => $query
+                ->where('hora', $hora)
+                ->orWhere('hora', $hora.':00'))
             ->when($this->selectedAppointmentId, fn ($query) => $query->whereKeyNot($this->selectedAppointmentId))
             ->exists();
     }
@@ -442,7 +446,7 @@ class AppointmentForm extends Component
         $this->fecha = $appointment->fecha?->toDateString() ?? '';
         $this->hora = mb_substr((string) $appointment->hora, 0, 5);
         $this->enviado = (bool) $appointment->enviado;
-        $this->activo = (bool) $appointment->activo;
+        $this->activo = true;
         $this->sendImmediately = true;
     }
 }
